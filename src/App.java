@@ -20,6 +20,7 @@ public class App extends Application {
 
     private Stage stage;
     private String rolActual;
+    private int contadorIdVenta = 1;
 
     private static final String FONDO          = "#F5F7FA";
     private static final String PANEL          = "#FFFFFF";
@@ -68,7 +69,7 @@ public class App extends Application {
             new ArrayList<>(List.of("3", "9")), 3)
     );
 
-    private ObservableList<PrendaVendida> listaPrendasVendidas = FXCollections.observableArrayList();
+    private ObservableList<PrendaVendida>   listaPrendasVendidas   = FXCollections.observableArrayList();
     private ObservableList<ConjuntoVendido> listaConjuntosVendidos = FXCollections.observableArrayList();
 
     // ── LÓGICA CONJUNTOS ─────────────────────────────────────────────
@@ -237,7 +238,7 @@ public class App extends Application {
             btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
             btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
             btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
-            btnDev.setOnAction(e -> mostrarPlaceholder(contenido, "Devoluciones"));
+            btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
 
             sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACIÓN"));
             Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
@@ -262,7 +263,7 @@ public class App extends Application {
             btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
             btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, false));
             btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, false));
-            btnDev.setOnAction(e -> mostrarPlaceholder(contenido, "Devoluciones"));
+            btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
         }
 
         Region spacer = new Region();
@@ -581,15 +582,15 @@ public class App extends Application {
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay prendas vendidas registradas"));
 
-        TableColumn<PrendaVendida, String> colId        = new TableColumn<>("ID Venta");
-        TableColumn<PrendaVendida, String> colNombre    = new TableColumn<>("Prenda");
-        TableColumn<PrendaVendida, String> colTalla     = new TableColumn<>("Talla");
-        TableColumn<PrendaVendida, String> colCantidad  = new TableColumn<>("Cant.");
-        TableColumn<PrendaVendida, String> colTipo      = new TableColumn<>("Tipo");
-        TableColumn<PrendaVendida, String> colPrecio    = new TableColumn<>("Precio Unit.");
-        TableColumn<PrendaVendida, String> colTotal     = new TableColumn<>("Total");
-        TableColumn<PrendaVendida, String> colFechaVta  = new TableColumn<>("Fecha Venta");
-        TableColumn<PrendaVendida, String> colFechaDev  = new TableColumn<>("Límite Dev.");
+        TableColumn<PrendaVendida, String> colId       = new TableColumn<>("ID Venta");
+        TableColumn<PrendaVendida, String> colNombre   = new TableColumn<>("Prenda");
+        TableColumn<PrendaVendida, String> colTalla    = new TableColumn<>("Talla");
+        TableColumn<PrendaVendida, String> colCantidad = new TableColumn<>("Cant.");
+        TableColumn<PrendaVendida, String> colTipo     = new TableColumn<>("Tipo");
+        TableColumn<PrendaVendida, String> colPrecio   = new TableColumn<>("Precio Unit.");
+        TableColumn<PrendaVendida, String> colTotal    = new TableColumn<>("Total");
+        TableColumn<PrendaVendida, String> colFechaVta = new TableColumn<>("Fecha Venta");
+        TableColumn<PrendaVendida, String> colFechaDev = new TableColumn<>("Límite Dev.");
 
         colId.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getIdVenta()));
         colNombre.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getNombrePrenda()));
@@ -678,14 +679,14 @@ public class App extends Application {
                 lEstado.setTextFill(Color.web(dentroDevolucion ? EXITO : ERROR));
 
                 tarjeta.getChildren().addAll(lNombre, sep,
-                    filaDetalle("ID Venta:",       pv.getIdVenta()),
-                    filaDetalle("Cantidad:",        String.valueOf(pv.getCantidad())),
-                    filaDetalle("Tipo de venta:",   pv.getTipoVenta()),
-                    filaDetalle("Precio unitario:", "$" + String.format("%.2f", pv.getPrecioUnitario())),
-                    filaDetalle("Total:",           "$" + String.format("%.2f", pv.getTotal())),
-                    filaDetalle("Fecha de venta:",  pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
+                    filaDetalle("ID Venta:",         pv.getIdVenta()),
+                    filaDetalle("Cantidad:",          String.valueOf(pv.getCantidad())),
+                    filaDetalle("Tipo de venta:",     pv.getTipoVenta()),
+                    filaDetalle("Precio unitario:",   "$" + String.format("%.2f", pv.getPrecioUnitario())),
+                    filaDetalle("Total:",             "$" + String.format("%.2f", pv.getTotal())),
+                    filaDetalle("Fecha de venta:",    pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
                     filaDetalle("Límite devolución:", pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Descripción:",     pv.getDescripcion()),
+                    filaDetalle("Descripción:",       pv.getDescripcion()),
                     lEstado);
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
@@ -768,8 +769,8 @@ public class App extends Application {
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un registro con ese ID de venta"); return; }
 
             try {
-                int cantidad       = Integer.parseInt(cantidadStr);
-                double precioUnit  = Double.parseDouble(precioStr);
+                int cantidad      = Integer.parseInt(cantidadStr);
+                double precioUnit = Double.parseDouble(precioStr);
                 LocalDate fechaVenta;
                 if (fechaStr.isEmpty()) {
                     fechaVenta = LocalDate.now();
@@ -780,7 +781,7 @@ public class App extends Application {
                 listaPrendasVendidas.add(new PrendaVendida(idVenta, nombrePrenda, talla, cantidad, tipoVenta, precioUnit, fechaVenta, fechaDevolucion, descripcion));
                 mostrarModuloPrendasVendidas(contenido, true);
             } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos (cantidad, precio y fecha)");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos");
             }
         });
 
@@ -1031,7 +1032,6 @@ public class App extends Application {
                 lEstado.setFont(Font.font("System", FontWeight.BOLD, 12));
                 lEstado.setTextFill(Color.web(dentroDevolucion ? EXITO : ERROR));
 
-                // Prendas del conjunto si aún existe
                 Label labelPrendasTitulo = new Label("Prendas del conjunto:");
                 labelPrendasTitulo.setFont(Font.font("System", FontWeight.BOLD, 12));
                 labelPrendasTitulo.setTextFill(Color.web(TEXTO_SUAVE));
@@ -1048,14 +1048,14 @@ public class App extends Application {
                 filaPrendas.setAlignment(Pos.TOP_LEFT);
 
                 tarjeta.getChildren().addAll(lNombre, sep,
-                    filaDetalle("ID Venta:",        cv.getIdVenta()),
-                    filaDetalle("Cantidad:",         String.valueOf(cv.getCantidad())),
-                    filaDetalle("Tipo de venta:",    cv.getTipoVenta()),
-                    filaDetalle("Precio unitario:",  "$" + String.format("%.2f", cv.getPrecioUnitario())),
-                    filaDetalle("Total:",            "$" + String.format("%.2f", cv.getTotal())),
-                    filaDetalle("Fecha de venta:",   cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
+                    filaDetalle("ID Venta:",         cv.getIdVenta()),
+                    filaDetalle("Cantidad:",          String.valueOf(cv.getCantidad())),
+                    filaDetalle("Tipo de venta:",     cv.getTipoVenta()),
+                    filaDetalle("Precio unitario:",   "$" + String.format("%.2f", cv.getPrecioUnitario())),
+                    filaDetalle("Total:",             "$" + String.format("%.2f", cv.getTotal())),
+                    filaDetalle("Fecha de venta:",    cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
                     filaDetalle("Límite devolución:", cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Descripción:",      cv.getDescripcion()),
+                    filaDetalle("Descripción:",       cv.getDescripcion()),
                     filaPrendas, lEstado);
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
@@ -1332,10 +1332,10 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
         btnGuardar.setOnAction(e -> {
-            String id          = campoId.getText().trim();
-            String nombre      = campoNombre.getText().trim();
-            String descripcion = campoDescripcion.getText().trim();
-            String piezasStr   = campoPiezas.getText().trim();
+            String id           = campoId.getText().trim();
+            String nombre       = campoNombre.getText().trim();
+            String descripcion  = campoDescripcion.getText().trim();
+            String piezasStr    = campoPiezas.getText().trim();
             String idPrendasStr = campoIdPrendas.getText().trim();
 
             if (id.isEmpty() || nombre.isEmpty() || piezasStr.isEmpty() || idPrendasStr.isEmpty()) {
@@ -1432,9 +1432,9 @@ public class App extends Application {
 
         btnGuardar.setOnAction(e -> {
             if (conjuntoEncontrado[0] == null) return;
-            String nombre      = campoNombre.getText().trim();
-            String descripcion = campoDescripcion.getText().trim();
-            String piezasStr   = campoPiezas.getText().trim();
+            String nombre       = campoNombre.getText().trim();
+            String descripcion  = campoDescripcion.getText().trim();
+            String piezasStr    = campoPiezas.getText().trim();
             String idPrendasStr = campoIdPrendas.getText().trim();
             if (nombre.isEmpty() || piezasStr.isEmpty() || idPrendasStr.isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
@@ -1518,12 +1518,12 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
         btnGuardar.setOnAction(e -> {
-            String nombre     = campoNombre.getText().trim();
-            String id         = campoId.getText().trim();
-            String talla      = selectorTalla.getValue();
-            String tipoPrenda = campoTipoPrenda.getText().trim();
-            String descripcion= campoDescripcion.getText().trim();
-            String idTienda   = campoIdTienda.getText().trim();
+            String nombre      = campoNombre.getText().trim();
+            String id          = campoId.getText().trim();
+            String talla       = selectorTalla.getValue();
+            String tipoPrenda  = campoTipoPrenda.getText().trim();
+            String descripcion = campoDescripcion.getText().trim();
+            String idTienda    = campoIdTienda.getText().trim();
 
             if (nombre.isEmpty() || id.isEmpty() || campoExistencia.getText().isEmpty()
                     || campoPMayoreo.getText().isEmpty() || campoPMenudeo.getText().isEmpty()) {
@@ -1713,11 +1713,11 @@ public class App extends Application {
 
         btnGuardar.setOnAction(e -> {
             if (prendaEncontrada[0] == null) return;
-            String nombre     = campoNombre.getText().trim();
-            String tipoPrenda = campoTipoPrenda.getText().trim();
-            String descripcion= campoDescripcion.getText().trim();
-            String idTienda   = campoIdTienda.getText().trim();
-            String talla      = selectorTalla.getValue();
+            String nombre      = campoNombre.getText().trim();
+            String tipoPrenda  = campoTipoPrenda.getText().trim();
+            String descripcion = campoDescripcion.getText().trim();
+            String idTienda    = campoIdTienda.getText().trim();
+            String talla       = selectorTalla.getValue();
             if (nombre.isEmpty() || campoExistencia.getText().isEmpty() || campoPMayoreo.getText().isEmpty() || campoPMenudeo.getText().isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
             }
@@ -1995,14 +1995,14 @@ public class App extends Application {
         contenido.getChildren().clear();
 
         List<Prenda> prendasAEliminar = new ArrayList<>();
-        LocalDate fechaHoy = LocalDate.now();
+        LocalDate fechaHoy       = LocalDate.now();
         LocalDate fechaDevolucion = fechaHoy.plusDays(DIAS_DEVOLUCION);
-        String idVentaBase = String.valueOf(System.currentTimeMillis());
+        String idVentaBase        = String.valueOf(contadorIdVenta++);
 
-        int contadorVenta = 0;
+        int contadorItem = 0;
         for (ItemVenta item : carrito) {
-            contadorVenta++;
-            String idVenta = idVentaBase + "-" + contadorVenta;
+            contadorItem++;
+            String idVenta = idVentaBase + (carrito.size() > 1 ? "-" + contadorItem : "");
 
             if (item.getPrenda() != null) {
                 Prenda p = item.getPrenda();
@@ -2010,7 +2010,6 @@ public class App extends Application {
                 if (nuevaExist <= 0) prendasAEliminar.add(p);
                 else p.setExistencia(nuevaExist);
 
-                // Registrar en prendas vendidas
                 listaPrendasVendidas.add(new PrendaVendida(
                     idVenta, p.getNombre(), p.getTalla(), item.getCantidad(),
                     item.getTipoVenta(), item.getPrecioUnitario(),
@@ -2030,7 +2029,6 @@ public class App extends Application {
                     });
                 }
 
-                // Registrar en conjuntos vendidos
                 listaConjuntosVendidos.add(new ConjuntoVendido(
                     idVenta, c.getNombre(), item.getCantidad(),
                     item.getTipoVenta(), item.getPrecioUnitario(),
@@ -2053,7 +2051,7 @@ public class App extends Application {
         subtituloRecibo.setFont(Font.font("System", FontWeight.BOLD, 13));
         subtituloRecibo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        Label labelFecha = new Label("Fecha: " + fecha);
+        Label labelFecha = new Label("Fecha: " + fecha + "   |   Venta #" + idVentaBase);
         labelFecha.setFont(Font.font("System", 12));
         labelFecha.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -2119,6 +2117,263 @@ public class App extends Application {
         recibo.setMaxWidth(560);
 
         ScrollPane scroll = new ScrollPane(recibo);
+        scroll.setFitToWidth(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    // ── DEVOLUCIONES ─────────────────────────────────────────────────
+    private void mostrarDevoluciones(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo = new Label("Devoluciones");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Busca por ID de venta o nombre del producto para procesar la devolución");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoBusqueda = crearTextField("ID de venta o nombre de prenda/conjunto");
+        campoBusqueda.setMaxWidth(400);
+
+        Label mensajeBusqueda = new Label("");
+        mensajeBusqueda.setFont(Font.font("System", 12));
+
+        VBox panelResultado = new VBox(12);
+        panelResultado.setStyle(
+            "-fx-background-color: #FFF7ED; -fx-border-color: " + NARANJA + ";" +
+            "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 16;");
+        panelResultado.setVisible(false);
+        panelResultado.setManaged(false);
+        panelResultado.setMaxWidth(480);
+
+        final PrendaVendida[]   pvRef = {null};
+        final ConjuntoVendido[] cvRef = {null};
+
+        Label labelNombre      = new Label("");
+        Label labelFechaVenta  = new Label("");
+        Label labelLimite      = new Label("");
+        Label labelEstadoDev   = new Label("");
+        Label labelCantVendida = new Label("");
+
+        labelNombre.setFont(Font.font("System", FontWeight.BOLD, 15));
+        labelNombre.setTextFill(Color.web(SECUNDARIO));
+        for (Label l : new Label[]{labelFechaVenta, labelLimite, labelCantVendida}) {
+            l.setFont(Font.font("System", 12));
+            l.setTextFill(Color.web(TEXTO_SUAVE));
+        }
+        labelEstadoDev.setFont(Font.font("System", FontWeight.BOLD, 12));
+
+        Label labelCantDev = new Label("Cantidad a devolver:");
+        labelCantDev.setFont(Font.font("System", 12));
+        labelCantDev.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoCantidad = crearTextField("Cantidad");
+        campoCantidad.setMaxWidth(200);
+
+        Label mensajeDevolucion = new Label("");
+        mensajeDevolucion.setFont(Font.font("System", 12));
+
+        Button btnConfirmar = new Button("✔ Confirmar Devolución");
+        btnConfirmar.setStyle(
+            "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        Region sepInterno = new Region();
+        sepInterno.setPrefHeight(1);
+        sepInterno.setStyle("-fx-background-color: #E5E7EB;");
+
+        panelResultado.getChildren().addAll(
+            labelNombre, sepInterno,
+            labelFechaVenta, labelLimite, labelEstadoDev, labelCantVendida,
+            labelCantDev, campoCantidad, mensajeDevolucion, btnConfirmar
+        );
+
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setStyle(estiloBtnPrincipal());
+
+        btnBuscar.setOnAction(e -> {
+            String busqueda = campoBusqueda.getText().trim();
+            if (busqueda.isEmpty()) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Ingresa un ID de venta o nombre");
+                return;
+            }
+
+            pvRef[0] = null; cvRef[0] = null;
+            mensajeDevolucion.setText(""); campoCantidad.clear();
+
+            PrendaVendida pv = listaPrendasVendidas.stream()
+                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
+                .findFirst().orElse(null);
+
+            ConjuntoVendido cv = null;
+            if (pv == null) {
+                cv = listaConjuntosVendidos.stream()
+                    .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
+                    .findFirst().orElse(null);
+            }
+
+            if (pv == null && cv == null) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("No se encontró ninguna venta con ese dato");
+                panelResultado.setVisible(false); panelResultado.setManaged(false);
+                return;
+            }
+
+            boolean dentroDelPlazo;
+            if (pv != null) {
+                pvRef[0] = pv;
+                dentroDelPlazo = !LocalDate.now().isAfter(pv.getFechaLimiteDevolucion());
+                labelNombre.setText("Prenda: " + pv.getNombrePrenda() + " — Talla " + pv.getTalla());
+                labelFechaVenta.setText("Fecha de venta: " + pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelLimite.setText("Límite de devolución: " + pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
+            } else {
+                cvRef[0] = cv;
+                dentroDelPlazo = !LocalDate.now().isAfter(cv.getFechaLimiteDevolucion());
+                labelNombre.setText("Conjunto: " + cv.getNombreConjunto());
+                labelFechaVenta.setText("Fecha de venta: " + cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelLimite.setText("Límite de devolución: " + cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
+            }
+
+            labelEstadoDev.setText(dentroDelPlazo
+                ? "✔ Dentro del periodo de devolución"
+                : "⚠ Periodo de devolución vencido — se puede registrar igualmente");
+            labelEstadoDev.setTextFill(Color.web(dentroDelPlazo ? EXITO : ADVERTENCIA));
+
+            mensajeBusqueda.setTextFill(Color.web(EXITO));
+            mensajeBusqueda.setText("Venta encontrada");
+            panelResultado.setVisible(true); panelResultado.setManaged(true);
+        });
+
+        btnConfirmar.setOnAction(e -> {
+            String cantStr = campoCantidad.getText().trim();
+            if (cantStr.isEmpty()) {
+                mensajeDevolucion.setTextFill(Color.web(ERROR));
+                mensajeDevolucion.setText("Ingresa la cantidad a devolver");
+                return;
+            }
+            try {
+                int cantDevolver = Integer.parseInt(cantStr);
+                if (cantDevolver <= 0) {
+                    mensajeDevolucion.setTextFill(Color.web(ERROR));
+                    mensajeDevolucion.setText("La cantidad debe ser mayor a 0");
+                    return;
+                }
+
+                if (pvRef[0] != null) {
+                    PrendaVendida pv = pvRef[0];
+                    if (cantDevolver > pv.getCantidad()) {
+                        mensajeDevolucion.setTextFill(Color.web(ERROR));
+                        mensajeDevolucion.setText("No puedes devolver más de " + pv.getCantidad() + " unidades");
+                        return;
+                    }
+
+                    Prenda prendaExistente = listaPrendas.stream()
+                        .filter(p -> p.getNombre().equalsIgnoreCase(pv.getNombrePrenda())
+                                  && p.getTalla().equalsIgnoreCase(pv.getTalla()))
+                        .findFirst().orElse(null);
+
+                    if (prendaExistente != null) {
+                        prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                    } else {
+                        String idNuevo = "DEV-" + contadorIdVenta++;
+                        listaPrendas.add(new Prenda(
+                            pv.getNombrePrenda(), idNuevo, pv.getTalla(),
+                            "Devuelto", cantDevolver,
+                            pv.getPrecioUnitario(), pv.getPrecioUnitario(),
+                            "—", "Prenda devuelta — ID venta: " + pv.getIdVenta()
+                        ));
+                    }
+
+                    double reembolso = cantDevolver * pv.getPrecioUnitario();
+
+                    if (cantDevolver == pv.getCantidad()) {
+                        listaPrendasVendidas.remove(pv);
+                        pvRef[0] = null;
+                        panelResultado.setVisible(false); panelResultado.setManaged(false);
+                        campoBusqueda.clear(); mensajeBusqueda.setText("");
+                    } else {
+                        pv.setCantidad(pv.getCantidad() - cantDevolver);
+                        labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
+                    }
+
+                    mensajeDevolucion.setTextFill(Color.web(EXITO));
+                    mensajeDevolucion.setText("✔ Devolución registrada. " + cantDevolver + " unidades reintegradas.  Reembolso: $" + String.format("%.2f", reembolso));
+                    campoCantidad.clear();
+
+                } else if (cvRef[0] != null) {
+                    ConjuntoVendido cv = cvRef[0];
+                    if (cantDevolver > cv.getCantidad()) {
+                        mensajeDevolucion.setTextFill(Color.web(ERROR));
+                        mensajeDevolucion.setText("No puedes devolver más de " + cv.getCantidad() + " unidades");
+                        return;
+                    }
+
+                    double reembolso = cantDevolver * cv.getPrecioUnitario();
+
+                    for (String nombrePrendaConj : cv.getNombresPrendas()) {
+                        String nombreBase    = nombrePrendaConj;
+                        String tallaExtraida = "";
+                        int idxParen = nombrePrendaConj.lastIndexOf("(Talla ");
+                        if (idxParen >= 0) {
+                            nombreBase    = nombrePrendaConj.substring(0, idxParen).trim();
+                            tallaExtraida = nombrePrendaConj.substring(idxParen + 7, nombrePrendaConj.lastIndexOf(")")).trim();
+                        }
+                        final String nBase = nombreBase;
+                        final String talla = tallaExtraida;
+
+                        Prenda prendaExistente = listaPrendas.stream()
+                            .filter(p -> p.getNombre().equalsIgnoreCase(nBase)
+                                      && (talla.isEmpty() || p.getTalla().equalsIgnoreCase(talla)))
+                            .findFirst().orElse(null);
+
+                        if (prendaExistente != null) {
+                            prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                        } else {
+                            String idNuevo = "DEV-" + contadorIdVenta++;
+                            listaPrendas.add(new Prenda(
+                                nBase, idNuevo, talla.isEmpty() ? "?" : talla,
+                                "Devuelto", cantDevolver, 0.0, 0.0, "—",
+                                "Prenda devuelta de conjunto — ID venta: " + cv.getIdVenta()
+                            ));
+                        }
+                    }
+
+                    if (cantDevolver == cv.getCantidad()) {
+                        listaConjuntosVendidos.remove(cv);
+                        cvRef[0] = null;
+                        panelResultado.setVisible(false); panelResultado.setManaged(false);
+                        campoBusqueda.clear(); mensajeBusqueda.setText("");
+                    } else {
+                        cv.setCantidad(cv.getCantidad() - cantDevolver);
+                        labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
+                    }
+
+                    mensajeDevolucion.setTextFill(Color.web(EXITO));
+                    mensajeDevolucion.setText("✔ Devolución registrada. " + cantDevolver + " conjunto(s) devuelto(s), prendas reintegradas.  Reembolso: $" + String.format("%.2f", reembolso));
+                    campoCantidad.clear();
+                }
+
+            } catch (NumberFormatException ex) {
+                mensajeDevolucion.setTextFill(Color.web(ERROR));
+                mensajeDevolucion.setText("Ingresa una cantidad válida");
+            }
+        });
+
+        VBox form = new VBox(14, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado);
+        form.setAlignment(Pos.CENTER_LEFT);
+        form.setMaxWidth(520);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
         scroll.setStyle("-fx-background-color: " + FONDO + ";");
 
@@ -2372,7 +2627,7 @@ public class App extends Application {
             this.descripcion = descripcion;
         }
 
-        public String    getIdVenta()                { return idVenta; }
+        public String    getIdVenta()               { return idVenta; }
         public String    getNombrePrenda()           { return nombrePrenda; }
         public String    getTalla()                  { return talla; }
         public int       getCantidad()               { return cantidad; }
@@ -2383,14 +2638,14 @@ public class App extends Application {
         public LocalDate getFechaLimiteDevolucion()  { return fechaLimiteDevolucion; }
         public String    getDescripcion()            { return descripcion; }
 
-        public void setNombrePrenda(String n)              { this.nombrePrenda = n; }
-        public void setTalla(String t)                     { this.talla = t; }
-        public void setCantidad(int c)                     { this.cantidad = c; }
-        public void setTipoVenta(String t)                 { this.tipoVenta = t; }
-        public void setPrecioUnitario(double p)            { this.precioUnitario = p; }
-        public void setFechaVenta(LocalDate f)             { this.fechaVenta = f; }
-        public void setFechaLimiteDevolucion(LocalDate f)  { this.fechaLimiteDevolucion = f; }
-        public void setDescripcion(String d)               { this.descripcion = d; }
+        public void setNombrePrenda(String n)             { this.nombrePrenda = n; }
+        public void setTalla(String t)                    { this.talla = t; }
+        public void setCantidad(int c)                    { this.cantidad = c; }
+        public void setTipoVenta(String t)                { this.tipoVenta = t; }
+        public void setPrecioUnitario(double p)           { this.precioUnitario = p; }
+        public void setFechaVenta(LocalDate f)            { this.fechaVenta = f; }
+        public void setFechaLimiteDevolucion(LocalDate f) { this.fechaLimiteDevolucion = f; }
+        public void setDescripcion(String d)              { this.descripcion = d; }
     }
 
     public static class ConjuntoVendido {
@@ -2421,14 +2676,14 @@ public class App extends Application {
         public String       getDescripcion()           { return descripcion; }
         public List<String> getNombresPrendas()        { return nombresPrendas; }
 
-        public void setNombreConjunto(String n)             { this.nombreConjunto = n; }
-        public void setCantidad(int c)                      { this.cantidad = c; }
-        public void setTipoVenta(String t)                  { this.tipoVenta = t; }
-        public void setPrecioUnitario(double p)             { this.precioUnitario = p; }
-        public void setFechaVenta(LocalDate f)              { this.fechaVenta = f; }
-        public void setFechaLimiteDevolucion(LocalDate f)   { this.fechaLimiteDevolucion = f; }
-        public void setDescripcion(String d)                { this.descripcion = d; }
-        public void setNombresPrendas(List<String> l)       { this.nombresPrendas = l; }
+        public void setNombreConjunto(String n)            { this.nombreConjunto = n; }
+        public void setCantidad(int c)                     { this.cantidad = c; }
+        public void setTipoVenta(String t)                 { this.tipoVenta = t; }
+        public void setPrecioUnitario(double p)            { this.precioUnitario = p; }
+        public void setFechaVenta(LocalDate f)             { this.fechaVenta = f; }
+        public void setFechaLimiteDevolucion(LocalDate f)  { this.fechaLimiteDevolucion = f; }
+        public void setDescripcion(String d)               { this.descripcion = d; }
+        public void setNombresPrendas(List<String> l)      { this.nombresPrendas = l; }
     }
 
     public static class ItemVenta {
