@@ -3361,5 +3361,4 @@ public class App extends Application {
         public void setMaterial(String m)       { this.material = m; }
         public void setTipoInsumo(String t)     { this.tipoInsumo = t; }
     }
-    //comentario de relleno para hacer commit porque github no dej a
 }
