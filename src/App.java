@@ -39,6 +39,17 @@ public class App extends Application {
 
     private static final int DIAS_DEVOLUCION = 30;
 
+    private ObservableList<MateriaPrima> listaMateriaPrima = FXCollections.observableArrayList(
+        new MateriaPrima(1,  "BOT-001", 500,  "",        "4 hoyos nacarado, fácil costura",          "Botón para camisa",    "Blanco",       null,  null,  null,              null,             14,   null,  null,  "Plástico", "Botón"),
+        new MateriaPrima(2,  "BOT-002", 50,   "",        "Largo canal central, acabado brillante",    "Botón para pantalón",  "Metálico oro", null,  null,  null,              null,             22,   null,  null,  "Latón",    "Botón"),
+        new MateriaPrima(3,  "CRP-001", 1000, "",        "Cierre reforzado, deslizador metálico",     "Cierre pantalón",      "Negro",        null,  18.0,  null,              null,             null, null,  null,  "Latón",    "Cierre"),
+        new MateriaPrima(4,  "CRP-002", 5,    "",        "Cierre delgado de bolsa lateral",           "Cierre bolsa",         "Rojo",         null,  15.0,  null,              null,             null, null,  null,  "Nylon",    "Cierre"),
+        new MateriaPrima(5,  "TEL-001", 150,  "",        "Gabardina tejido plano, resistente",        "Gabardina",            "Azul marino",  null,  1.5,   "65% POL 35% ALG", "Tejido plano",   null, null,  null,  null,       "Tela plana"),
+        new MateriaPrima(6,  "TEL-002", 200,  "",        "Mezclilla para jeans, peso medio",          "Mezclilla",            "Índigo",       null,  1.65,  "100% ALG",        "Tejido plano",   null, null,  null,  null,       "Tela plana"),
+        new MateriaPrima(7,  "TELP-001", 80,  "",        "Tejido punto para playera, suave",          "Jersey",               "Rojo",         null,  1.5,   "100% ALG",        "Tejido de punto",null, null,  null,  null,       "Tela punto"),
+        new MateriaPrima(8,  "HIL-001", 25,   "",        "Hilo para costura industrial resistente",   "Filamento",            "Marino 592King",null, null,  "100% Poliéster",  null,             null, "40/2",null,  null,       "Hilo")
+    );
+
     private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList(
         new Usuario("Administrador Principal", "admin", "1234", "administrador"),
         new Usuario("Encargado de Tienda",     "encargado", "5678", "encargado")
@@ -58,6 +69,7 @@ public class App extends Application {
         new Prenda("Playera polo",       "11", "M",  "Casual",   60, 120.0, 160.0, "T3", "Playera polo talla mediana"),
         new Prenda("Playera polo",       "12", "G",  "Casual",   45, 120.0, 160.0, "T3", "Playera polo talla grande"),
         new Prenda("Playera polo",       "13", "XL", "Casual",   20, 120.0, 160.0, "T3", "Playera polo talla extra grande")
+    
     );
 
     private ObservableList<Conjunto> listaConjuntos = FXCollections.observableArrayList(
@@ -217,7 +229,10 @@ public class App extends Application {
         rolLabel.setStyle("-fx-padding: 12 16 8 16;");
 
         sidebar.getChildren().addAll(logoLabel, rolLabel);
+
+        // Contenido principal: ocupa todo el espacio disponible
         StackPane contenido = crearContenidoVacio();
+        VBox.setVgrow(contenido, Priority.ALWAYS);
 
         if (esAdmin) {
             sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
@@ -225,7 +240,7 @@ public class App extends Application {
             Button btnPr  = crearBotonMenuColor("Prendas Fabricadas", colorHover);
             Button btnCj  = crearBotonMenuColor("Conjuntos", colorHover);
             sidebar.getChildren().addAll(btnMP, btnPr, btnCj);
-            btnMP.setOnAction(e -> mostrarPlaceholder(contenido, "Materia Prima"));
+            btnMP.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
             btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, true));
             btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
@@ -277,8 +292,19 @@ public class App extends Application {
         btnCerrar.setOnAction(e -> mostrarLogin());
         sidebar.getChildren().addAll(spacer, btnCerrar);
 
-        HBox cuerpo = new HBox(sidebar, contenido);
+        // Sidebar con scroll si el contenido es largo
+        ScrollPane sidebarScroll = new ScrollPane(sidebar);
+        sidebarScroll.setFitToWidth(true);
+        sidebarScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sidebarScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        sidebarScroll.setPrefWidth(230);
+        sidebarScroll.setMinWidth(230);
+        sidebarScroll.setMaxWidth(230);
+        sidebarScroll.setStyle("-fx-background-color: " + colorSidebar + "; -fx-border-color: transparent;");
+
+        HBox cuerpo = new HBox(sidebarScroll, contenido);
         HBox.setHgrow(contenido, Priority.ALWAYS);
+        VBox.setVgrow(cuerpo, Priority.ALWAYS);
 
         BorderPane root = new BorderPane();
         root.setCenter(cuerpo);
@@ -298,6 +324,7 @@ public class App extends Application {
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay prendas registradas"));
+        tabla.setMinHeight(200);
 
         TableColumn<Prenda, String> colId     = new TableColumn<>("ID");
         TableColumn<Prenda, String> colNombre = new TableColumn<>("Nombre");
@@ -323,8 +350,10 @@ public class App extends Application {
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetallePrenda(contenido, esAdmin));
 
-        VBox vista = new VBox(16, titulo);
+        VBox vista = new VBox(16, titulo, tabla);
         vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Añadir Prenda");
@@ -340,13 +369,14 @@ public class App extends Application {
             btnEditar.setOnAction(e -> mostrarFormularioEditarPrenda(contenido));
 
             HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            botones.setStyle("-fx-padding: 0 0 4 0;");
+            vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            botones.setStyle("-fx-padding: 0 0 4 0;");
+            vista.getChildren().add(botones);
         }
 
-        VBox.setVgrow(tabla, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -405,10 +435,15 @@ public class App extends Application {
         btnRegresar.setOnAction(e -> mostrarModuloPrendas(contenido, esAdmin));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, tarjeta, btnRegresar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(500);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(500);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -441,6 +476,7 @@ public class App extends Application {
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay conjuntos registrados"));
+        tabla.setMinHeight(200);
 
         TableColumn<Conjunto, String> colId     = new TableColumn<>("ID");
         TableColumn<Conjunto, String> colNombre = new TableColumn<>("Nombre");
@@ -462,8 +498,10 @@ public class App extends Application {
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleConjunto(contenido, esAdmin));
 
-        VBox vista = new VBox(16, titulo);
+        VBox vista = new VBox(16, titulo, tabla);
         vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Nuevo Conjunto");
@@ -473,13 +511,12 @@ public class App extends Application {
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjunto(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarConjunto(contenido));
             HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         }
 
-        VBox.setVgrow(tabla, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -560,10 +597,15 @@ public class App extends Application {
         btnRegresar.setOnAction(e -> mostrarModuloConjuntos(contenido, esAdmin));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, tarjeta, btnRegresar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(520);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(520);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -581,6 +623,7 @@ public class App extends Application {
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay prendas vendidas registradas"));
+        tabla.setMinHeight(200);
 
         TableColumn<PrendaVendida, String> colId       = new TableColumn<>("ID Venta");
         TableColumn<PrendaVendida, String> colNombre   = new TableColumn<>("Prenda");
@@ -610,8 +653,10 @@ public class App extends Application {
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetallePrendaVendida(contenido, esAdmin));
 
-        VBox vista = new VBox(16, titulo);
+        VBox vista = new VBox(16, titulo, tabla);
         vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Registrar Venta");
@@ -621,13 +666,12 @@ public class App extends Application {
             btnAnadir.setOnAction(e -> mostrarFormularioNuevaPrendaVendida(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarPrendaVendida(contenido));
             HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         }
 
-        VBox.setVgrow(tabla, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -697,10 +741,15 @@ public class App extends Application {
         btnRegresar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, esAdmin));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, tarjeta, btnRegresar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(520);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(520);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -789,12 +838,13 @@ public class App extends Application {
                 campoCantidad, campoPrecioUnit, labelTipoVenta, selectorTipo,
                 labelFechaVenta, campoFechaVenta, campoDescripcion,
                 mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(420);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -912,12 +962,519 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(440);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(440);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    // ── MÓDULO MATERIA PRIMA ─────────────────────────────────────────
+    private void mostrarModuloMateriaPrima(StackPane contenido, boolean esAdmin) {
+        contenido.getChildren().clear();
+
+        Label titulo = new Label("Materia Prima");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        TableView<MateriaPrima> tabla = new TableView<>();
+        tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabla.setPlaceholder(new Label("No hay materia prima registrada"));
+        tabla.setMinHeight(200);
+
+        TableColumn<MateriaPrima, String> colId        = new TableColumn<>("ID");
+        TableColumn<MateriaPrima, String> colPartida   = new TableColumn<>("No. Partida");
+        TableColumn<MateriaPrima, String> colNombre    = new TableColumn<>("Nombre");
+        TableColumn<MateriaPrima, String> colExist     = new TableColumn<>("Existencia");
+        TableColumn<MateriaPrima, String> colMaterial  = new TableColumn<>("Material");
+        TableColumn<MateriaPrima, String> colTipoInsum = new TableColumn<>("Tipo Insumo");
+        TableColumn<MateriaPrima, String> colColor     = new TableColumn<>("Color");
+
+        colId.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
+        colPartida.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
+        colNombre.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getNombre()));
+        colExist.setCellValueFactory(d     -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+        colMaterial.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "—"));
+        colTipoInsum.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
+        colColor.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "—"));
+
+        tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMaterial, colTipoInsum, colColor);
+        tabla.setItems(listaMateriaPrima);
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+
+        Button btnDetalle = new Button("🔍 Ver Detalle");
+        btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnDetalle.setOnAction(e -> mostrarDetalleMateriaPrima(contenido, esAdmin));
+
+        VBox vista = new VBox(16, titulo, tabla);
+        vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
+
+        if (esAdmin) {
+            Button btnAnadir = new Button("+ Añadir Insumo");
+            Button btnExist  = new Button("+ Añadir a Existente");
+            Button btnEditar = new Button("✎ Editar Insumo");
+
+            btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+
+            btnAnadir.setOnAction(e -> mostrarFormularioNuevaMateriaPrima(contenido));
+            btnExist.setOnAction(e  -> mostrarFormularioAnadirExistenteMP(contenido));
+            btnEditar.setOnAction(e -> mostrarFormularioEditarMateriaPrima(contenido));
+
+            HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle);
+            vista.getChildren().add(botones);
+        } else {
+            HBox botones = new HBox(12, btnDetalle);
+            vista.getChildren().add(botones);
+        }
+
+        contenido.getChildren().add(vista);
+    }
+
+    // ── VER DETALLE MATERIA PRIMA ────────────────────────────────────
+    private void mostrarDetalleMateriaPrima(StackPane contenido, boolean esAdmin) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Detalle de Materia Prima");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Busca por nombre o número de partida para ver toda la información");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setStyle(estiloBtnPrincipal());
+
+        Label mensajeBusqueda = new Label("");
+        mensajeBusqueda.setFont(Font.font("System", 12));
+
+        VBox tarjeta = new VBox(12);
+        tarjeta.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: " + PRINCIPAL + "; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 24; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+        tarjeta.setVisible(false);
+        tarjeta.setManaged(false);
+        tarjeta.setMaxWidth(480);
+
+        btnBuscar.setOnAction(e -> {
+            String busqueda = campoBusqueda.getText().trim();
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
+            MateriaPrima mp = listaMateriaPrima.stream()
+                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .findFirst().orElse(null);
+            if (mp == null) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el insumo");
+                tarjeta.setVisible(false); tarjeta.setManaged(false);
+            } else {
+                mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
+                tarjeta.getChildren().clear();
+                Label lNombre = new Label(mp.getNombre() + "  —  " + mp.getTipoInsumo());
+                lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
+                lNombre.setTextFill(Color.web(SECUNDARIO));
+                Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
+                tarjeta.getChildren().addAll(lNombre, sep,
+                    filaDetalle("ID:",              String.valueOf(mp.getId())),
+                    filaDetalle("No. Partida:",     mp.getNumeroPartida()),
+                    filaDetalle("Existencia:",      String.valueOf(mp.getExistencia())),
+                    filaDetalle("Tipo Existencia:", mp.getTipoExistencia() != null && !mp.getTipoExistencia().isEmpty() ? mp.getTipoExistencia() : "—"),
+                    filaDetalle("Color:",           mp.getColor()        != null ? mp.getColor()        : "—"),
+                    filaDetalle("Medida:",          mp.getMedida()       != null ? mp.getMedida()        : "—"),
+                    filaDetalle("Ancho:",           mp.getAncho()        != null ? mp.getAncho() + " m"  : "—"),
+                    filaDetalle("Composición:",     mp.getComposicion()  != null ? mp.getComposicion()   : "—"),
+                    filaDetalle("Tipo:",            mp.getTipo()         != null ? mp.getTipo()          : "—"),
+                    filaDetalle("No.:",             mp.getNo()           != null ? String.valueOf(mp.getNo()) : "—"),
+                    filaDetalle("Tamaño:",          mp.getTamanio()      != null ? mp.getTamanio()       : "—"),
+                    filaDetalle("Talla:",           mp.getTalla()        != null ? mp.getTalla()         : "—"),
+                    filaDetalle("Material:",        mp.getMaterial()     != null ? mp.getMaterial()      : "—"),
+                    filaDetalle("Tipo Insumo:",     mp.getTipoInsumo()),
+                    filaDetalle("Descripción:",     mp.getDescripcion()));
+                tarjeta.setVisible(true); tarjeta.setManaged(true);
+            }
+        });
+
+        Button btnRegresar = new Button("← Regresar a lista");
+        btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnRegresar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, esAdmin));
+
+        VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, tarjeta, btnRegresar);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(520);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    // ── FORMULARIO NUEVO INSUMO ──────────────────────────────────────
+    private void mostrarFormularioNuevaMateriaPrima(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Nuevo Insumo");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Completa los campos para registrar el insumo");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoPartida      = crearTextField("Número de partida  (ej: BOT-003)");
+        TextField campoNombre       = crearTextField("Nombre del insumo");
+        TextField campoExistencia   = crearTextField("Existencia inicial");
+        TextField campoTipoExist    = crearTextField("Tipo de existencia  (opcional)");
+        TextField campoDescripcion  = crearTextField("Descripción  (opcional)");
+        TextField campoColor        = crearTextField("Color  (opcional)");
+        TextField campoMedida       = crearTextField("Medida  (opcional)");
+        TextField campoAncho        = crearTextField("Ancho en metros  (opcional)");
+        TextField campoComposicion  = crearTextField("Composición  (opcional, ej: 100% ALG)");
+        TextField campoTipo         = crearTextField("Tipo de tejido/estructura  (opcional)");
+        TextField campoNo           = crearTextField("No.  (opcional, ej: 14)");
+        TextField campoTamanio      = crearTextField("Tamaño  (opcional)");
+        TextField campoTalla        = crearTextField("Talla  (opcional)");
+        TextField campoMaterial     = crearTextField("Material  (opcional, ej: Plástico)");
+
+        Label labelTipoInsumo = new Label("Tipo de insumo:");
+        labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTipoInsumo.setFont(Font.font("System", 12));
+
+        ComboBox<String> selectorTipoInsumo = new ComboBox<>();
+        selectorTipoInsumo.getItems().addAll("Botón", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
+        selectorTipoInsumo.setValue("Botón");
+        selectorTipoInsumo.setMaxWidth(320);
+        selectorTipoInsumo.setStyle(estiloInput());
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnGuardar = new Button("Guardar Insumo");
+        btnGuardar.setMaxWidth(320);
+        btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        Button btnCancelar = new Button("← Regresar a lista");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
+
+        btnGuardar.setOnAction(e -> {
+            String partida      = campoPartida.getText().trim();
+            String nombre       = campoNombre.getText().trim();
+            String existStr     = campoExistencia.getText().trim();
+            String tipoExist    = campoTipoExist.getText().trim();
+            String descripcion  = campoDescripcion.getText().trim();
+            String color        = campoColor.getText().trim();
+            String medida       = campoMedida.getText().trim();
+            String anchoStr     = campoAncho.getText().trim();
+            String composicion  = campoComposicion.getText().trim();
+            String tipo         = campoTipo.getText().trim();
+            String noStr        = campoNo.getText().trim();
+            String tamanio      = campoTamanio.getText().trim();
+            String talla        = campoTalla.getText().trim();
+            String material     = campoMaterial.getText().trim();
+            String tipoInsumo   = selectorTipoInsumo.getValue();
+
+            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre y existencia son obligatorios"); return;
+            }
+            boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida().equalsIgnoreCase(partida));
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese número de partida"); return; }
+
+            try {
+                int existencia   = Integer.parseInt(existStr);
+                Double ancho     = anchoStr.isEmpty()  ? null : Double.parseDouble(anchoStr);
+                Integer no       = noStr.isEmpty()     ? null : Integer.parseInt(noStr);
+                int nuevoId      = listaMateriaPrima.isEmpty() ? 1 : listaMateriaPrima.stream().mapToInt(MateriaPrima::getId).max().orElse(0) + 1;
+
+                listaMateriaPrima.add(new MateriaPrima(
+                    nuevoId, partida, existencia,
+                    tipoExist.isEmpty()   ? "" : tipoExist,
+                    descripcion.isEmpty() ? "" : descripcion,
+                    nombre,
+                    color.isEmpty()       ? null : color,
+                    medida.isEmpty()      ? null : medida,
+                    ancho,
+                    composicion.isEmpty() ? null : composicion,
+                    tipo.isEmpty()        ? null : tipo,
+                    no,
+                    tamanio.isEmpty()     ? null : tamanio,
+                    talla.isEmpty()       ? null : talla,
+                    material.isEmpty()    ? null : material,
+                    tipoInsumo
+                ));
+                mostrarModuloMateriaPrima(contenido, true);
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
+            }
+        });
+
+        VBox form = new VBox(10, titulo, subtitulo, campoPartida, campoNombre,
+                campoExistencia, campoTipoExist, labelTipoInsumo, selectorTipoInsumo,
+                campoColor, campoMedida, campoAncho, campoComposicion,
+                campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
+                campoDescripcion, mensajeEstado, btnGuardar, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    // ── FORMULARIO AÑADIR A EXISTENTE (MP) ──────────────────────────
+    private void mostrarFormularioAnadirExistenteMP(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Añadir a Existente");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Busca por nombre o número de partida y añade unidades");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        Label mensajeBusqueda   = new Label("");
+        mensajeBusqueda.setFont(Font.font("System", 12));
+
+        VBox panelResultado = new VBox(8);
+        panelResultado.setStyle("-fx-background-color: #F0FDF4; -fx-border-color: " + EXITO + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 12;");
+        panelResultado.setVisible(false);
+        panelResultado.setManaged(false);
+
+        Label labelResultado    = new Label("");
+        TextField campoCantidad = crearTextField("Cantidad a añadir");
+        Label mensajeEstado     = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnAnadir = new Button("Añadir Unidades");
+        btnAnadir.setMaxWidth(320);
+        btnAnadir.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        panelResultado.getChildren().addAll(labelResultado, campoCantidad, mensajeEstado, btnAnadir);
+
+        final MateriaPrima[] mpEncontrada = {null};
+
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setStyle(estiloBtnPrincipal());
+        btnBuscar.setOnAction(e -> {
+            String busqueda = campoBusqueda.getText().trim();
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
+            MateriaPrima encontrada = listaMateriaPrima.stream()
+                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .findFirst().orElse(null);
+            if (encontrada == null) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ningún insumo");
+                panelResultado.setVisible(false); panelResultado.setManaged(false);
+            } else {
+                mpEncontrada[0] = encontrada;
+                mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
+                labelResultado.setText("Insumo: " + encontrada.getNombre() + " | Partida: " + encontrada.getNumeroPartida() + " | Existencia: " + encontrada.getExistencia());
+                labelResultado.setTextFill(Color.web(TEXTO));
+                panelResultado.setVisible(true); panelResultado.setManaged(true);
+                mensajeEstado.setText(""); campoCantidad.clear();
+            }
+        });
+
+        btnAnadir.setOnAction(e -> {
+            if (mpEncontrada[0] == null) return;
+            try {
+                int cantidad = Integer.parseInt(campoCantidad.getText().trim());
+                if (cantidad <= 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La cantidad debe ser mayor a 0"); return; }
+                mpEncontrada[0].setExistencia(mpEncontrada[0].getExistencia() + cantidad);
+                mensajeEstado.setTextFill(Color.web(EXITO));
+                mensajeEstado.setText("Se añadieron " + cantidad + " unidades. Nueva existencia: " + mpEncontrada[0].getExistencia());
+                labelResultado.setText("Insumo: " + mpEncontrada[0].getNombre() + " | Partida: " + mpEncontrada[0].getNumeroPartida() + " | Existencia: " + mpEncontrada[0].getExistencia());
+                campoCantidad.clear();
+            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Ingresa un número válido"); }
+        });
+
+        Button btnCancelar = new Button("← Regresar a lista");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
+
+        VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    // ── FORMULARIO EDITAR INSUMO ─────────────────────────────────────
+    private void mostrarFormularioEditarMateriaPrima(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Editar Insumo");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Busca por nombre o número de partida y modifica los campos");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        Label mensajeBusqueda   = new Label("");
+        mensajeBusqueda.setFont(Font.font("System", 12));
+
+        VBox panelEdicion = new VBox(10);
+        panelEdicion.setVisible(false);
+        panelEdicion.setManaged(false);
+
+        TextField campoNombre      = crearTextField("Nombre del insumo");
+        TextField campoExistencia  = crearTextField("Existencia");
+        TextField campoTipoExist   = crearTextField("Tipo de existencia");
+        TextField campoDescripcion = crearTextField("Descripción");
+        TextField campoColor       = crearTextField("Color");
+        TextField campoMedida      = crearTextField("Medida");
+        TextField campoAncho       = crearTextField("Ancho en metros");
+        TextField campoComposicion = crearTextField("Composición");
+        TextField campoTipo        = crearTextField("Tipo de tejido/estructura");
+        TextField campoNo          = crearTextField("No.");
+        TextField campoTamanio     = crearTextField("Tamaño");
+        TextField campoTalla       = crearTextField("Talla");
+        TextField campoMaterial    = crearTextField("Material");
+
+        Label labelTipoInsumo = new Label("Tipo de insumo:");
+        labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTipoInsumo.setFont(Font.font("System", 12));
+
+        ComboBox<String> selectorTipoInsumo = new ComboBox<>();
+        selectorTipoInsumo.getItems().addAll("Botón", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
+        selectorTipoInsumo.setMaxWidth(320);
+        selectorTipoInsumo.setStyle(estiloInput());
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnGuardar = new Button("Guardar Cambios");
+        btnGuardar.setMaxWidth(320);
+        btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        panelEdicion.getChildren().addAll(campoNombre, campoExistencia, campoTipoExist,
+                labelTipoInsumo, selectorTipoInsumo,
+                campoColor, campoMedida, campoAncho, campoComposicion,
+                campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
+                campoDescripcion, mensajeEstado, btnGuardar);
+
+        final MateriaPrima[] mpEncontrada = {null};
+
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setStyle(estiloBtnPrincipal());
+        btnBuscar.setOnAction(e -> {
+            String busqueda = campoBusqueda.getText().trim();
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
+            MateriaPrima encontrada = listaMateriaPrima.stream()
+                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .findFirst().orElse(null);
+            if (encontrada == null) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ningún insumo");
+                panelEdicion.setVisible(false); panelEdicion.setManaged(false);
+            } else {
+                mpEncontrada[0] = encontrada;
+                mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
+                campoNombre.setText(encontrada.getNombre());
+                campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
+                campoTipoExist.setText(encontrada.getTipoExistencia() != null ? encontrada.getTipoExistencia() : "");
+                campoDescripcion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
+                campoColor.setText(encontrada.getColor() != null ? encontrada.getColor() : "");
+                campoMedida.setText(encontrada.getMedida() != null ? encontrada.getMedida() : "");
+                campoAncho.setText(encontrada.getAncho() != null ? String.valueOf(encontrada.getAncho()) : "");
+                campoComposicion.setText(encontrada.getComposicion() != null ? encontrada.getComposicion() : "");
+                campoTipo.setText(encontrada.getTipo() != null ? encontrada.getTipo() : "");
+                campoNo.setText(encontrada.getNo() != null ? String.valueOf(encontrada.getNo()) : "");
+                campoTamanio.setText(encontrada.getTamanio() != null ? encontrada.getTamanio() : "");
+                campoTalla.setText(encontrada.getTalla() != null ? encontrada.getTalla() : "");
+                campoMaterial.setText(encontrada.getMaterial() != null ? encontrada.getMaterial() : "");
+                selectorTipoInsumo.setValue(encontrada.getTipoInsumo());
+                mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
+            }
+        });
+
+        btnGuardar.setOnAction(e -> {
+            if (mpEncontrada[0] == null) return;
+            String nombre      = campoNombre.getText().trim();
+            String existStr    = campoExistencia.getText().trim();
+            String tipoExist   = campoTipoExist.getText().trim();
+            String descripcion = campoDescripcion.getText().trim();
+            String color       = campoColor.getText().trim();
+            String medida      = campoMedida.getText().trim();
+            String anchoStr    = campoAncho.getText().trim();
+            String composicion = campoComposicion.getText().trim();
+            String tipo        = campoTipo.getText().trim();
+            String noStr       = campoNo.getText().trim();
+            String tamanio     = campoTamanio.getText().trim();
+            String talla       = campoTalla.getText().trim();
+            String material    = campoMaterial.getText().trim();
+            String tipoInsumo  = selectorTipoInsumo.getValue();
+
+            if (nombre.isEmpty() || existStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre y existencia son obligatorios"); return;
+            }
+            try {
+                int existencia  = Integer.parseInt(existStr);
+                if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
+                Double ancho    = anchoStr.isEmpty() ? null : Double.parseDouble(anchoStr);
+                Integer no      = noStr.isEmpty()    ? null : Integer.parseInt(noStr);
+
+                MateriaPrima mp = mpEncontrada[0];
+                mp.setNombre(nombre);
+                mp.setExistencia(existencia);
+                mp.setTipoExistencia(tipoExist.isEmpty()   ? "" : tipoExist);
+                mp.setDescripcion(descripcion.isEmpty()    ? "" : descripcion);
+                mp.setColor(color.isEmpty()                ? null : color);
+                mp.setMedida(medida.isEmpty()              ? null : medida);
+                mp.setAncho(ancho);
+                mp.setComposicion(composicion.isEmpty()    ? null : composicion);
+                mp.setTipo(tipo.isEmpty()                  ? null : tipo);
+                mp.setNo(no);
+                mp.setTamanio(tamanio.isEmpty()            ? null : tamanio);
+                mp.setTalla(talla.isEmpty()                ? null : talla);
+                mp.setMaterial(material.isEmpty()          ? null : material);
+                mp.setTipoInsumo(tipoInsumo);
+                mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Insumo actualizado correctamente");
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
+            }
+        });
+
+        Button btnCancelar = new Button("← Regresar a lista");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
+
+        VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -937,6 +1494,7 @@ public class App extends Application {
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay conjuntos vendidos registrados"));
+        tabla.setMinHeight(200);
 
         TableColumn<ConjuntoVendido, String> colId       = new TableColumn<>("ID Venta");
         TableColumn<ConjuntoVendido, String> colNombre   = new TableColumn<>("Conjunto");
@@ -964,8 +1522,10 @@ public class App extends Application {
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleConjuntoVendido(contenido, esAdmin));
 
-        VBox vista = new VBox(16, titulo);
+        VBox vista = new VBox(16, titulo, tabla);
         vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Registrar Venta");
@@ -975,13 +1535,12 @@ public class App extends Application {
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjuntoVendido(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarConjuntoVendido(contenido));
             HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
-            vista.getChildren().addAll(tabla, botones);
+            vista.getChildren().add(botones);
         }
 
-        VBox.setVgrow(tabla, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -1066,10 +1625,15 @@ public class App extends Application {
         btnRegresar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, esAdmin));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, tarjeta, btnRegresar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(520);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(520);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -1163,12 +1727,13 @@ public class App extends Application {
                 campoCantidad, campoPrecioUnit, labelTipoVenta, selectorTipo,
                 labelFechaVenta, campoFechaVenta, campoNombresPrendas,
                 campoDescripcion, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(440);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(440);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -1292,12 +1857,13 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(460);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(460);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -1363,10 +1929,15 @@ public class App extends Application {
 
         VBox form = new VBox(12, titulo, campoId, campoNombre, campoDescripcion,
                 campoPiezas, campoIdPrendas, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(450);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(450);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -1462,12 +2033,13 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(460);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(460);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -1546,12 +2118,13 @@ public class App extends Application {
         VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoId, campoTipoPrenda,
                 campoDescripcion, labelTalla, selectorTalla, campoExistencia,
                 campoPMayoreo, campoPMenudeo, campoIdTienda, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(400);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -1631,10 +2204,15 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(420);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -1744,12 +2322,13 @@ public class App extends Application {
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
         VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(420);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -1913,9 +2492,17 @@ public class App extends Application {
             } catch (NumberFormatException ex) { mensajeAdd.setTextFill(Color.web(ERROR)); mensajeAdd.setText("Ingresa una cantidad válida"); }
         });
 
-        VBox panelBusqueda = new VBox(10, tituloBusqueda, labelTipoBusqueda, selectorTipoBusqueda, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado);
-        panelBusqueda.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 20; -fx-background-radius: 8; -fx-border-color: #E5E7EB; -fx-border-radius: 8;");
+        ScrollPane scrollBusqueda = new ScrollPane(new VBox(10, tituloBusqueda, labelTipoBusqueda, selectorTipoBusqueda, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado));
+        scrollBusqueda.setFitToWidth(true);
+        scrollBusqueda.setStyle("-fx-background-color: " + PANEL + "; -fx-background: " + PANEL + "; -fx-border-color: #E5E7EB; -fx-border-radius: 8;");
+
+        VBox panelBusqueda = new VBox(scrollBusqueda);
+        panelBusqueda.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 0; -fx-background-radius: 8; -fx-border-color: #E5E7EB; -fx-border-radius: 8;");
         panelBusqueda.setPrefWidth(300); panelBusqueda.setMaxWidth(300);
+        VBox.setVgrow(scrollBusqueda, Priority.ALWAYS);
+
+        // Inyectar padding en el VBox dentro del scroll
+        ((VBox) scrollBusqueda.getContent()).setStyle("-fx-padding: 20;");
 
         Label tituloCarrito = new Label("Carrito de Venta");
         tituloCarrito.setFont(Font.font("System", FontWeight.BOLD, 15));
@@ -1926,6 +2513,7 @@ public class App extends Application {
         tablaCarrito.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tablaCarrito.setItems(carrito);
         tablaCarrito.setPlaceholder(new Label("No hay productos en el carrito"));
+        tablaCarrito.setMinHeight(150);
 
         TableColumn<ItemVenta, String> colNombre   = new TableColumn<>("Producto");
         TableColumn<ItemVenta, String> colTipo     = new TableColumn<>("Tipo");
@@ -1974,6 +2562,7 @@ public class App extends Application {
         VBox panelCarrito = new VBox(10, tituloCarrito, tablaCarrito, filaBotones, filaTotal, btnCobrar);
         panelCarrito.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 20; -fx-background-radius: 8; -fx-border-color: #E5E7EB; -fx-border-radius: 8;");
         VBox.setVgrow(tablaCarrito, Priority.ALWAYS);
+        VBox.setVgrow(panelCarrito, Priority.ALWAYS);
         HBox.setHgrow(panelCarrito, Priority.ALWAYS);
 
         Label tituloPV = new Label("Punto de Venta");
@@ -1987,6 +2576,7 @@ public class App extends Application {
         VBox vista = new VBox(16, tituloPV, cuerpo);
         vista.setStyle("-fx-padding: 24;");
         VBox.setVgrow(cuerpo, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -2118,7 +2708,8 @@ public class App extends Application {
 
         ScrollPane scroll = new ScrollPane(recibo);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -2369,13 +2960,14 @@ public class App extends Application {
         });
 
         VBox form = new VBox(14, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado);
-        form.setAlignment(Pos.CENTER_LEFT);
+        form.setAlignment(Pos.TOP_LEFT);
         form.setMaxWidth(520);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + ";");
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
@@ -2395,6 +2987,7 @@ public class App extends Application {
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay usuarios registrados"));
+        tabla.setMinHeight(200);
 
         TableColumn<Usuario, String> colNombre  = new TableColumn<>("Nombre");
         TableColumn<Usuario, String> colUsuario = new TableColumn<>("Usuario");
@@ -2406,6 +2999,7 @@ public class App extends Application {
 
         tabla.getColumns().addAll(colNombre, colUsuario, colRol);
         tabla.setItems(listaUsuarios);
+        VBox.setVgrow(tabla, Priority.ALWAYS);
 
         Button btnNuevo = new Button("+ Nuevo Usuario");
         btnNuevo.setStyle(estiloBtnPrincipal());
@@ -2414,6 +3008,7 @@ public class App extends Application {
         VBox vista = new VBox(16, titulo, tabla, btnNuevo);
         vista.setStyle("-fx-padding: 30;");
         VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
         contenido.getChildren().add(vista);
     }
 
@@ -2472,10 +3067,15 @@ public class App extends Application {
 
         VBox form = new VBox(12, titulo, subtitulo, campoNombre, campoUsuario,
                 campoPass, campoPassConfirm, labelRol, selectorRol, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.CENTER_LEFT); form.setMaxWidth(400);
+        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
-        StackPane wrapper = new StackPane(form);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
@@ -2708,5 +3308,57 @@ public class App extends Application {
         public Prenda   getPrenda()         { return prenda; }
         public Conjunto getConjunto()       { return conjunto; }
         public void     setCantidad(int c)  { this.cantidad = c; }
+    }
+
+    public static class MateriaPrima {
+        private int id, existencia;
+        private String numeroPartida, tipoExistencia, descripcion, nombre;
+        private String color, medida, composicion, tipo, tamanio, talla, material, tipoInsumo;
+        private Double ancho;
+        private Integer no;
+
+        public MateriaPrima(int id, String numeroPartida, int existencia, String tipoExistencia,
+                            String descripcion, String nombre, String color, String medida,
+                            Double ancho, String composicion, String tipo, Integer no,
+                            String tamanio, String talla, String material, String tipoInsumo) {
+            this.id = id; this.numeroPartida = numeroPartida; this.existencia = existencia;
+            this.tipoExistencia = tipoExistencia; this.descripcion = descripcion;
+            this.nombre = nombre; this.color = color; this.medida = medida;
+            this.ancho = ancho; this.composicion = composicion; this.tipo = tipo;
+            this.no = no; this.tamanio = tamanio; this.talla = talla;
+            this.material = material; this.tipoInsumo = tipoInsumo;
+        }
+
+        public int     getId()             { return id; }
+        public String  getNumeroPartida()  { return numeroPartida; }
+        public int     getExistencia()     { return existencia; }
+        public String  getTipoExistencia() { return tipoExistencia; }
+        public String  getDescripcion()    { return descripcion; }
+        public String  getNombre()         { return nombre; }
+        public String  getColor()          { return color; }
+        public String  getMedida()         { return medida; }
+        public Double  getAncho()          { return ancho; }
+        public String  getComposicion()    { return composicion; }
+        public String  getTipo()           { return tipo; }
+        public Integer getNo()             { return no; }
+        public String  getTamanio()        { return tamanio; }
+        public String  getTalla()          { return talla; }
+        public String  getMaterial()       { return material; }
+        public String  getTipoInsumo()     { return tipoInsumo; }
+
+        public void setNombre(String n)         { this.nombre = n; }
+        public void setExistencia(int e)        { this.existencia = e; }
+        public void setTipoExistencia(String t) { this.tipoExistencia = t; }
+        public void setDescripcion(String d)    { this.descripcion = d; }
+        public void setColor(String c)          { this.color = c; }
+        public void setMedida(String m)         { this.medida = m; }
+        public void setAncho(Double a)          { this.ancho = a; }
+        public void setComposicion(String c)    { this.composicion = c; }
+        public void setTipo(String t)           { this.tipo = t; }
+        public void setNo(Integer n)            { this.no = n; }
+        public void setTamanio(String t)        { this.tamanio = t; }
+        public void setTalla(String t)          { this.talla = t; }
+        public void setMaterial(String m)       { this.material = m; }
+        public void setTipoInsumo(String t)     { this.tipoInsumo = t; }
     }
 }
