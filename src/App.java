@@ -36,6 +36,8 @@ public class App extends Application {
     private static final String EXITO          = "#16A34A";
     private static final String ERROR          = "#DC2626";
     private static final String ADVERTENCIA    = "#EAB308";
+    private static final int ALERTA_ROJO     = 5;   // existencia <= 5
+    private static final int ALERTA_AMARILLO = 10;  // existencia <= 10
 
     private static final int DIAS_DEVOLUCION = 30;
 
@@ -209,108 +211,295 @@ public class App extends Application {
     private void mostrarMenuEncargado()     { mostrarMenu("Encargado", false); }
 
     private void mostrarMenu(String rol, boolean esAdmin) {
-        String colorSidebar = esAdmin ? SECUNDARIO     : SECUNDARIO_ALT;
-        String colorLogo    = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
-        String colorHover   = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
+    String colorSidebar = esAdmin ? SECUNDARIO     : SECUNDARIO_ALT;
+    String colorLogo    = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
+    String colorHover   = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
 
-        VBox sidebar = new VBox(4);
-        sidebar.setPrefWidth(230);
-        sidebar.setStyle("-fx-background-color: " + colorSidebar + "; -fx-padding: 0;");
+    VBox sidebar = new VBox(4);
+    sidebar.setPrefWidth(230);
+    sidebar.setStyle("-fx-background-color: " + colorSidebar + "; -fx-padding: 0;");
 
-        Label logoLabel = new Label("Sistema Textil");
-        logoLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
-        logoLabel.setTextFill(Color.WHITE);
-        logoLabel.setStyle("-fx-background-color: " + colorLogo + "; -fx-padding: 20 16 20 16; -fx-max-width: infinity;");
-        logoLabel.setMaxWidth(Double.MAX_VALUE);
+    Label logoLabel = new Label("Sistema Textil");
+    logoLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+    logoLabel.setTextFill(Color.WHITE);
+    logoLabel.setStyle("-fx-background-color: " + colorLogo + "; -fx-padding: 20 16 20 16; -fx-max-width: infinity;");
+    logoLabel.setMaxWidth(Double.MAX_VALUE);
 
-        Label rolLabel = new Label("● " + rol.toUpperCase());
-        rolLabel.setFont(Font.font("System", 11));
-        rolLabel.setTextFill(Color.web("#94A3B8"));
-        rolLabel.setStyle("-fx-padding: 12 16 8 16;");
+    // Puntito de alerta con color dinámico
+    String colorAlerta = esAdmin ? calcularColorAlerta() : calcularColorAlertaEncargado();
+    Label rolLabel = new Label("⬤ " + rol.toUpperCase());
+    rolLabel.setFont(Font.font("System", 11));
+    rolLabel.setTextFill(Color.web(colorAlerta));
+    rolLabel.setStyle("-fx-padding: 12 16 8 16;");
 
-        sidebar.getChildren().addAll(logoLabel, rolLabel);
+    sidebar.getChildren().addAll(logoLabel, rolLabel);
 
-        // Contenido principal: ocupa todo el espacio disponible
-        StackPane contenido = crearContenidoVacio();
-        VBox.setVgrow(contenido, Priority.ALWAYS);
+    StackPane contenido = crearContenidoVacio();
+    VBox.setVgrow(contenido, Priority.ALWAYS);
 
-        if (esAdmin) {
-            sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
-            Button btnMP  = crearBotonMenuColor("Materia Prima", colorHover);
-            Button btnPr  = crearBotonMenuColor("Prendas Fabricadas", colorHover);
-            Button btnCj  = crearBotonMenuColor("Conjuntos", colorHover);
-            sidebar.getChildren().addAll(btnMP, btnPr, btnCj);
-            btnMP.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
-            btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, true));
-            btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
+    if (esAdmin) {
+        sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
+        Button btnMP  = crearBotonMenuColor("Materia Prima", colorHover);
+        Button btnPr  = crearBotonMenuColor("Prendas Fabricadas", colorHover);
+        Button btnCj  = crearBotonMenuColor("Conjuntos", colorHover);
+        sidebar.getChildren().addAll(btnMP, btnPr, btnCj);
+        btnMP.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
+        btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, true));
+        btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
-            sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
-            Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
-            Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
-            Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
-            Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
-            sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
-            btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
-            btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
-            btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
-            btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
+        sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
+        Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
+        Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
+        Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
+        Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
+        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
+        btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
+        btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
+        btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
+        btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
 
-            sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACIÓN"));
-            Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
-            Button btnAl  = crearBotonMenuColor("Alertas de Stock", colorHover);
-            sidebar.getChildren().addAll(btnUs, btnAl);
-            btnUs.setOnAction(e -> mostrarModuloUsuarios(contenido));
-            btnAl.setOnAction(e -> mostrarPlaceholder(contenido, "Alertas de Stock"));
-        } else {
-            sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
-            Button btnPr = crearBotonMenuColor("Prendas Fabricadas", colorHover);
-            Button btnCj = crearBotonMenuColor("Conjuntos", colorHover);
-            sidebar.getChildren().addAll(btnPr, btnCj);
-            btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, false));
-            btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, false));
+        sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACIÓN"));
+        Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
+        Button btnAl  = crearBotonMenuColor("Alertas de Stock", colorHover);
+        sidebar.getChildren().addAll(btnUs, btnAl);
+        btnUs.setOnAction(e -> mostrarModuloUsuarios(contenido));
+        btnAl.setOnAction(e -> mostrarAlertasStock(contenido, true));
 
-            sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
-            Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
-            Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
-            Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
-            Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
-            sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
-            btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
-            btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, false));
-            btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, false));
-            btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
-        }
+    } else {
+        sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
+        Button btnPr = crearBotonMenuColor("Prendas Fabricadas", colorHover);
+        Button btnCj = crearBotonMenuColor("Conjuntos", colorHover);
+        sidebar.getChildren().addAll(btnPr, btnCj);
+        btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, false));
+        btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, false));
 
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-        Button btnCerrar = new Button("Cerrar Sesión");
-        btnCerrar.setMaxWidth(Double.MAX_VALUE);
-        btnCerrar.setStyle(
-            "-fx-background-color: transparent; -fx-text-fill: #F87171; -fx-font-size: 13px;" +
-            "-fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" +
-            "-fx-border-color: #374151; -fx-border-width: 1 0 0 0;");
-        btnCerrar.setOnAction(e -> mostrarLogin());
-        sidebar.getChildren().addAll(spacer, btnCerrar);
+        sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
+        Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
+        Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
+        Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
+        Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
+        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
+        btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
+        btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, false));
+        btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, false));
+        btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
 
-        // Sidebar con scroll si el contenido es largo
-        ScrollPane sidebarScroll = new ScrollPane(sidebar);
-        sidebarScroll.setFitToWidth(true);
-        sidebarScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        sidebarScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        sidebarScroll.setPrefWidth(230);
-        sidebarScroll.setMinWidth(230);
-        sidebarScroll.setMaxWidth(230);
-        sidebarScroll.setStyle("-fx-background-color: " + colorSidebar + "; -fx-border-color: transparent;");
-
-        HBox cuerpo = new HBox(sidebarScroll, contenido);
-        HBox.setHgrow(contenido, Priority.ALWAYS);
-        VBox.setVgrow(cuerpo, Priority.ALWAYS);
-
-        BorderPane root = new BorderPane();
-        root.setCenter(cuerpo);
-        root.setStyle("-fx-background-color: " + FONDO + ";");
-        stage.setScene(new Scene(root, 960, 620));
+        // Encargado también tiene alertas pero solo de prendas y conjuntos
+        sidebar.getChildren().add(crearSeccionMenu("AVISOS"));
+        Button btnAl = crearBotonMenuColor("Alertas de Stock", colorHover);
+        sidebar.getChildren().add(btnAl);
+        btnAl.setOnAction(e -> mostrarAlertasStock(contenido, false));
     }
+
+    Region spacer = new Region();
+    VBox.setVgrow(spacer, Priority.ALWAYS);
+    Button btnCerrar = new Button("Cerrar Sesión");
+    btnCerrar.setMaxWidth(Double.MAX_VALUE);
+    btnCerrar.setStyle(
+        "-fx-background-color: transparent; -fx-text-fill: #F87171; -fx-font-size: 13px;" +
+        "-fx-padding: 12 16; -fx-alignment: CENTER_LEFT; -fx-cursor: hand;" +
+        "-fx-border-color: #374151; -fx-border-width: 1 0 0 0;");
+    btnCerrar.setOnAction(e -> mostrarLogin());
+    sidebar.getChildren().addAll(spacer, btnCerrar);
+
+    ScrollPane sidebarScroll = new ScrollPane(sidebar);
+    sidebarScroll.setFitToWidth(true);
+    sidebarScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+    sidebarScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+    sidebarScroll.setPrefWidth(230);
+    sidebarScroll.setMinWidth(230);
+    sidebarScroll.setMaxWidth(230);
+    sidebarScroll.setStyle("-fx-background-color: " + colorSidebar + "; -fx-border-color: transparent;");
+
+    HBox cuerpo = new HBox(sidebarScroll, contenido);
+    HBox.setHgrow(contenido, Priority.ALWAYS);
+    VBox.setVgrow(cuerpo, Priority.ALWAYS);
+
+    BorderPane root = new BorderPane();
+    root.setCenter(cuerpo);
+    root.setStyle("-fx-background-color: " + FONDO + ";");
+    stage.setScene(new Scene(root, 960, 620));
+}
+
+    // ── MÓDULO ALERTAS DE STOCK ───────────────────────────────────────────────
+
+
+private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
+    contenido.getChildren().clear();
+
+    Label titulo = new Label("Alertas de Stock");
+    titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+    titulo.setTextFill(Color.web(SECUNDARIO));
+
+    // Leyenda de colores
+    Label leyendaRojo     = new Label("⬤ Crítico — 5 o menos unidades");
+    Label leyendaAmarillo = new Label("⬤ Bajo — entre 6 y 10 unidades");
+    Label leyendaVerde    = new Label("⬤ Normal — más de 10 unidades");
+    leyendaRojo.setTextFill(Color.web(ERROR));
+    leyendaAmarillo.setTextFill(Color.web(ADVERTENCIA));
+    leyendaVerde.setTextFill(Color.web(EXITO));
+    for (Label l : new Label[]{leyendaRojo, leyendaAmarillo, leyendaVerde})
+        l.setFont(Font.font("System", 12));
+
+    HBox leyenda = new HBox(20, leyendaRojo, leyendaAmarillo, leyendaVerde);
+    leyenda.setStyle(
+        "-fx-background-color: " + PANEL + "; -fx-padding: 10 16; -fx-background-radius: 6;" +
+        "-fx-border-color: #E5E7EB; -fx-border-radius: 6;");
+
+    VBox vista = new VBox(16, titulo, leyenda);
+    vista.setStyle("-fx-padding: 30;");
+    VBox.setVgrow(vista, Priority.ALWAYS);
+
+    // ── TABLA PRENDAS ──────────────────────────────────────────────
+    Label tituloPrendas = new Label("Prendas Fabricadas");
+    tituloPrendas.setFont(Font.font("System", FontWeight.BOLD, 15));
+    tituloPrendas.setTextFill(Color.web(SECUNDARIO));
+
+    TableView<Prenda> tablaPrendas = new TableView<>();
+    tablaPrendas.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+    tablaPrendas.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+    tablaPrendas.setMinHeight(120);
+    tablaPrendas.setMaxHeight(200);
+    tablaPrendas.setPlaceholder(new Label("Sin alertas en prendas"));
+
+    TableColumn<Prenda, String> colPNivel    = new TableColumn<>("Nivel");
+    TableColumn<Prenda, String> colPNombre   = new TableColumn<>("Nombre");
+    TableColumn<Prenda, String> colPTalla    = new TableColumn<>("Talla");
+    TableColumn<Prenda, String> colPExist    = new TableColumn<>("Existencia");
+    TableColumn<Prenda, String> colPTipo     = new TableColumn<>("Tipo");
+
+    colPNivel.setCellValueFactory(d -> {
+        int ex = d.getValue().getExistencia();
+        return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+    });
+    colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
+    colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
+    colPExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+    colPTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoPrenda()));
+
+    tablaPrendas.getColumns().addAll(colPNivel, colPNombre, colPTalla, colPExist, colPTipo);
+
+    ObservableList<Prenda> prendasAlerta = FXCollections.observableArrayList(
+        listaPrendas.stream()
+            .filter(p -> p.getExistencia() <= ALERTA_AMARILLO)
+            .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
+            .toList()
+    );
+    tablaPrendas.setItems(prendasAlerta);
+
+    vista.getChildren().addAll(tituloPrendas, tablaPrendas);
+
+    // ── TABLA CONJUNTOS ────────────────────────────────────────────
+    Label tituloConjuntos = new Label("Conjuntos");
+    tituloConjuntos.setFont(Font.font("System", FontWeight.BOLD, 15));
+    tituloConjuntos.setTextFill(Color.web(SECUNDARIO));
+
+    TableView<Conjunto> tablaConjuntos = new TableView<>();
+    tablaConjuntos.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+    tablaConjuntos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+    tablaConjuntos.setMinHeight(120);
+    tablaConjuntos.setMaxHeight(200);
+    tablaConjuntos.setPlaceholder(new Label("Sin alertas en conjuntos"));
+
+    TableColumn<Conjunto, String> colCNivel  = new TableColumn<>("Nivel");
+    TableColumn<Conjunto, String> colCNombre = new TableColumn<>("Nombre");
+    TableColumn<Conjunto, String> colCExist  = new TableColumn<>("Existencia");
+    TableColumn<Conjunto, String> colCPiezas = new TableColumn<>("Piezas");
+
+    colCNivel.setCellValueFactory(d -> {
+        int ex = calcularExistenciaConjunto(d.getValue());
+        return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+    });
+    colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
+    colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
+    colCPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
+
+    tablaConjuntos.getColumns().addAll(colCNivel, colCNombre, colCExist, colCPiezas);
+
+    ObservableList<Conjunto> conjuntosAlerta = FXCollections.observableArrayList(
+        listaConjuntos.stream()
+            .filter(c -> calcularExistenciaConjunto(c) <= ALERTA_AMARILLO)
+            .sorted((a, b) -> Integer.compare(calcularExistenciaConjunto(a), calcularExistenciaConjunto(b)))
+            .toList()
+    );
+    tablaConjuntos.setItems(conjuntosAlerta);
+
+    vista.getChildren().addAll(tituloConjuntos, tablaConjuntos);
+
+    // ── TABLA MATERIA PRIMA (solo admin) ──────────────────────────
+    if (esAdmin) {
+        Label tituloMP = new Label("Materia Prima");
+        tituloMP.setFont(Font.font("System", FontWeight.BOLD, 15));
+        tituloMP.setTextFill(Color.web(SECUNDARIO));
+
+        TableView<MateriaPrima> tablaMP = new TableView<>();
+        tablaMP.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tablaMP.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tablaMP.setMinHeight(120);
+        tablaMP.setMaxHeight(200);
+        tablaMP.setPlaceholder(new Label("Sin alertas en materia prima"));
+
+        TableColumn<MateriaPrima, String> colMNivel    = new TableColumn<>("Nivel");
+        TableColumn<MateriaPrima, String> colMNombre   = new TableColumn<>("Nombre");
+        TableColumn<MateriaPrima, String> colMPartida  = new TableColumn<>("No. Partida");
+        TableColumn<MateriaPrima, String> colMExist    = new TableColumn<>("Existencia");
+        TableColumn<MateriaPrima, String> colMTipo     = new TableColumn<>("Tipo Insumo");
+
+        colMNivel.setCellValueFactory(d -> {
+            int ex = d.getValue().getExistencia();
+            return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+        });
+        colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
+        colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
+        colMExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+        colMTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
+
+        tablaMP.getColumns().addAll(colMNivel, colMNombre, colMPartida, colMExist, colMTipo);
+
+        ObservableList<MateriaPrima> mpAlerta = FXCollections.observableArrayList(
+            listaMateriaPrima.stream()
+                .filter(mp -> mp.getExistencia() <= ALERTA_AMARILLO)
+                .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
+                .toList()
+        );
+        tablaMP.setItems(mpAlerta);
+
+        vista.getChildren().addAll(tituloMP, tablaMP);
+    }
+
+    // Resumen en la parte superior
+    long totalAlertas = prendasAlerta.size() + conjuntosAlerta.size()
+        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= ALERTA_AMARILLO).count() : 0);
+    long criticas    = prendasAlerta.stream().filter(p -> p.getExistencia() <= ALERTA_ROJO).count()
+        + conjuntosAlerta.stream().filter(c -> calcularExistenciaConjunto(c) <= ALERTA_ROJO).count()
+        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= ALERTA_ROJO).count() : 0);
+
+    Label resumen = new Label(
+        totalAlertas == 0
+        ? "✔ Sin alertas de stock activas"
+        : totalAlertas + " alerta(s) activa(s)  —  " + criticas + " crítica(s)"
+    );
+    resumen.setFont(Font.font("System", FontWeight.BOLD, 13));
+    resumen.setTextFill(Color.web(totalAlertas == 0 ? EXITO : (criticas > 0 ? ERROR : ADVERTENCIA)));
+    resumen.setStyle(
+        "-fx-background-color: " + PANEL + "; -fx-padding: 10 16; -fx-background-radius: 6;" +
+        "-fx-border-color: #E5E7EB; -fx-border-radius: 6;");
+
+    // Insertar resumen después de la leyenda
+    vista.getChildren().add(2, resumen);
+
+    ScrollPane scroll = new ScrollPane(vista);
+    scroll.setFitToWidth(true);
+    scroll.setFitToHeight(false);
+    scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+    VBox.setVgrow(scroll, Priority.ALWAYS);
+
+    StackPane wrapper = new StackPane(scroll);
+    wrapper.setStyle("-fx-background-color: " + FONDO + ";");
+    contenido.getChildren().add(wrapper);
+}
+
+
 
     // ── MÓDULO PRENDAS ───────────────────────────────────────────────
     private void mostrarModuloPrendas(StackPane contenido, boolean esAdmin) {
@@ -3090,7 +3279,34 @@ public class App extends Application {
         label.setMaxWidth(Double.MAX_VALUE);
         return label;
     }
+private String calcularColorAlerta() {
+    int minExistencia = Integer.MAX_VALUE;
 
+    for (Prenda p : listaPrendas)
+        minExistencia = Math.min(minExistencia, p.getExistencia());
+    for (Conjunto c : listaConjuntos)
+        minExistencia = Math.min(minExistencia, calcularExistenciaConjunto(c));
+
+    if (minExistencia == Integer.MAX_VALUE) return EXITO; 
+
+    if (minExistencia <= ALERTA_ROJO)     return ERROR;
+    if (minExistencia <= ALERTA_AMARILLO) return ADVERTENCIA;
+    return EXITO;
+}
+
+private String calcularColorAlertaEncargado() {
+    int minExistencia = Integer.MAX_VALUE;
+
+    for (Prenda p : listaPrendas)
+        minExistencia = Math.min(minExistencia, p.getExistencia());
+    for (Conjunto c : listaConjuntos)
+        minExistencia = Math.min(minExistencia, calcularExistenciaConjunto(c));
+
+    if (minExistencia == Integer.MAX_VALUE) return EXITO;
+    if (minExistencia <= ALERTA_ROJO)       return ERROR;
+    if (minExistencia <= ALERTA_AMARILLO)   return ADVERTENCIA;
+    return EXITO;
+}
     private StackPane crearContenidoVacio() {
         StackPane contenido = new StackPane();
         contenido.setStyle("-fx-background-color: " + FONDO + ";");
