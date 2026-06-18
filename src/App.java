@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.scene.text.Text;
 
 public class App extends Application {
 
@@ -36,8 +37,9 @@ public class App extends Application {
     private static final String EXITO          = "#16A34A";
     private static final String ERROR          = "#DC2626";
     private static final String ADVERTENCIA    = "#EAB308";
-    private static final int ALERTA_ROJO     = 5;   // existencia <= 5
-    private static final int ALERTA_AMARILLO = 10;  // existencia <= 10
+    private static final int ALERTA_ROJO     = 5;   
+    private static final int ALERTA_AMARILLO = 10;  
+
 
     private static final int DIAS_DEVOLUCION = 30;
 
@@ -251,12 +253,14 @@ public class App extends Application {
         Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
         Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
         Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
-        Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
-        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
-        btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
-        btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
-        btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
-        btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
+        Button btnDev    = crearBotonMenuColor("Devoluciones", colorHover);
+        Button btnRegDev = crearBotonMenuColor("Registro de Devoluciones", colorHover);
+        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev, btnRegDev);
+        btnPV.setOnAction(e     -> mostrarPuntoDeVenta(contenido));
+        btnPVd.setOnAction(e    -> mostrarModuloPrendasVendidas(contenido, true));
+        btnCVd.setOnAction(e    -> mostrarModuloConjuntosVendidos(contenido, true));
+        btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
+        btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
 
         sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACIÓN"));
         Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
@@ -277,12 +281,14 @@ public class App extends Application {
         Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
         Button btnPVd = crearBotonMenuColor("Prendas Vendidas", colorHover);
         Button btnCVd = crearBotonMenuColor("Conjuntos Vendidos", colorHover);
-        Button btnDev = crearBotonMenuColor("Devoluciones", colorHover);
-        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev);
-        btnPV.setOnAction(e  -> mostrarPuntoDeVenta(contenido));
-        btnPVd.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, false));
-        btnCVd.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, false));
-        btnDev.setOnAction(e -> mostrarDevoluciones(contenido));
+        Button btnDev    = crearBotonMenuColor("Devoluciones", colorHover);
+        Button btnRegDev = crearBotonMenuColor("Registro de Devoluciones", colorHover);
+        sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev, btnRegDev);
+        btnPV.setOnAction(e     -> mostrarPuntoDeVenta(contenido));
+        btnPVd.setOnAction(e    -> mostrarModuloPrendasVendidas(contenido, false));
+        btnCVd.setOnAction(e    -> mostrarModuloConjuntosVendidos(contenido, false));
+        btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
+        btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, false));
 
         // Encargado también tiene alertas pero solo de prendas y conjuntos
         sidebar.getChildren().add(crearSeccionMenu("AVISOS"));
@@ -331,10 +337,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
-    // Leyenda de colores
-    Label leyendaRojo     = new Label("⬤ Crítico — 5 o menos unidades");
-    Label leyendaAmarillo = new Label("⬤ Bajo — entre 6 y 10 unidades");
-    Label leyendaVerde    = new Label("⬤ Normal — más de 10 unidades");
+    Label leyendaRojo     = new Label("⬤ Crítico — en o por debajo del mínimo");
+    Label leyendaAmarillo = new Label("⬤ Bajo — hasta el doble del mínimo");
+    Label leyendaVerde    = new Label("⬤ Normal — por encima del umbral bajo");
     leyendaRojo.setTextFill(Color.web(ERROR));
     leyendaAmarillo.setTextFill(Color.web(ADVERTENCIA));
     leyendaVerde.setTextFill(Color.web(EXITO));
@@ -366,22 +371,25 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Prenda, String> colPNombre   = new TableColumn<>("Nombre");
     TableColumn<Prenda, String> colPTalla    = new TableColumn<>("Talla");
     TableColumn<Prenda, String> colPExist    = new TableColumn<>("Existencia");
+    TableColumn<Prenda, String> colPMinimo   = new TableColumn<>("Mínimo");
     TableColumn<Prenda, String> colPTipo     = new TableColumn<>("Tipo");
 
     colPNivel.setCellValueFactory(d -> {
         int ex = d.getValue().getExistencia();
-        return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+        int min = d.getValue().getMinimoExistencia();
+        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
     });
     colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
     colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
     colPExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+    colPMinimo.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
     colPTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoPrenda()));
 
-    tablaPrendas.getColumns().addAll(colPNivel, colPNombre, colPTalla, colPExist, colPTipo);
+    tablaPrendas.getColumns().addAll(colPNivel, colPNombre, colPTalla, colPExist, colPMinimo, colPTipo);
 
     ObservableList<Prenda> prendasAlerta = FXCollections.observableArrayList(
         listaPrendas.stream()
-            .filter(p -> p.getExistencia() <= ALERTA_AMARILLO)
+            .filter(p -> p.getExistencia() <= p.getMinimoExistencia() * 2)
             .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
             .toList()
     );
@@ -404,21 +412,24 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Conjunto, String> colCNivel  = new TableColumn<>("Nivel");
     TableColumn<Conjunto, String> colCNombre = new TableColumn<>("Nombre");
     TableColumn<Conjunto, String> colCExist  = new TableColumn<>("Existencia");
+    TableColumn<Conjunto, String> colCMinimo = new TableColumn<>("Mínimo");
     TableColumn<Conjunto, String> colCPiezas = new TableColumn<>("Piezas");
 
     colCNivel.setCellValueFactory(d -> {
         int ex = calcularExistenciaConjunto(d.getValue());
-        return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+        int min = d.getValue().getMinimoExistencia();
+        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
     });
     colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
     colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
+    colCMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
     colCPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
 
-    tablaConjuntos.getColumns().addAll(colCNivel, colCNombre, colCExist, colCPiezas);
+    tablaConjuntos.getColumns().addAll(colCNivel, colCNombre, colCExist, colCMinimo, colCPiezas);
 
     ObservableList<Conjunto> conjuntosAlerta = FXCollections.observableArrayList(
         listaConjuntos.stream()
-            .filter(c -> calcularExistenciaConjunto(c) <= ALERTA_AMARILLO)
+            .filter(c -> calcularExistenciaConjunto(c) <= c.getMinimoExistencia() * 2)
             .sorted((a, b) -> Integer.compare(calcularExistenciaConjunto(a), calcularExistenciaConjunto(b)))
             .toList()
     );
@@ -434,7 +445,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         TableView<MateriaPrima> tablaMP = new TableView<>();
         tablaMP.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
-        tablaMP.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tablaMP.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         tablaMP.setMinHeight(120);
         tablaMP.setMaxHeight(200);
         tablaMP.setPlaceholder(new Label("Sin alertas en materia prima"));
@@ -443,36 +454,46 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<MateriaPrima, String> colMNombre   = new TableColumn<>("Nombre");
         TableColumn<MateriaPrima, String> colMPartida  = new TableColumn<>("No. Partida");
         TableColumn<MateriaPrima, String> colMExist    = new TableColumn<>("Existencia");
+        TableColumn<MateriaPrima, String> colMMinimo   = new TableColumn<>("Mínimo");
         TableColumn<MateriaPrima, String> colMTipo     = new TableColumn<>("Tipo Insumo");
 
         colMNivel.setCellValueFactory(d -> {
             int ex = d.getValue().getExistencia();
-            return new SimpleStringProperty(ex <= ALERTA_ROJO ? "🔴 Crítico" : "🟡 Bajo");
+            int min = d.getValue().getMinimoExistencia();
+            return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
         });
         colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colMExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+        colMMinimo.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
         colMTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
 
-        tablaMP.getColumns().addAll(colMNivel, colMNombre, colMPartida, colMExist, colMTipo);
+        tablaMP.getColumns().addAll(colMNivel, colMNombre, colMPartida, colMExist, colMMinimo, colMTipo);
 
         ObservableList<MateriaPrima> mpAlerta = FXCollections.observableArrayList(
             listaMateriaPrima.stream()
-                .filter(mp -> mp.getExistencia() <= ALERTA_AMARILLO)
+                .filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2)
                 .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
                 .toList()
         );
         tablaMP.setItems(mpAlerta);
 
-        vista.getChildren().addAll(tituloMP, tablaMP);
+        ScrollPane scrollMP = new ScrollPane(tablaMP);
+        scrollMP.setFitToHeight(true);
+        scrollMP.setFitToWidth(false);
+        scrollMP.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollMP.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollMP.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+
+        vista.getChildren().addAll(tituloMP, scrollMP);
     }
 
-    // Resumen en la parte superior
+    // Resumen
     long totalAlertas = prendasAlerta.size() + conjuntosAlerta.size()
-        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= ALERTA_AMARILLO).count() : 0);
-    long criticas    = prendasAlerta.stream().filter(p -> p.getExistencia() <= ALERTA_ROJO).count()
-        + conjuntosAlerta.stream().filter(c -> calcularExistenciaConjunto(c) <= ALERTA_ROJO).count()
-        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= ALERTA_ROJO).count() : 0);
+        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2).count() : 0);
+    long criticas = prendasAlerta.stream().filter(p -> p.getExistencia() <= p.getMinimoExistencia()).count()
+        + conjuntosAlerta.stream().filter(c -> calcularExistenciaConjunto(c) <= c.getMinimoExistencia()).count()
+        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia()).count() : 0);
 
     Label resumen = new Label(
         totalAlertas == 0
@@ -485,7 +506,6 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         "-fx-background-color: " + PANEL + "; -fx-padding: 10 16; -fx-background-radius: 6;" +
         "-fx-border-color: #E5E7EB; -fx-border-radius: 6;");
 
-    // Insertar resumen después de la leyenda
     vista.getChildren().add(2, resumen);
 
     ScrollPane scroll = new ScrollPane(vista);
@@ -521,7 +541,8 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<Prenda, String> colExist  = new TableColumn<>("Existencia");
         TableColumn<Prenda, String> colMayor  = new TableColumn<>("P. Mayoreo");
         TableColumn<Prenda, String> colMenud  = new TableColumn<>("P. Menudeo");
-        TableColumn<Prenda, String> colTienda = new TableColumn<>("ID Tienda");
+       TableColumn<Prenda, String> colTienda  = new TableColumn<>("ID Tienda");
+        TableColumn<Prenda, String> colMinimo  = new TableColumn<>("Mínimo");
 
         colId.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getId()));
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
@@ -530,8 +551,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colMayor.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMayoreo()));
         colMenud.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMenudeo()));
         colTienda.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getIdTienda()));
+        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
 
-        tabla.getColumns().addAll(colId, colNombre, colTalla, colExist, colMayor, colMenud, colTienda);
+        tabla.getColumns().addAll(colId, colNombre, colTalla, colExist, colMinimo, colMayor, colMenud, colTienda);
         tabla.setItems(listaPrendas);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
@@ -671,15 +693,17 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<Conjunto, String> colNombre = new TableColumn<>("Nombre");
         TableColumn<Conjunto, String> colPiezas = new TableColumn<>("Piezas");
         TableColumn<Conjunto, String> colExist  = new TableColumn<>("Existencia");
-        TableColumn<Conjunto, String> colPrecio = new TableColumn<>("Precio");
+       TableColumn<Conjunto, String> colPrecio  = new TableColumn<>("Precio");
+        TableColumn<Conjunto, String> colMinimo  = new TableColumn<>("Mínimo");
 
         colId.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getId()));
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
         colPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
         colExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
         colPrecio.setCellValueFactory(d -> new SimpleStringProperty("$" + String.format("%.2f", calcularPrecioConjunto(d.getValue()))));
+        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
 
-        tabla.getColumns().addAll(colId, colNombre, colPiezas, colExist, colPrecio);
+        tabla.getColumns().addAll(colId, colNombre, colPiezas, colExist, colMinimo, colPrecio);
         tabla.setItems(listaConjuntos);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
@@ -1165,7 +1189,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── MÓDULO MATERIA PRIMA ─────────────────────────────────────────
+// ── MÓDULO MATERIA PRIMA ─────────────────────────────────────────
     private void mostrarModuloMateriaPrima(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1175,37 +1199,66 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         TableView<MateriaPrima> tabla = new TableView<>();
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
-        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay materia prima registrada"));
         tabla.setMinHeight(200);
 
-        TableColumn<MateriaPrima, String> colId        = new TableColumn<>("ID");
-        TableColumn<MateriaPrima, String> colPartida   = new TableColumn<>("No. Partida");
-        TableColumn<MateriaPrima, String> colNombre    = new TableColumn<>("Nombre");
-        TableColumn<MateriaPrima, String> colExist     = new TableColumn<>("Existencia");
-        TableColumn<MateriaPrima, String> colMaterial  = new TableColumn<>("Material");
-        TableColumn<MateriaPrima, String> colTipoInsum = new TableColumn<>("Tipo Insumo");
-        TableColumn<MateriaPrima, String> colColor     = new TableColumn<>("Color");
+        TableColumn<MateriaPrima, String> colId           = new TableColumn<>("ID");
+        TableColumn<MateriaPrima, String> colPartida      = new TableColumn<>("No. Partida");
+        TableColumn<MateriaPrima, String> colNombre       = new TableColumn<>("Nombre");
+        TableColumn<MateriaPrima, String> colExist        = new TableColumn<>("Existencia");
+        TableColumn<MateriaPrima, String> colMinimo       = new TableColumn<>("Mínimo");
+        TableColumn<MateriaPrima, String> colTipoExist    = new TableColumn<>("Tipo Existencia");
+        TableColumn<MateriaPrima, String> colDescripcion  = new TableColumn<>("Descripción");
+        TableColumn<MateriaPrima, String> colColor        = new TableColumn<>("Color");
+        TableColumn<MateriaPrima, String> colMedida       = new TableColumn<>("Medida");
+        TableColumn<MateriaPrima, String> colAncho        = new TableColumn<>("Ancho");
+        TableColumn<MateriaPrima, String> colComposicion  = new TableColumn<>("Composición");
+        TableColumn<MateriaPrima, String> colTipo         = new TableColumn<>("Tipo");
+        TableColumn<MateriaPrima, String> colNo           = new TableColumn<>("No.");
+        TableColumn<MateriaPrima, String> colTamanio      = new TableColumn<>("Tamaño");
+        TableColumn<MateriaPrima, String> colTalla2       = new TableColumn<>("Talla");
+        TableColumn<MateriaPrima, String> colMaterial     = new TableColumn<>("Material");
+        TableColumn<MateriaPrima, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
 
-        colId.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
-        colPartida.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
-        colNombre.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getNombre()));
-        colExist.setCellValueFactory(d     -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
-        colMaterial.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "—"));
-        colTipoInsum.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
-        colColor.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "—"));
+        colId.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
+        colPartida.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
+        colNombre.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getNombre()));
+        colExist.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
+        colMinimo.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+        colTipoExist.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoExistencia() != null && !d.getValue().getTipoExistencia().isEmpty() ? d.getValue().getTipoExistencia() : "—"));
+        colDescripcion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getDescripcion() != null ? d.getValue().getDescripcion() : "—"));
+        colColor.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "—"));
+        colMedida.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getMedida() != null ? d.getValue().getMedida() : "—"));
+        colAncho.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getAncho() != null ? String.valueOf(d.getValue().getAncho()) : "—"));
+        colComposicion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getComposicion() != null ? d.getValue().getComposicion() : "—"));
+        colTipo.setCellValueFactory(d         -> new SimpleStringProperty(d.getValue().getTipo() != null ? d.getValue().getTipo() : "—"));
+        colNo.setCellValueFactory(d           -> new SimpleStringProperty(d.getValue().getNo() != null ? String.valueOf(d.getValue().getNo()) : "—"));
+        colTamanio.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getTamanio() != null ? d.getValue().getTamanio() : "—"));
+        colTalla2.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getTalla() != null ? d.getValue().getTalla() : "—"));
+        colMaterial.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "—"));
+        colTipoInsum.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
 
-        tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMaterial, colTipoInsum, colColor);
+        tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMinimo,
+                colTipoExist, colDescripcion, colColor, colMedida, colAncho,
+                colComposicion, colTipo, colNo, colTamanio, colTalla2, colMaterial, colTipoInsum);
         tabla.setItems(listaMateriaPrima);
-        VBox.setVgrow(tabla, Priority.ALWAYS);
+
+        ScrollPane scrollTablaMP = new ScrollPane(tabla);
+        scrollTablaMP.setFitToHeight(true);
+        scrollTablaMP.setFitToWidth(false);
+        scrollTablaMP.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTablaMP.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTablaMP.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        VBox.setVgrow(scrollTablaMP, Priority.ALWAYS);
 
         Button btnDetalle = new Button("🔍 Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleMateriaPrima(contenido, esAdmin));
 
-        VBox vista = new VBox(16, titulo, tabla);
+        VBox vista = new VBox(16, titulo, scrollTablaMP);
         vista.setStyle("-fx-padding: 30;");
-        VBox.setVgrow(tabla, Priority.ALWAYS);
+        VBox.setVgrow(scrollTablaMP, Priority.ALWAYS);
         VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
@@ -1230,6 +1283,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         contenido.getChildren().add(vista);
     }
+
 
     // ── VER DETALLE MATERIA PRIMA ────────────────────────────────────
     private void mostrarDetalleMateriaPrima(StackPane contenido, boolean esAdmin) {
@@ -1326,6 +1380,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoPartida      = crearTextField("Número de partida  (ej: BOT-003)");
         TextField campoNombre       = crearTextField("Nombre del insumo");
         TextField campoExistencia   = crearTextField("Existencia inicial");
+        TextField campoMinimo       = crearTextField("Mínimo de existencia  (ej: 10)");
         TextField campoTipoExist    = crearTextField("Tipo de existencia  (opcional)");
         TextField campoDescripcion  = crearTextField("Descripción  (opcional)");
         TextField campoColor        = crearTextField("Color  (opcional)");
@@ -1376,19 +1431,21 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String material     = campoMaterial.getText().trim();
             String tipoInsumo   = selectorTipoInsumo.getValue();
 
-            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre y existencia son obligatorios"); return;
+            String minimoStr    = campoMinimo.getText().trim();
+            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre, existencia y mínimo son obligatorios"); return;
             }
             boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida().equalsIgnoreCase(partida));
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese número de partida"); return; }
 
-            try {
+        try {
                 int existencia   = Integer.parseInt(existStr);
+                int minimo       = Integer.parseInt(minimoStr);
                 Double ancho     = anchoStr.isEmpty()  ? null : Double.parseDouble(anchoStr);
                 Integer no       = noStr.isEmpty()     ? null : Integer.parseInt(noStr);
                 int nuevoId      = listaMateriaPrima.isEmpty() ? 1 : listaMateriaPrima.stream().mapToInt(MateriaPrima::getId).max().orElse(0) + 1;
 
-                listaMateriaPrima.add(new MateriaPrima(
+                MateriaPrima nuevaMP = new MateriaPrima(
                     nuevoId, partida, existencia,
                     tipoExist.isEmpty()   ? "" : tipoExist,
                     descripcion.isEmpty() ? "" : descripcion,
@@ -1403,7 +1460,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     talla.isEmpty()       ? null : talla,
                     material.isEmpty()    ? null : material,
                     tipoInsumo
-                ));
+                );
+                nuevaMP.setMinimoExistencia(minimo);
+                listaMateriaPrima.add(nuevaMP);
                 mostrarModuloMateriaPrima(contenido, true);
             } catch (NumberFormatException ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
@@ -1411,7 +1470,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         });
 
         VBox form = new VBox(10, titulo, subtitulo, campoPartida, campoNombre,
-                campoExistencia, campoTipoExist, labelTipoInsumo, selectorTipoInsumo,
+                campoExistencia, campoTipoExist, campoMinimo , labelTipoInsumo, selectorTipoInsumo,
                 campoColor, campoMedida, campoAncho, campoComposicion,
                 campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
                 campoDescripcion, mensajeEstado, btnGuardar, btnCancelar);
@@ -1537,6 +1596,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         TextField campoNombre      = crearTextField("Nombre del insumo");
         TextField campoExistencia  = crearTextField("Existencia");
+        TextField campoMinimo      = crearTextField("Mínimo de existencia");
         TextField campoTipoExist   = crearTextField("Tipo de existencia");
         TextField campoDescripcion = crearTextField("Descripción");
         TextField campoColor       = crearTextField("Color");
@@ -1565,7 +1625,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        panelEdicion.getChildren().addAll(campoNombre, campoExistencia, campoTipoExist,
+        panelEdicion.getChildren().addAll(campoNombre, campoExistencia,campoMinimo,  campoTipoExist,
                 labelTipoInsumo, selectorTipoInsumo,
                 campoColor, campoMedida, campoAncho, campoComposicion,
                 campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
@@ -1589,6 +1649,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
                 campoNombre.setText(encontrada.getNombre());
                 campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
+                campoMinimo.setText(String.valueOf(encontrada.getMinimoExistencia()));
                 campoTipoExist.setText(encontrada.getTipoExistencia() != null ? encontrada.getTipoExistencia() : "");
                 campoDescripcion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
                 campoColor.setText(encontrada.getColor() != null ? encontrada.getColor() : "");
@@ -1609,6 +1670,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             if (mpEncontrada[0] == null) return;
             String nombre      = campoNombre.getText().trim();
             String existStr    = campoExistencia.getText().trim();
+            String minimoStr   = campoMinimo.getText().trim();
             String tipoExist   = campoTipoExist.getText().trim();
             String descripcion = campoDescripcion.getText().trim();
             String color       = campoColor.getText().trim();
@@ -1622,11 +1684,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String material    = campoMaterial.getText().trim();
             String tipoInsumo  = selectorTipoInsumo.getValue();
 
-            if (nombre.isEmpty() || existStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre y existencia son obligatorios"); return;
+            if (nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre, existencia y mínimo son obligatorios"); return;
             }
             try {
                 int existencia  = Integer.parseInt(existStr);
+                int minimo      = Integer.parseInt(minimoStr);
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
                 Double ancho    = anchoStr.isEmpty() ? null : Double.parseDouble(anchoStr);
                 Integer no      = noStr.isEmpty()    ? null : Integer.parseInt(noStr);
@@ -1646,6 +1709,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mp.setTalla(talla.isEmpty()                ? null : talla);
                 mp.setMaterial(material.isEmpty()          ? null : material);
                 mp.setTipoInsumo(tipoInsumo);
+                mp.setMinimoExistencia(minimo);
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Insumo actualizado correctamente");
             } catch (NumberFormatException ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
@@ -2072,6 +2136,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoNombre      = crearTextField("Nombre del conjunto");
         TextField campoDescripcion = crearTextField("Descripción");
         TextField campoPiezas      = crearTextField("Número de piezas");
+        TextField campoMinimo      = crearTextField("Mínimo de existencia  (ej: 3)");
         TextField campoIdPrendas   = crearTextField("IDs de prendas separados por coma (ej: 1,7)");
         campoIdPrendas.setMaxWidth(400);
 
@@ -2109,15 +2174,17 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     }
                     ids.add(idLimpio);
                 }
-                listaConjuntos.add(new Conjunto(id, nombre, descripcion, ids, piezas));
-                mostrarModuloConjuntos(contenido, true);
+                int minimo = campoMinimo.getText().trim().isEmpty() ? 3 : Integer.parseInt(campoMinimo.getText().trim());
+                Conjunto nuevoConj = new Conjunto(id, nombre, descripcion, ids, piezas);
+                nuevoConj.setMinimoExistencia(minimo);
+                listaConjuntos.add(nuevoConj);                mostrarModuloConjuntos(contenido, true);
             } catch (NumberFormatException ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El número de piezas debe ser un número válido");
             }
         });
 
         VBox form = new VBox(12, titulo, campoId, campoNombre, campoDescripcion,
-                campoPiezas, campoIdPrendas, mensajeEstado, btnGuardar, btnCancelar);
+                campoPiezas, campoMinimo, campoIdPrendas, mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(450);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
@@ -2158,6 +2225,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoNombre      = crearTextField("Nombre del conjunto");
         TextField campoDescripcion = crearTextField("Descripción");
         TextField campoPiezas      = crearTextField("Número de piezas");
+        TextField campoMinimo      = crearTextField("Mínimo de existencia");
         TextField campoIdPrendas   = crearTextField("IDs de prendas separados por coma");
         campoIdPrendas.setMaxWidth(400);
 
@@ -2168,8 +2236,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        panelEdicion.getChildren().addAll(campoNombre, campoDescripcion, campoPiezas, campoIdPrendas, mensajeEstado, btnGuardar);
-
+panelEdicion.getChildren().addAll(campoNombre, campoDescripcion, campoPiezas, campoMinimo, campoIdPrendas, mensajeEstado, btnGuardar);
         final Conjunto[] conjuntoEncontrado = {null};
 
         btnBuscar.setOnAction(e -> {
@@ -2184,8 +2251,8 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             } else {
                 conjuntoEncontrado[0] = c;
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Conjunto encontrado");
-                campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion());
-                campoPiezas.setText(String.valueOf(c.getPiezas())); campoIdPrendas.setText(String.join(",", c.getIdPrendas()));
+campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion());
+                campoPiezas.setText(String.valueOf(c.getPiezas())); campoMinimo.setText(String.valueOf(c.getMinimoExistencia())); campoIdPrendas.setText(String.join(",", c.getIdPrendas()));
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
             }
         });
@@ -2209,8 +2276,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     }
                     ids.add(idLimpio);
                 }
+                int minimo = campoMinimo.getText().trim().isEmpty() ? 3 : Integer.parseInt(campoMinimo.getText().trim());
                 conjuntoEncontrado[0].setNombre(nombre); conjuntoEncontrado[0].setDescripcion(descripcion);
                 conjuntoEncontrado[0].setPiezas(piezas); conjuntoEncontrado[0].setIdPrendas(ids);
+                conjuntoEncontrado[0].setMinimoExistencia(minimo);
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Conjunto actualizado correctamente");
             } catch (NumberFormatException ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El número de piezas debe ser un número válido");
@@ -2253,6 +2322,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
         TextField campoDescripcion = crearTextField("Descripción");
         TextField campoExistencia  = crearTextField("Existencia inicial");
+        TextField campoMinimo      = crearTextField("Mínimo de existencia  (ej: 5)");
         TextField campoPMayoreo    = crearTextField("Precio mayoreo");
         TextField campoPMenudeo    = crearTextField("Precio menudeo");
         TextField campoIdTienda    = crearTextField("ID Tienda (pendiente)");
@@ -2295,17 +2365,19 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             }
             try {
                 int existencia  = Integer.parseInt(campoExistencia.getText().trim());
+                int minimo      = campoMinimo.getText().trim().isEmpty() ? 5 : Integer.parseInt(campoMinimo.getText().trim());
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
-                listaPrendas.add(new Prenda(nombre, id, talla, tipoPrenda, existencia, pMayoreo, pMenudeo, idTienda, descripcion));
-                mostrarModuloPrendas(contenido, true);
+                Prenda nuevaPrenda = new Prenda(nombre, id, talla, tipoPrenda, existencia, pMayoreo, pMenudeo, idTienda, descripcion);
+                nuevaPrenda.setMinimoExistencia(minimo);
+                listaPrendas.add(nuevaPrenda);                mostrarModuloPrendas(contenido, true);
             } catch (NumberFormatException ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia y precios deben ser números válidos");
             }
         });
 
         VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoId, campoTipoPrenda,
-                campoDescripcion, labelTalla, selectorTalla, campoExistencia,
+                campoDescripcion, labelTalla, selectorTalla, campoExistencia, campoMinimo , 
                 campoPMayoreo, campoPMenudeo, campoIdTienda, mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
@@ -2431,6 +2503,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoPMayoreo    = crearTextField("Precio mayoreo");
         TextField campoPMenudeo    = crearTextField("Precio menudeo");
         TextField campoExistencia  = crearTextField("Existencia");
+        TextField campoMinimo      = crearTextField("Mínimo de existencia");
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
         TextField campoDescripcion = crearTextField("Descripción");
         TextField campoIdTienda    = crearTextField("ID Tienda");
@@ -2452,8 +2525,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
         panelEdicion.getChildren().addAll(campoNombre, campoPMayoreo, campoPMenudeo, campoExistencia,
-                campoTipoPrenda, campoDescripcion, campoIdTienda, labelTalla, selectorTalla, mensajeEstado, btnGuardar);
-
+                campoMinimo, campoTipoPrenda, campoDescripcion, campoIdTienda, labelTalla, selectorTalla, mensajeEstado, btnGuardar);
         final Prenda[] prendaEncontrada = {null};
 
         Button btnBuscar = new Button("Buscar");
@@ -2472,6 +2544,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Prenda encontrada");
                 campoNombre.setText(encontrada.getNombre()); campoPMayoreo.setText(String.valueOf(encontrada.getPrecioMayoreo()));
                 campoPMenudeo.setText(String.valueOf(encontrada.getPrecioMenudeo())); campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
+                campoMinimo.setText(String.valueOf(encontrada.getMinimoExistencia()));               
                 campoTipoPrenda.setText(encontrada.getTipoPrenda()); campoDescripcion.setText(encontrada.getDescripcion());
                 campoIdTienda.setText(encontrada.getIdTienda()); selectorTalla.setValue(encontrada.getTalla());
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
@@ -2490,6 +2563,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             }
             try {
                 int existencia  = Integer.parseInt(campoExistencia.getText().trim());
+                int minimo      = campoMinimo.getText().trim().isEmpty() ? 5 : Integer.parseInt(campoMinimo.getText().trim());
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
@@ -2500,6 +2574,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     p.setNombre(nombre); p.setTalla(talla); p.setTipoPrenda(tipoPrenda);
                     p.setDescripcion(descripcion); p.setIdTienda(idTienda);
                     p.setExistencia(existencia); p.setPrecioMayoreo(pMayoreo); p.setPrecioMenudeo(pMenudeo);
+                    p.setMinimoExistencia(minimo);
                     verificarConjuntos();
                     mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Prenda actualizada correctamente");
                 }
@@ -2909,21 +2984,21 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     // ── DEVOLUCIONES ─────────────────────────────────────────────────
     private void mostrarDevoluciones(StackPane contenido) {
         contenido.getChildren().clear();
-
+ 
         Label titulo = new Label("Devoluciones");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
-
+ 
         Label subtitulo = new Label("Busca por ID de venta o nombre del producto para procesar la devolución");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
-
+ 
         TextField campoBusqueda = crearTextField("ID de venta o nombre de prenda/conjunto");
         campoBusqueda.setMaxWidth(400);
-
+ 
         Label mensajeBusqueda = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
-
+ 
         VBox panelResultado = new VBox(12);
         panelResultado.setStyle(
             "-fx-background-color: #FFF7ED; -fx-border-color: " + NARANJA + ";" +
@@ -2931,16 +3006,16 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         panelResultado.setVisible(false);
         panelResultado.setManaged(false);
         panelResultado.setMaxWidth(480);
-
+ 
         final PrendaVendida[]   pvRef = {null};
         final ConjuntoVendido[] cvRef = {null};
-
+ 
         Label labelNombre      = new Label("");
         Label labelFechaVenta  = new Label("");
         Label labelLimite      = new Label("");
         Label labelEstadoDev   = new Label("");
         Label labelCantVendida = new Label("");
-
+ 
         labelNombre.setFont(Font.font("System", FontWeight.BOLD, 15));
         labelNombre.setTextFill(Color.web(SECUNDARIO));
         for (Label l : new Label[]{labelFechaVenta, labelLimite, labelCantVendida}) {
@@ -2948,35 +3023,35 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             l.setTextFill(Color.web(TEXTO_SUAVE));
         }
         labelEstadoDev.setFont(Font.font("System", FontWeight.BOLD, 12));
-
+ 
         Label labelCantDev = new Label("Cantidad a devolver:");
         labelCantDev.setFont(Font.font("System", 12));
         labelCantDev.setTextFill(Color.web(TEXTO_SUAVE));
-
+ 
         TextField campoCantidad = crearTextField("Cantidad");
         campoCantidad.setMaxWidth(200);
-
+ 
         Label mensajeDevolucion = new Label("");
         mensajeDevolucion.setFont(Font.font("System", 12));
-
+ 
         Button btnConfirmar = new Button("✔ Confirmar Devolución");
         btnConfirmar.setStyle(
             "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
             "-fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
-
+ 
         Region sepInterno = new Region();
         sepInterno.setPrefHeight(1);
         sepInterno.setStyle("-fx-background-color: #E5E7EB;");
-
+ 
         panelResultado.getChildren().addAll(
             labelNombre, sepInterno,
             labelFechaVenta, labelLimite, labelEstadoDev, labelCantVendida,
             labelCantDev, campoCantidad, mensajeDevolucion, btnConfirmar
         );
-
+ 
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
-
+ 
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) {
@@ -2984,28 +3059,28 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeBusqueda.setText("Ingresa un ID de venta o nombre");
                 return;
             }
-
+ 
             pvRef[0] = null; cvRef[0] = null;
             mensajeDevolucion.setText(""); campoCantidad.clear();
-
+ 
             PrendaVendida pv = listaPrendasVendidas.stream()
                 .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
-
+ 
             ConjuntoVendido cv = null;
             if (pv == null) {
                 cv = listaConjuntosVendidos.stream()
                     .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
                     .findFirst().orElse(null);
             }
-
+ 
             if (pv == null && cv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR));
                 mensajeBusqueda.setText("No se encontró ninguna venta con ese dato");
                 panelResultado.setVisible(false); panelResultado.setManaged(false);
                 return;
             }
-
+ 
             boolean dentroDelPlazo;
             if (pv != null) {
                 pvRef[0] = pv;
@@ -3022,17 +3097,17 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 labelLimite.setText("Límite de devolución: " + cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
             }
-
+ 
             labelEstadoDev.setText(dentroDelPlazo
                 ? "✔ Dentro del periodo de devolución"
                 : "⚠ Periodo de devolución vencido — se puede registrar igualmente");
             labelEstadoDev.setTextFill(Color.web(dentroDelPlazo ? EXITO : ADVERTENCIA));
-
+ 
             mensajeBusqueda.setTextFill(Color.web(EXITO));
             mensajeBusqueda.setText("Venta encontrada");
             panelResultado.setVisible(true); panelResultado.setManaged(true);
         });
-
+ 
         btnConfirmar.setOnAction(e -> {
             String cantStr = campoCantidad.getText().trim();
             if (cantStr.isEmpty()) {
@@ -3047,7 +3122,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     mensajeDevolucion.setText("La cantidad debe ser mayor a 0");
                     return;
                 }
-
+ 
                 if (pvRef[0] != null) {
                     PrendaVendida pv = pvRef[0];
                     if (cantDevolver > pv.getCantidad()) {
@@ -3055,12 +3130,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                         mensajeDevolucion.setText("No puedes devolver más de " + pv.getCantidad() + " unidades");
                         return;
                     }
-
+ 
                     Prenda prendaExistente = listaPrendas.stream()
                         .filter(p -> p.getNombre().equalsIgnoreCase(pv.getNombrePrenda())
                                   && p.getTalla().equalsIgnoreCase(pv.getTalla()))
                         .findFirst().orElse(null);
-
+ 
                     if (prendaExistente != null) {
                         prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
                     } else {
@@ -3072,10 +3147,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                             "—", "Prenda devuelta — ID venta: " + pv.getIdVenta()
                         ));
                     }
-
-                    double reembolso = cantDevolver * pv.getPrecioUnitario();
-
-                    if (cantDevolver == pv.getCantidad()) {
+ 
+                    boolean eliminarRegistro = (cantDevolver == pv.getCantidad());
+                    String idVentaOriginal = pv.getIdVenta();
+                    String nombreProd = pv.getNombrePrenda();
+                    String tallaProd  = pv.getTalla();
+                    String tipoVentaProd = pv.getTipoVenta();
+                    double precioUnitProd = pv.getPrecioUnitario();
+ 
+                    if (eliminarRegistro) {
                         listaPrendasVendidas.remove(pv);
                         pvRef[0] = null;
                         panelResultado.setVisible(false); panelResultado.setManaged(false);
@@ -3084,11 +3164,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                         pv.setCantidad(pv.getCantidad() - cantDevolver);
                         labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
                     }
-
-                    mensajeDevolucion.setTextFill(Color.web(EXITO));
-                    mensajeDevolucion.setText("✔ Devolución registrada. " + cantDevolver + " unidades reintegradas.  Reembolso: $" + String.format("%.2f", reembolso));
-                    campoCantidad.clear();
-
+ 
+                    // Abrir formulario para capturar el motivo y registrar la devolución
+                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, tallaProd,
+                        cantDevolver, tipoVentaProd, precioUnitProd, false);
+                    return;
+ 
                 } else if (cvRef[0] != null) {
                     ConjuntoVendido cv = cvRef[0];
                     if (cantDevolver > cv.getCantidad()) {
@@ -3096,9 +3177,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                         mensajeDevolucion.setText("No puedes devolver más de " + cv.getCantidad() + " unidades");
                         return;
                     }
-
-                    double reembolso = cantDevolver * cv.getPrecioUnitario();
-
+ 
                     for (String nombrePrendaConj : cv.getNombresPrendas()) {
                         String nombreBase    = nombrePrendaConj;
                         String tallaExtraida = "";
@@ -3109,12 +3188,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                         }
                         final String nBase = nombreBase;
                         final String talla = tallaExtraida;
-
+ 
                         Prenda prendaExistente = listaPrendas.stream()
                             .filter(p -> p.getNombre().equalsIgnoreCase(nBase)
                                       && (talla.isEmpty() || p.getTalla().equalsIgnoreCase(talla)))
                             .findFirst().orElse(null);
-
+ 
                         if (prendaExistente != null) {
                             prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
                         } else {
@@ -3126,8 +3205,14 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                             ));
                         }
                     }
-
-                    if (cantDevolver == cv.getCantidad()) {
+ 
+                    boolean eliminarRegistro = (cantDevolver == cv.getCantidad());
+                    String idVentaOriginal = cv.getIdVenta();
+                    String nombreProd = cv.getNombreConjunto();
+                    String tipoVentaProd = cv.getTipoVenta();
+                    double precioUnitProd = cv.getPrecioUnitario();
+ 
+                    if (eliminarRegistro) {
                         listaConjuntosVendidos.remove(cv);
                         cvRef[0] = null;
                         panelResultado.setVisible(false); panelResultado.setManaged(false);
@@ -3136,33 +3221,120 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                         cv.setCantidad(cv.getCantidad() - cantDevolver);
                         labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
                     }
-
-                    mensajeDevolucion.setTextFill(Color.web(EXITO));
-                    mensajeDevolucion.setText("✔ Devolución registrada. " + cantDevolver + " conjunto(s) devuelto(s), prendas reintegradas.  Reembolso: $" + String.format("%.2f", reembolso));
-                    campoCantidad.clear();
+ 
+                    // Abrir formulario para capturar el motivo y registrar la devolución
+                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, "—",
+                        cantDevolver, tipoVentaProd, precioUnitProd, true);
+                    return;
                 }
-
+ 
             } catch (NumberFormatException ex) {
                 mensajeDevolucion.setTextFill(Color.web(ERROR));
                 mensajeDevolucion.setText("Ingresa una cantidad válida");
             }
         });
-
+ 
         VBox form = new VBox(14, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado);
         form.setAlignment(Pos.TOP_LEFT);
         form.setMaxWidth(520);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
-
+ 
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(false);
         scroll.setFitToHeight(false);
         scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
-
+ 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
     }
+ 
+    // ── FORMULARIO CAPTURA DE MOTIVO (tras confirmar devolución) ─────
+    private void mostrarFormularioMotivoDevolucion(StackPane contenido, String idVentaOriginal,
+            String nombreProducto, String talla, int cantidad, String tipoVenta,
+            double precioUnitario, boolean esConjunto) {
+        contenido.getChildren().clear();
+ 
+        Label titulo = new Label("Confirmar Devolución");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+ 
+        Label subtitulo = new Label("La devolución ya fue procesada en el inventario. Indica el motivo para completar el registro.");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+        subtitulo.setWrapText(true);
+ 
+        VBox tarjetaInfo = new VBox(8);
+        tarjetaInfo.setStyle("-fx-background-color: #F0FDF4; -fx-border-color: " + EXITO + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 16;");
+ 
+        double total = cantidad * precioUnitario;
+ 
+        tarjetaInfo.getChildren().addAll(
+            filaDetalle("ID venta original:", idVentaOriginal),
+            filaDetalle("Producto:", nombreProducto + (esConjunto ? " (Conjunto)" : "")),
+            filaDetalle("Talla:", talla),
+            filaDetalle("Cantidad devuelta:", String.valueOf(cantidad)),
+            filaDetalle("Tipo de venta:", tipoVenta),
+            filaDetalle("Precio unitario:", "$" + String.format("%.2f", precioUnitario)),
+            filaDetalle("Reembolso:", "$" + String.format("%.2f", total))
+        );
+ 
+        Label labelMotivo = new Label("Motivo de la devolución:");
+        labelMotivo.setFont(Font.font("System", 12));
+        labelMotivo.setTextFill(Color.web(TEXTO_SUAVE));
+ 
+        TextField campoMotivo = crearTextField("Ej: Talla incorrecta, defecto de fábrica...");
+        campoMotivo.setMaxWidth(400);
+ 
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+ 
+        Button btnGuardar = new Button("✔ Guardar Registro de Devolución");
+        btnGuardar.setMaxWidth(320);
+        btnGuardar.setStyle(
+            "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+ 
+        btnGuardar.setOnAction(e -> {
+    String motivo = campoMotivo.getText().trim();
+    String idDevolucion = "DEVREG-" + contadorIdVenta++;
+    listaDevolucionesRegistradas.add(new DevolucionRegistrada(
+        idDevolucion, nombreProducto, talla, cantidad, tipoVenta, precioUnitario,
+        LocalDate.now(), motivo.isEmpty() ? "Sin motivo especificado" : motivo
+    ));
+    mostrarDevoluciones(contenido);
+});
+ 
+        Button btnOmitir = new Button("Omitir y regresar sin guardar motivo");
+        btnOmitir.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnOmitir.setOnAction(e -> {
+            String idDevolucion = "DEVREG-" + contadorIdVenta++;
+            listaDevolucionesRegistradas.add(new DevolucionRegistrada(
+                idDevolucion, nombreProducto, talla, cantidad, tipoVenta, precioUnitario,
+                LocalDate.now(), "No especificado"
+            ));
+            mostrarDevoluciones(contenido);
+        });
+ 
+        VBox form = new VBox(14, titulo, subtitulo, tarjetaInfo, labelMotivo, campoMotivo,
+                mensajeEstado, btnGuardar, btnOmitir);
+        form.setAlignment(Pos.TOP_LEFT);
+        form.setMaxWidth(520);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+ 
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+ 
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+ 
+ 
 
     // ── MÓDULO USUARIOS ──────────────────────────────────────────────
     private void mostrarModuloUsuarios(StackPane contenido) {
@@ -3279,34 +3451,43 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         label.setMaxWidth(Double.MAX_VALUE);
         return label;
     }
+
 private String calcularColorAlerta() {
-    int minExistencia = Integer.MAX_VALUE;
-
-    for (Prenda p : listaPrendas)
-        minExistencia = Math.min(minExistencia, p.getExistencia());
-    for (Conjunto c : listaConjuntos)
-        minExistencia = Math.min(minExistencia, calcularExistenciaConjunto(c));
-
-    if (minExistencia == Integer.MAX_VALUE) return EXITO; 
-
-    if (minExistencia <= ALERTA_ROJO)     return ERROR;
-    if (minExistencia <= ALERTA_AMARILLO) return ADVERTENCIA;
+    boolean hayCritica = false, hayBaja = false;
+    for (Prenda p : listaPrendas) {
+        if (p.getExistencia() <= p.getMinimoExistencia())           hayCritica = true;
+        else if (p.getExistencia() <= p.getMinimoExistencia() * 2)  hayBaja = true;
+    }
+    for (Conjunto c : listaConjuntos) {
+        int ex = calcularExistenciaConjunto(c);
+        if (ex <= c.getMinimoExistencia())           hayCritica = true;
+        else if (ex <= c.getMinimoExistencia() * 2)  hayBaja = true;
+    }
+    for (MateriaPrima mp : listaMateriaPrima) {
+        if (mp.getExistencia() <= mp.getMinimoExistencia())           hayCritica = true;
+        else if (mp.getExistencia() <= mp.getMinimoExistencia() * 2)  hayBaja = true;
+    }
+    if (hayCritica) return ERROR;
+    if (hayBaja)    return ADVERTENCIA;
     return EXITO;
 }
 
 private String calcularColorAlertaEncargado() {
-    int minExistencia = Integer.MAX_VALUE;
-
-    for (Prenda p : listaPrendas)
-        minExistencia = Math.min(minExistencia, p.getExistencia());
-    for (Conjunto c : listaConjuntos)
-        minExistencia = Math.min(minExistencia, calcularExistenciaConjunto(c));
-
-    if (minExistencia == Integer.MAX_VALUE) return EXITO;
-    if (minExistencia <= ALERTA_ROJO)       return ERROR;
-    if (minExistencia <= ALERTA_AMARILLO)   return ADVERTENCIA;
+    boolean hayCritica = false, hayBaja = false;
+    for (Prenda p : listaPrendas) {
+        if (p.getExistencia() <= p.getMinimoExistencia())           hayCritica = true;
+        else if (p.getExistencia() <= p.getMinimoExistencia() * 2)  hayBaja = true;
+    }
+    for (Conjunto c : listaConjuntos) {
+        int ex = calcularExistenciaConjunto(c);
+        if (ex <= c.getMinimoExistencia())           hayCritica = true;
+        else if (ex <= c.getMinimoExistencia() * 2)  hayBaja = true;
+    }
+    if (hayCritica) return ERROR;
+    if (hayBaja)    return ADVERTENCIA;
     return EXITO;
 }
+
     private StackPane crearContenidoVacio() {
         StackPane contenido = new StackPane();
         contenido.setStyle("-fx-background-color: " + FONDO + ";");
@@ -3360,6 +3541,345 @@ private String calcularColorAlertaEncargado() {
 
     public static void main(String[] args) { launch(); }
 
+    // ── REGISTRO DE DEVOLUCIONES ─────────────────────────────────────
+    private ObservableList<DevolucionRegistrada> listaDevolucionesRegistradas = FXCollections.observableArrayList();
+
+    private void mostrarRegistroDevoluciones(StackPane contenido, boolean esAdmin) {
+        contenido.getChildren().clear();
+
+        Label titulo = new Label("Registro de Devoluciones");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        TableView<DevolucionRegistrada> tabla = new TableView<>();
+        tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tabla.setPlaceholder(new Label("No hay devoluciones registradas"));
+        tabla.setMinHeight(200);
+        tabla.setRowFactory(tv -> {
+            TableRow<DevolucionRegistrada> row = new TableRow<>();
+            row.setPrefHeight(48);
+            return row;
+        });
+
+        TableColumn<DevolucionRegistrada, String> colId       = new TableColumn<>("ID Dev.");
+        TableColumn<DevolucionRegistrada, String> colProducto = new TableColumn<>("Producto");
+        TableColumn<DevolucionRegistrada, String> colTalla    = new TableColumn<>("Talla");
+        TableColumn<DevolucionRegistrada, String> colCantidad = new TableColumn<>("Cant.");
+        TableColumn<DevolucionRegistrada, String> colTipo     = new TableColumn<>("Tipo");
+        TableColumn<DevolucionRegistrada, String> colPrecio   = new TableColumn<>("Precio Unit.");
+        TableColumn<DevolucionRegistrada, String> colTotal    = new TableColumn<>("Total Dev.");
+        TableColumn<DevolucionRegistrada, String> colFecha    = new TableColumn<>("Fecha Dev.");
+        TableColumn<DevolucionRegistrada, String> colMotivo   = new TableColumn<>("Motivo");
+
+        colId.setPrefWidth(100);
+        colProducto.setPrefWidth(160);
+        colTalla.setPrefWidth(70);
+        colCantidad.setPrefWidth(60);
+        colTipo.setPrefWidth(90);
+        colPrecio.setPrefWidth(100);
+        colTotal.setPrefWidth(100);
+        colFecha.setPrefWidth(100);
+        colMotivo.setPrefWidth(320);
+
+        colId.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getIdDevolucion()));
+        colProducto.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombreProducto()));
+        colTalla.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTalla()));
+        colCantidad.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getCantidad())));
+        colTipo.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getTipoVenta()));
+        colPrecio.setCellValueFactory(d   -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getPrecioUnitario())));
+        colTotal.setCellValueFactory(d    -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getTotal())));
+        colFecha.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        colMotivo.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getMotivo()));
+
+        // Celda con wrap-text para que el motivo se lea completo sin cortarse
+        colMotivo.setCellFactory(col -> new TableCell<DevolucionRegistrada, String>() {
+            private final Text text = new Text();
+            {
+                text.wrappingWidthProperty().bind(colMotivo.widthProperty().subtract(10));
+                setGraphic(text);
+                setPrefHeight(Region.USE_COMPUTED_SIZE);
+            }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    text.setText(null);
+                } else {
+                    text.setText(item);
+                }
+            }
+        });
+
+        tabla.getColumns().addAll(colId, colProducto, colTalla, colCantidad, colTipo, colPrecio, colTotal, colFecha, colMotivo);
+        tabla.setItems(listaDevolucionesRegistradas);
+
+        ScrollPane scrollTabla = new ScrollPane(tabla);
+        scrollTabla.setFitToHeight(true);
+        scrollTabla.setFitToWidth(false);
+        scrollTabla.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTabla.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTabla.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
+
+        VBox vista = new VBox(16, titulo, scrollTabla);
+        vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
+
+        if (esAdmin) {
+            Button btnNuevo = new Button("+ Registrar Devolución");
+            Button btnEditar = new Button("✎ Editar Registro");
+            btnNuevo.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnNuevo.setOnAction(e  -> mostrarFormularioNuevaDevolucion(contenido));
+            btnEditar.setOnAction(e -> mostrarFormularioEditarDevolucion(contenido));
+            HBox botones = new HBox(12, btnNuevo, btnEditar);
+            vista.getChildren().add(botones);
+        }
+
+        ScrollPane scroll = new ScrollPane(vista);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + ";");
+        contenido.getChildren().add(wrapper);
+    }
+
+    private void mostrarFormularioNuevaDevolucion(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Registrar Devolución");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Completa los campos para registrar la devolución");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoId         = crearTextField("ID de devolución");
+        TextField campoProducto   = crearTextField("Nombre del producto");
+        TextField campoTalla      = crearTextField("Talla");
+        TextField campoCantidad   = crearTextField("Cantidad");
+        TextField campoPrecioUnit = crearTextField("Precio unitario");
+        TextField campoMotivo     = crearTextField("Motivo de la devolución");
+
+        Label labelTipo = new Label("Tipo de venta original:");
+        labelTipo.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTipo.setFont(Font.font("System", 12));
+
+        ComboBox<String> selectorTipo = new ComboBox<>();
+        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
+        selectorTipo.setValue("Menudeo");
+        selectorTipo.setMaxWidth(320);
+        selectorTipo.setStyle(estiloInput());
+
+        Label labelFecha = new Label("Fecha de devolución (dd/MM/yyyy):");
+        labelFecha.setTextFill(Color.web(TEXTO_SUAVE));
+        labelFecha.setFont(Font.font("System", 12));
+
+        TextField campoFecha = crearTextField("dd/MM/yyyy  (vacío = hoy)");
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnGuardar = new Button("Guardar Devolución");
+        btnGuardar.setMaxWidth(320);
+        btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        Button btnCancelar = new Button("← Regresar a lista");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
+
+        btnGuardar.setOnAction(e -> {
+            String id        = campoId.getText().trim();
+            String producto  = campoProducto.getText().trim();
+            String talla     = campoTalla.getText().trim();
+            String cantStr   = campoCantidad.getText().trim();
+            String precioStr = campoPrecioUnit.getText().trim();
+            String motivo    = campoMotivo.getText().trim();
+            String tipo      = selectorTipo.getValue();
+            String fechaStr  = campoFecha.getText().trim();
+
+            if (id.isEmpty() || producto.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("ID, producto, cantidad y precio son obligatorios");
+                return;
+            }
+            boolean yaExiste = listaDevolucionesRegistradas.stream().anyMatch(d -> d.getIdDevolucion().equals(id));
+            if (yaExiste) {
+                mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
+                mensajeEstado.setText("Ya existe una devolución con ese ID");
+                return;
+            }
+            try {
+                int cantidad      = Integer.parseInt(cantStr);
+                double precioUnit = Double.parseDouble(precioStr);
+                LocalDate fecha   = fechaStr.isEmpty() ? LocalDate.now() : LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                listaDevolucionesRegistradas.add(new DevolucionRegistrada(id, producto, talla, cantidad, tipo, precioUnit, fecha, motivo));
+                mostrarRegistroDevoluciones(contenido, true);
+            } catch (Exception ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Verifica que los datos sean válidos");
+            }
+        });
+
+        VBox form = new VBox(12, titulo, subtitulo, campoId, campoProducto, campoTalla,
+                campoCantidad, campoPrecioUnit, labelTipo, selectorTipo,
+                labelFecha, campoFecha, campoMotivo, mensajeEstado, btnGuardar, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT);
+        form.setMaxWidth(440);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+    private void mostrarFormularioEditarDevolucion(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo    = new Label("Editar Registro de Devolución");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Busca por ID de devolución o nombre del producto");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TextField campoBusqueda = crearTextField("ID de devolución o nombre del producto");
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setStyle(estiloBtnPrincipal());
+
+        Label mensajeBusqueda = new Label("");
+        mensajeBusqueda.setFont(Font.font("System", 12));
+
+        VBox panelEdicion = new VBox(10);
+        panelEdicion.setVisible(false);
+        panelEdicion.setManaged(false);
+
+        TextField campoProducto   = crearTextField("Nombre del producto");
+        TextField campoTalla      = crearTextField("Talla");
+        TextField campoCantidad   = crearTextField("Cantidad");
+        TextField campoPrecioUnit = crearTextField("Precio unitario");
+        TextField campoFecha      = crearTextField("Fecha devolución dd/MM/yyyy");
+        TextField campoMotivo     = crearTextField("Motivo");
+
+        Label labelTipo = new Label("Tipo de venta original:");
+        labelTipo.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTipo.setFont(Font.font("System", 12));
+
+        ComboBox<String> selectorTipo = new ComboBox<>();
+        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
+        selectorTipo.setValue("Menudeo");
+        selectorTipo.setMaxWidth(320);
+        selectorTipo.setStyle(estiloInput());
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnGuardar = new Button("Guardar Cambios");
+        btnGuardar.setMaxWidth(320);
+        btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        panelEdicion.getChildren().addAll(campoProducto, campoTalla, campoCantidad, campoPrecioUnit,
+                labelTipo, selectorTipo, campoFecha, campoMotivo, mensajeEstado, btnGuardar);
+
+        final DevolucionRegistrada[] devRef = {null};
+
+        btnBuscar.setOnAction(e -> {
+            String busqueda = campoBusqueda.getText().trim();
+            if (busqueda.isEmpty()) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Ingresa un ID o nombre");
+                return;
+            }
+            DevolucionRegistrada dev = listaDevolucionesRegistradas.stream()
+                .filter(d -> d.getIdDevolucion().equalsIgnoreCase(busqueda) || d.getNombreProducto().equalsIgnoreCase(busqueda))
+                .findFirst().orElse(null);
+            if (dev == null) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("No se encontró el registro");
+                panelEdicion.setVisible(false); panelEdicion.setManaged(false);
+            } else {
+                devRef[0] = dev;
+                mensajeBusqueda.setTextFill(Color.web(EXITO));
+                mensajeBusqueda.setText("Registro encontrado");
+                campoProducto.setText(dev.getNombreProducto());
+                campoTalla.setText(dev.getTalla());
+                campoCantidad.setText(String.valueOf(dev.getCantidad()));
+                campoPrecioUnit.setText(String.valueOf(dev.getPrecioUnitario()));
+                selectorTipo.setValue(dev.getTipoVenta());
+                campoFecha.setText(dev.getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                campoMotivo.setText(dev.getMotivo());
+                mensajeEstado.setText("");
+                panelEdicion.setVisible(true); panelEdicion.setManaged(true);
+            }
+        });
+
+        btnGuardar.setOnAction(e -> {
+            if (devRef[0] == null) return;
+            String producto  = campoProducto.getText().trim();
+            String talla     = campoTalla.getText().trim();
+            String cantStr   = campoCantidad.getText().trim();
+            String precioStr = campoPrecioUnit.getText().trim();
+            String fechaStr  = campoFecha.getText().trim();
+            String motivo    = campoMotivo.getText().trim();
+            String tipo      = selectorTipo.getValue();
+
+            if (producto.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty() || fechaStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Todos los campos son obligatorios");
+                return;
+            }
+            try {
+                int cantidad      = Integer.parseInt(cantStr);
+                double precioUnit = Double.parseDouble(precioStr);
+                LocalDate fecha   = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                DevolucionRegistrada dev = devRef[0];
+                dev.setNombreProducto(producto); dev.setTalla(talla);
+                dev.setCantidad(cantidad); dev.setPrecioUnitario(precioUnit);
+                dev.setTipoVenta(tipo); dev.setFechaDevolucion(fecha);
+                dev.setMotivo(motivo);
+                mensajeEstado.setTextFill(Color.web(EXITO));
+                mensajeEstado.setText("Registro actualizado correctamente");
+            } catch (Exception ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Verifica que los datos sean válidos");
+            }
+        });
+
+        Button btnCancelar = new Button("← Regresar a lista");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
+
+        VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT);
+        form.setMaxWidth(460);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
+
+
+
     // ── CLASES MODELO ────────────────────────────────────────────────
     public static class Usuario {
         private String nombre, usuario, password, rol;
@@ -3372,9 +3892,43 @@ private String calcularColorAlertaEncargado() {
         public String getRol()      { return rol; }
     }
 
-    public static class Prenda {
+public static class DevolucionRegistrada {
+        private String idDevolucion, nombreProducto, talla, tipoVenta, motivo;
+        private int cantidad;
+        private double precioUnitario;
+        private LocalDate fechaDevolucion;
+
+        public DevolucionRegistrada(String idDevolucion, String nombreProducto, String talla,
+                                    int cantidad, String tipoVenta, double precioUnitario,
+                                    LocalDate fechaDevolucion, String motivo) {
+            this.idDevolucion  = idDevolucion;  this.nombreProducto = nombreProducto;
+            this.talla         = talla;          this.cantidad       = cantidad;
+            this.tipoVenta     = tipoVenta;      this.precioUnitario = precioUnitario;
+            this.fechaDevolucion = fechaDevolucion; this.motivo       = motivo;
+        }
+
+        public String    getIdDevolucion()   { return idDevolucion; }
+        public String    getNombreProducto() { return nombreProducto; }
+        public String    getTalla()          { return talla; }
+        public int       getCantidad()       { return cantidad; }
+        public String    getTipoVenta()      { return tipoVenta; }
+        public double    getPrecioUnitario() { return precioUnitario; }
+        public double    getTotal()          { return cantidad * precioUnitario; }
+        public LocalDate getFechaDevolucion(){ return fechaDevolucion; }
+        public String    getMotivo()         { return motivo; }
+
+        public void setNombreProducto(String n)    { this.nombreProducto  = n; }
+        public void setTalla(String t)             { this.talla           = t; }
+        public void setCantidad(int c)             { this.cantidad        = c; }
+        public void setTipoVenta(String t)         { this.tipoVenta       = t; }
+        public void setPrecioUnitario(double p)    { this.precioUnitario  = p; }
+        public void setFechaDevolucion(LocalDate f){ this.fechaDevolucion = f; }
+        public void setMotivo(String m)            { this.motivo          = m; }
+    }
+
+public static class Prenda {
         private String nombre, id, talla, tipoPrenda, idTienda, descripcion;
-        private int existencia;
+        private int existencia, minimoExistencia;
         private double precioMayoreo, precioMenudeo;
 
         public Prenda(String nombre, String id, String talla, String tipoPrenda,
@@ -3384,6 +3938,7 @@ private String calcularColorAlertaEncargado() {
             this.tipoPrenda = tipoPrenda; this.existencia = existencia;
             this.precioMayoreo = precioMayoreo; this.precioMenudeo = precioMenudeo;
             this.idTienda = idTienda; this.descripcion = descripcion;
+            this.minimoExistencia = 5;
         }
 
         public String getNombre()        { return nombre; }
@@ -3391,41 +3946,46 @@ private String calcularColorAlertaEncargado() {
         public String getTalla()         { return talla; }
         public String getTipoPrenda()    { return tipoPrenda; }
         public int    getExistencia()    { return existencia; }
+        public int    getMinimoExistencia() { return minimoExistencia; }
         public double getPrecioMayoreo() { return precioMayoreo; }
         public double getPrecioMenudeo() { return precioMenudeo; }
         public String getIdTienda()      { return idTienda; }
         public String getDescripcion()   { return descripcion; }
 
-        public void setNombre(String n)        { this.nombre = n; }
-        public void setTalla(String t)         { this.talla = t; }
-        public void setTipoPrenda(String t)    { this.tipoPrenda = t; }
-        public void setIdTienda(String t)      { this.idTienda = t; }
-        public void setDescripcion(String d)   { this.descripcion = d; }
-        public void setExistencia(int e)       { this.existencia = e; }
-        public void setPrecioMayoreo(double p) { this.precioMayoreo = p; }
-        public void setPrecioMenudeo(double p) { this.precioMenudeo = p; }
+        public void setNombre(String n)           { this.nombre = n; }
+        public void setTalla(String t)            { this.talla = t; }
+        public void setTipoPrenda(String t)       { this.tipoPrenda = t; }
+        public void setIdTienda(String t)         { this.idTienda = t; }
+        public void setDescripcion(String d)      { this.descripcion = d; }
+        public void setExistencia(int e)          { this.existencia = e; }
+        public void setMinimoExistencia(int m)    { this.minimoExistencia = m; }
+        public void setPrecioMayoreo(double p)    { this.precioMayoreo = p; }
+        public void setPrecioMenudeo(double p)    { this.precioMenudeo = p; }
     }
 
-    public static class Conjunto {
+public static class Conjunto {
         private String id, nombre, descripcion;
         private List<String> idPrendas;
-        private int piezas;
+        private int piezas, minimoExistencia;
 
         public Conjunto(String id, String nombre, String descripcion, List<String> idPrendas, int piezas) {
             this.id = id; this.nombre = nombre; this.descripcion = descripcion;
             this.idPrendas = idPrendas; this.piezas = piezas;
+            this.minimoExistencia = 3;
         }
 
-        public String       getId()          { return id; }
-        public String       getNombre()      { return nombre; }
-        public String       getDescripcion() { return descripcion; }
-        public List<String> getIdPrendas()   { return idPrendas; }
-        public int          getPiezas()      { return piezas; }
+        public String       getId()                 { return id; }
+        public String       getNombre()             { return nombre; }
+        public String       getDescripcion()        { return descripcion; }
+        public List<String> getIdPrendas()          { return idPrendas; }
+        public int          getPiezas()             { return piezas; }
+        public int          getMinimoExistencia()   { return minimoExistencia; }
 
-        public void setNombre(String n)          { this.nombre = n; }
-        public void setDescripcion(String d)     { this.descripcion = d; }
-        public void setIdPrendas(List<String> l) { this.idPrendas = l; }
-        public void setPiezas(int p)             { this.piezas = p; }
+        public void setNombre(String n)             { this.nombre = n; }
+        public void setDescripcion(String d)        { this.descripcion = d; }
+        public void setIdPrendas(List<String> l)    { this.idPrendas = l; }
+        public void setPiezas(int p)                { this.piezas = p; }
+        public void setMinimoExistencia(int m)      { this.minimoExistencia = m; }
     }
 
     public static class PrendaVendida {
@@ -3533,6 +4093,8 @@ private String calcularColorAlertaEncargado() {
         private Double ancho;
         private Integer no;
 
+        private int minimoExistencia;
+
         public MateriaPrima(int id, String numeroPartida, int existencia, String tipoExistencia,
                             String descripcion, String nombre, String color, String medida,
                             Double ancho, String composicion, String tipo, Integer no,
@@ -3543,6 +4105,7 @@ private String calcularColorAlertaEncargado() {
             this.ancho = ancho; this.composicion = composicion; this.tipo = tipo;
             this.no = no; this.tamanio = tamanio; this.talla = talla;
             this.material = material; this.tipoInsumo = tipoInsumo;
+            this.minimoExistencia = 10;
         }
 
         public int     getId()             { return id; }
@@ -3576,5 +4139,7 @@ private String calcularColorAlertaEncargado() {
         public void setTalla(String t)          { this.talla = t; }
         public void setMaterial(String m)       { this.material = m; }
         public void setTipoInsumo(String t)     { this.tipoInsumo = t; }
+        public int  getMinimoExistencia()   { return minimoExistencia; }
+        public void setMinimoExistencia(int m) { this.minimoExistencia = m; }
     }
 }
