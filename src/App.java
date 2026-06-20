@@ -1384,8 +1384,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 listaPrendasVendidas.add(new PrendaVendida(idVenta, nombrePrenda, talla, cantidad, tipoVenta, precioUnit, fechaVenta, fechaDevolucion, descripcion));
                 mostrarModuloPrendasVendidas(contenido, true);
             } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos");
-            }
+            mensajeEstado.setTextFill(Color.web(ERROR));
+            mensajeEstado.setText("Verifica que los datos sean válidos");
+}
         });
 
         VBox form = new VBox(12, titulo, subtitulo, campoIdVenta, campoNombrePrenda, campoTalla,
