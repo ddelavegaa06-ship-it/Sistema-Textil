@@ -54,6 +54,42 @@ public class App extends Application {
         new MateriaPrima(8,  "HIL-001", 25,   "",        "Hilo para costura industrial resistente",   "Filamento",            "Marino 592King",null, null,  "100% Poliéster",  null,             null, "40/2",null,  null,       "Hilo")
     );
 
+    private ObservableList<MaterialPorPrenda> listaMaterialesPorPrenda = FXCollections.observableArrayList(
+        // Falda escolar (id 1,2,3) usa botón (id 1) y tela plana gabardina (id 5)
+        new MaterialPorPrenda("1", "5", 0.8),
+        new MaterialPorPrenda("1", "1", 4),
+        new MaterialPorPrenda("2", "5", 0.9),
+        new MaterialPorPrenda("2", "1", 4),
+        new MaterialPorPrenda("3", "5", 1.0),
+        new MaterialPorPrenda("3", "1", 4),
+        // Pantalón de vestir (id 4,5,6) usa cierre (id 3) y tela plana mezclilla (id 6) y botón (id 2)
+        new MaterialPorPrenda("4", "6", 1.1),
+        new MaterialPorPrenda("4", "3", 1),
+        new MaterialPorPrenda("4", "2", 1),
+        new MaterialPorPrenda("5", "6", 1.3),
+        new MaterialPorPrenda("5", "3", 1),
+        new MaterialPorPrenda("5", "2", 1),
+        new MaterialPorPrenda("6", "6", 1.5),
+        new MaterialPorPrenda("6", "3", 1),
+        new MaterialPorPrenda("6", "2", 1),
+        // Camisa blanca (id 7,8,9) usa tela plana gabardina (id 5) y botón (id 1) e hilo (id 8)
+        new MaterialPorPrenda("7", "5", 1.2),
+        new MaterialPorPrenda("7", "1", 8),
+        new MaterialPorPrenda("8", "5", 1.4),
+        new MaterialPorPrenda("8", "1", 8),
+        new MaterialPorPrenda("9", "5", 1.6),
+        new MaterialPorPrenda("9", "1", 8),
+        // Playera polo (id 10,11,12,13) usa tela punto jersey (id 7) y botón (id 1)
+        new MaterialPorPrenda("10", "7", 0.9),
+        new MaterialPorPrenda("10", "1", 3),
+        new MaterialPorPrenda("11", "7", 1.1),
+        new MaterialPorPrenda("11", "1", 3),
+        new MaterialPorPrenda("12", "7", 1.3),
+        new MaterialPorPrenda("12", "1", 3),
+        new MaterialPorPrenda("13", "7", 1.5),
+        new MaterialPorPrenda("13", "1", 3)
+    );
+
     private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList(
         new Usuario("Administrador Principal", "admin", "1234", "administrador"),
         new Usuario("Encargado de Tienda",     "encargado", "5678", "encargado")
@@ -104,6 +140,21 @@ public class App extends Application {
             .mapToInt(idP -> listaPrendas.stream().filter(p -> p.getId().equals(idP))
                 .mapToInt(Prenda::getExistencia).findFirst().orElse(0))
             .min().orElse(0);
+    }
+
+private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
+    return listaMaterialesPorPrenda.stream()
+        .filter(m -> m.getIdPrenda().equals(idPrenda) && m.getIdMateriaPrima().equals(idMateriaPrima))
+        .map(MaterialPorPrenda::getCantidad)
+        .findFirst().orElse(null);
+}
+
+    private String nombrePrendaConTalla(String idPrenda) {
+        return listaPrendas.stream()
+            .filter(p -> p.getId().equals(idPrenda))
+            .findFirst()
+            .map(p -> p.getNombre() + " (" + p.getTalla() + ")")
+            .orElse("ID " + idPrenda);
     }
 
     private double calcularPrecioConjunto(Conjunto c) {
@@ -245,6 +296,9 @@ public class App extends Application {
         Button btnPr  = crearBotonMenuColor("Prendas Fabricadas", colorHover);
         Button btnCj  = crearBotonMenuColor("Conjuntos", colorHover);
         sidebar.getChildren().addAll(btnMP, btnPr, btnCj);
+        Button btnMxP = crearBotonMenuColor("Materiales por Prenda", colorHover);
+        sidebar.getChildren().add(btnMxP);
+        btnMxP.setOnAction(e -> mostrarMaterialesPorPrenda(contenido));
         btnMP.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
         btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, true));
         btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
@@ -519,7 +573,294 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     contenido.getChildren().add(wrapper);
 }
 
+// ── MÓDULO MATERIALES POR PRENDA ─────────────────────────────────
+    private void mostrarMaterialesPorPrenda(StackPane contenido) {
+        contenido.getChildren().clear();
 
+        Label titulo = new Label("Materiales por Prenda");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label nota = new Label("Nota: la cantidad de tela está dada en metros. Las demás cantidades son por pieza/unidad.");
+        nota.setFont(Font.font("System", FontWeight.BOLD, 12));
+        nota.setTextFill(Color.web(NARANJA));
+        nota.setWrapText(true);
+        nota.setStyle(
+            "-fx-background-color: #FFF7ED; -fx-padding: 10 16; -fx-background-radius: 6;" +
+            "-fx-border-color: " + NARANJA + "; -fx-border-radius: 6;");
+
+        // ── Construir tabla dinámica: filas = prendas, columnas = tipos de materia prima ──
+        TableView<String> tabla = new TableView<>();
+        tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tabla.setPlaceholder(new Label("No hay prendas registradas"));
+
+        // Columna fija: nombre de la prenda
+        TableColumn<String, String> colPrenda = new TableColumn<>("Prenda");
+        colPrenda.setPrefWidth(180);
+        colPrenda.setCellValueFactory(d -> new SimpleStringProperty(nombrePrendaConTalla(d.getValue())));
+        tabla.getColumns().add(colPrenda);
+
+        // Una columna por cada insumo de materia prima registrado
+        for (MateriaPrima mp : listaMateriaPrima) {
+            String idMp = mp.getNumeroPartida(); // usamos numeroPartida como referencia legible, pero buscamos por id
+            int idNumerico = mp.getId();
+
+            TableColumn<String, String> colMaterial = new TableColumn<>(mp.getNombre());
+            colMaterial.setPrefWidth(140);
+            colMaterial.setCellValueFactory(d -> {
+                String idPrenda = d.getValue();
+                Double cant = obtenerCantidadMaterial(idPrenda, String.valueOf(idNumerico));
+                if (cant == null || cant == 0) return new SimpleStringProperty("N/A");
+                String unidad = "Tela plana".equals(mp.getTipoInsumo()) || "Tela punto".equals(mp.getTipoInsumo()) ? " m" : "";
+                return new SimpleStringProperty(formatearCantidad(cant) + unidad);
+            });
+            tabla.getColumns().add(colMaterial);
+        }
+
+        ObservableList<String> idsPrendas = FXCollections.observableArrayList(
+            listaPrendas.stream().map(Prenda::getId).toList()
+        );
+        tabla.setItems(idsPrendas);
+        tabla.setMinHeight(250);
+
+        // Scroll vertical Y horizontal para la tabla, ambos pueden crecer dinámicamente
+        ScrollPane scrollTabla = new ScrollPane(tabla);
+        scrollTabla.setFitToHeight(false);
+        scrollTabla.setFitToWidth(false);
+        scrollTabla.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTabla.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollTabla.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        scrollTabla.setPrefViewportHeight(320);
+        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
+
+        Button btnAnadir = new Button("+ Dar de Alta Material por Prenda");
+        btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnAnadir.setOnAction(e -> mostrarFormularioAltaMaterialPorPrenda(contenido));
+
+        VBox vista = new VBox(16, titulo, nota, scrollTabla, btnAnadir);
+        vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
+        VBox.setVgrow(vista, Priority.ALWAYS);
+
+        ScrollPane scrollExterno = new ScrollPane(vista);
+        scrollExterno.setFitToWidth(true);
+        scrollExterno.setFitToHeight(false);
+        scrollExterno.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+        VBox.setVgrow(scrollExterno, Priority.ALWAYS);
+
+        StackPane wrapper = new StackPane(scrollExterno);
+        wrapper.setStyle("-fx-background-color: " + FONDO + ";");
+        contenido.getChildren().add(wrapper);
+    }
+
+    private String formatearCantidad(double valor) {
+        if (valor == Math.floor(valor)) return String.valueOf((long) valor);
+        return String.format("%.2f", valor);
+    }
+
+    // ── FORMULARIO TIPO CARRITO PARA DAR DE ALTA MATERIALES POR PRENDA ──
+    private void mostrarFormularioAltaMaterialPorPrenda(StackPane contenido) {
+        contenido.getChildren().clear();
+
+        Label titulo = new Label("Dar de Alta Material por Prenda");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label nota = new Label("Selecciona la prenda, después el material y la cantidad que se usa para producir 1 prenda.");
+        nota.setFont(Font.font("System", 12));
+        nota.setTextFill(Color.web(TEXTO_SUAVE));
+        nota.setWrapText(true);
+
+        // ── Selector de prenda ────────────────────────────────────
+        Label labelPrenda = new Label("Prenda:");
+        labelPrenda.setFont(Font.font("System", 12));
+        labelPrenda.setTextFill(Color.web(TEXTO_SUAVE));
+
+        ComboBox<Prenda> selectorPrenda = new ComboBox<>();
+        selectorPrenda.setItems(listaPrendas);
+        selectorPrenda.setMaxWidth(360);
+        selectorPrenda.setStyle(estiloInput());
+        selectorPrenda.setConverter(new javafx.util.StringConverter<Prenda>() {
+            @Override public String toString(Prenda p) { return p == null ? "" : p.getNombre() + " (" + p.getTalla() + ") — ID " + p.getId(); }
+            @Override public Prenda fromString(String s) { return null; }
+        });
+
+        // ── Selector de material (aparece tras elegir prenda) ─────
+        Label labelMaterial = new Label("Material:");
+        labelMaterial.setFont(Font.font("System", 12));
+        labelMaterial.setTextFill(Color.web(TEXTO_SUAVE));
+        labelMaterial.setVisible(false);
+        labelMaterial.setManaged(false);
+
+        ComboBox<MateriaPrima> selectorMaterial = new ComboBox<>();
+        selectorMaterial.setItems(listaMateriaPrima);
+        selectorMaterial.setMaxWidth(360);
+        selectorMaterial.setStyle(estiloInput());
+        selectorMaterial.setVisible(false);
+        selectorMaterial.setManaged(false);
+        selectorMaterial.setConverter(new javafx.util.StringConverter<MateriaPrima>() {
+            @Override public String toString(MateriaPrima mp) { return mp == null ? "" : mp.getNombre() + " (" + mp.getTipoInsumo() + ") — " + mp.getNumeroPartida(); }
+            @Override public MateriaPrima fromString(String s) { return null; }
+        });
+
+        TextField campoCantidad = crearTextField("Cantidad usada por prenda (0 = N/A)");
+        campoCantidad.setMaxWidth(360);
+        campoCantidad.setVisible(false);
+        campoCantidad.setManaged(false);
+
+        Label mensajeAgregar = new Label("");
+        mensajeAgregar.setFont(Font.font("System", 12));
+
+        Button btnAgregarCarrito = new Button("+ Agregar a la lista");
+        btnAgregarCarrito.setMaxWidth(360);
+        btnAgregarCarrito.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnAgregarCarrito.setVisible(false);
+        btnAgregarCarrito.setManaged(false);
+
+        selectorPrenda.setOnAction(e -> {
+            boolean haySeleccion = selectorPrenda.getValue() != null;
+            labelMaterial.setVisible(haySeleccion);     labelMaterial.setManaged(haySeleccion);
+            selectorMaterial.setVisible(haySeleccion);  selectorMaterial.setManaged(haySeleccion);
+            campoCantidad.setVisible(haySeleccion);     campoCantidad.setManaged(haySeleccion);
+            btnAgregarCarrito.setVisible(haySeleccion); btnAgregarCarrito.setManaged(haySeleccion);
+        });
+
+        // ── "Carrito" temporal de materiales a dar de alta para esta prenda ──
+        ObservableList<MaterialPorPrenda> carritoTemporal = FXCollections.observableArrayList();
+
+        Label tituloCarrito = new Label("Materiales agregados");
+        tituloCarrito.setFont(Font.font("System", FontWeight.BOLD, 14));
+        tituloCarrito.setTextFill(Color.web(SECUNDARIO));
+
+        TableView<MaterialPorPrenda> tablaCarrito = new TableView<>();
+        tablaCarrito.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tablaCarrito.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tablaCarrito.setItems(carritoTemporal);
+        tablaCarrito.setPlaceholder(new Label("Sin materiales agregados aún"));
+        tablaCarrito.setMinHeight(140);
+
+        TableColumn<MaterialPorPrenda, String> colCMaterial = new TableColumn<>("Material");
+        TableColumn<MaterialPorPrenda, String> colCCantidad = new TableColumn<>("Cantidad");
+
+        colCMaterial.setCellValueFactory(d -> {
+            MateriaPrima mp = listaMateriaPrima.stream()
+                .filter(m -> String.valueOf(m.getId()).equals(d.getValue().getIdMateriaPrima()))
+                .findFirst().orElse(null);
+            return new SimpleStringProperty(mp != null ? mp.getNombre() : "—");
+        });
+        colCCantidad.setCellValueFactory(d -> {
+            double c = d.getValue().getCantidad();
+            MateriaPrima mp = listaMateriaPrima.stream()
+                .filter(m -> String.valueOf(m.getId()).equals(d.getValue().getIdMateriaPrima()))
+                .findFirst().orElse(null);
+            String unidad = mp != null && ("Tela plana".equals(mp.getTipoInsumo()) || "Tela punto".equals(mp.getTipoInsumo())) ? " m" : "";
+            return new SimpleStringProperty(c == 0 ? "N/A" : formatearCantidad(c) + unidad);
+        });
+
+        tablaCarrito.getColumns().addAll(colCMaterial, colCCantidad);
+
+        Button btnQuitar = new Button("✕ Quitar seleccionado");
+        btnQuitar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + ERROR + "; -fx-font-size: 12px; -fx-cursor: hand; -fx-border-color: " + ERROR + "; -fx-border-radius: 4; -fx-padding: 6 14;");
+        btnQuitar.setOnAction(e -> {
+            MaterialPorPrenda sel = tablaCarrito.getSelectionModel().getSelectedItem();
+            if (sel != null) carritoTemporal.remove(sel);
+        });
+
+        btnAgregarCarrito.setOnAction(e -> {
+            MateriaPrima matSel = selectorMaterial.getValue();
+            if (matSel == null) {
+                mensajeAgregar.setTextFill(Color.web(ERROR));
+                mensajeAgregar.setText("Selecciona un material");
+                return;
+            }
+            String cantStr = campoCantidad.getText().trim();
+            double cantidad;
+            try {
+                cantidad = cantStr.isEmpty() ? 0 : Double.parseDouble(cantStr);
+                if (cantidad < 0) {
+                    mensajeAgregar.setTextFill(Color.web(ERROR));
+                    mensajeAgregar.setText("La cantidad no puede ser negativa");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                mensajeAgregar.setTextFill(Color.web(ERROR));
+                mensajeAgregar.setText("Ingresa una cantidad válida (usa punto decimal)");
+                return;
+            }
+
+            String idMatStr = String.valueOf(matSel.getId());
+            boolean yaEnCarrito = carritoTemporal.stream().anyMatch(m -> m.getIdMateriaPrima().equals(idMatStr));
+            if (yaEnCarrito) {
+                mensajeAgregar.setTextFill(Color.web(ADVERTENCIA));
+                mensajeAgregar.setText("Ese material ya está en la lista. Quítalo si quieres cambiar la cantidad.");
+                return;
+            }
+
+            carritoTemporal.add(new MaterialPorPrenda(
+                selectorPrenda.getValue() != null ? selectorPrenda.getValue().getId() : "",
+                idMatStr, cantidad
+            ));
+            mensajeAgregar.setTextFill(Color.web(EXITO));
+            mensajeAgregar.setText("Material agregado a la lista");
+            selectorMaterial.setValue(null);
+            campoCantidad.clear();
+        });
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        Button btnAceptar = new Button("✔ Aceptar y Guardar");
+        btnAceptar.setMaxWidth(360);
+        btnAceptar.setStyle(
+            "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 14px; -fx-padding: 12; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnAceptar.setOnAction(e -> {
+            if (selectorPrenda.getValue() == null) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Selecciona una prenda");
+                return;
+            }
+            if (carritoTemporal.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Agrega al menos un material a la lista");
+                return;
+            }
+            String idPrendaSel = selectorPrenda.getValue().getId();
+
+            // Elimina registros previos de esa prenda con esos materiales para evitar duplicados, y agrega los nuevos
+            for (MaterialPorPrenda nuevoReg : carritoTemporal) {
+                listaMaterialesPorPrenda.removeIf(m ->
+                    m.getIdPrenda().equals(idPrendaSel) && m.getIdMateriaPrima().equals(nuevoReg.getIdMateriaPrima()));
+                listaMaterialesPorPrenda.add(nuevoReg);
+            }
+
+            mostrarMaterialesPorPrenda(contenido);
+        });
+
+        Button btnCancelar = new Button("← Regresar sin guardar");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarMaterialesPorPrenda(contenido));
+
+        VBox form = new VBox(12, titulo, nota,
+            labelPrenda, selectorPrenda,
+            labelMaterial, selectorMaterial, campoCantidad, mensajeAgregar, btnAgregarCarrito,
+            tituloCarrito, tablaCarrito, btnQuitar,
+            mensajeEstado, btnAceptar, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT);
+        form.setMaxWidth(460);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(false);
+        scroll.setFitToHeight(false);
+        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+        wrapper.setAlignment(Pos.CENTER);
+        contenido.getChildren().add(wrapper);
+    }
 
     // ── MÓDULO PRENDAS ───────────────────────────────────────────────
     private void mostrarModuloPrendas(StackPane contenido, boolean esAdmin) {
@@ -4142,4 +4483,20 @@ public static class Conjunto {
         public int  getMinimoExistencia()   { return minimoExistencia; }
         public void setMinimoExistencia(int m) { this.minimoExistencia = m; }
     }
+
+public static class MaterialPorPrenda {
+    private String idPrenda, idMateriaPrima;
+    private double cantidad; // en metros para telas, en piezas para botones/cierres, etc.
+
+    public MaterialPorPrenda(String idPrenda, String idMateriaPrima, double cantidad) {
+        this.idPrenda = idPrenda; this.idMateriaPrima = idMateriaPrima; this.cantidad = cantidad;
+    }
+
+    public String getIdPrenda()       { return idPrenda; }
+    public String getIdMateriaPrima() { return idMateriaPrima; }
+    public double getCantidad()       { return cantidad; }
+
+    public void setCantidad(double c) { this.cantidad = c; }
+}
+
 }
