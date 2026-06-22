@@ -1,104 +1,121 @@
 package dao;
-import java.lang.StackWalker.Option;
+
+import database.Conexion;
+import model.Prenda;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import javax.naming.spi.DirStateFactory.Result;
-
-import model.Prenda;
-import database.Conexion;
 
 public class PrendaDAO {
-    
-      private Connection getConnection() {
+
+    private Connection getConnection() {
         return Conexion.getConnection();
     }
-    public boolean insert(Prenda prenda){
-        String sql = "INSERT INTO prenda(nombre, talla, existencia,precioMayoreo,precioMenudeo,idTienda,codigoBarras) VALUES(?,?,?,?,?,?,?)";
-        try(PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
-            ps.setString(1,prenda.getNombre());
-            ps.setString(2, prenda.getTalla());
-            ps.setInt(3, prenda.getExistencia());
-            ps.setDouble(4, prenda.getPrecioMayoreo());
-            ps.setDouble(5, prenda.getPrecioMenudeo());
-            ps.setInt(6, prenda.getIdTienda());
-            ps.setString(7, prenda.getCodigoBarras());
 
-            int affectedRows = ps.executeUpdate();
-            if(affectedRows > 0){
-                return true;
-            }
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean update(Prenda prenda){
-        String sql = "UPDATE prenda SET nombre = ?,talla = ? existencia = ?,precioMayoreo = ?, precioMenudeo = ?, idTienda = ? WHERE id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
-            ps.setString(1, prenda.getNombre());
-            ps.setString(2, prenda.getTalla());
-            ps.setInt(3, prenda.getExistencia());
-            ps.setDouble(4, prenda.getPrecioMayoreo());
-            ps.setDouble(5, prenda.getPrecioMenudeo());
-            ps.setInt(6, prenda.getIdTienda());
-            ps.setString(7, prenda.getCodigoBarras());
-            ps.setInt(8, prenda.getId());
-            return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean delete(int id){
-        String sql = "DELETE FROM prenda WHERE id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Optional<Prenda> buscarPorId(int id){
-        String sql = "SELECT * FROM prenda where id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setInt(1,id);
-            ResultSet rs = ps.executeQuery();
-
-            if(rs.next()){
-                Prenda prenda = new Prenda(rs.getInt("id"), rs.getString("nombre"), rs.getString("talla"), rs.getInt("existencia"), rs.getDouble("precioMayoreo"), rs.getDouble("precioMenudeo"), rs.getInt("idTienda"), rs.getString("codigoBarras"));
-                return Optional.of(prenda);
-            }
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    public List<Prenda> encontrarTodo(){
-        List<Prenda> prendas = new ArrayList<>();
+    public List<Prenda> getAll() throws SQLException {
+        List<Prenda> lista = new ArrayList<>();
         String sql = "SELECT * FROM prenda";
-
-        try(Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery(sql)){
-
-                while(rs.next()){
-                    Prenda prenda = new Prenda(rs.getInt("id"), rs.getString("nombre"), rs.getString("talla"), rs.getInt("existencia"), rs.getDouble("precioMayoreo"), rs.getDouble("precioMenudeo"), rs.getInt("idTienda"), rs.getString("codigoBarras"));
-                    prendas.add(prenda);
-                }
-        }catch(SQLException e){
-            e.printStackTrace();
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                lista.add(mapResultSet(rs));
+            }
         }
-        return prendas;
+        return lista;
     }
 
+    public Prenda getById(int id) throws SQLException {
+        String sql = "SELECT * FROM prenda WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        }
+        return null;
+    }
 
+    public int insert(Prenda p) throws SQLException {
+        String sql = "INSERT INTO prenda (nombre, talla, existencia, precioMayoreo, precioMenudeo, idTienda, codigoBarras) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, p.getNombre());
+            pstmt.setString(2, p.getTalla());
+            pstmt.setInt(3, p.getExistencia());
+            pstmt.setDouble(4, p.getPrecioMayoreo());
+            pstmt.setDouble(5, p.getPrecioMenudeo());
+            if (p.getIdTienda() > 0) pstmt.setInt(6, p.getIdTienda());
+            else pstmt.setNull(6, Types.INTEGER);
+            pstmt.setString(7, p.getCodigoBarras());
+            int affected = pstmt.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    public boolean update(Prenda p) throws SQLException {
+        String sql = "UPDATE prenda SET nombre = ?, talla = ?, existencia = ?, precioMayoreo = ?, precioMenudeo = ?, idTienda = ?, codigoBarras = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, p.getNombre());
+            pstmt.setString(2, p.getTalla());
+            pstmt.setInt(3, p.getExistencia());
+            pstmt.setDouble(4, p.getPrecioMayoreo());
+            pstmt.setDouble(5, p.getPrecioMenudeo());
+            if (p.getIdTienda() > 0) pstmt.setInt(6, p.getIdTienda());
+            else pstmt.setNull(6, Types.INTEGER);
+            pstmt.setString(7, p.getCodigoBarras());
+            pstmt.setInt(8, p.getId());
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM prenda WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public List<Prenda> getByNombre(String nombre) throws SQLException {
+        List<Prenda> lista = new ArrayList<>();
+        String sql = "SELECT * FROM prenda WHERE nombre LIKE ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + nombre + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapResultSet(rs));
+                }
+            }
+        }
+        return lista;
+    }
+
+    private Prenda mapResultSet(ResultSet rs) throws SQLException {
+        Prenda p = new Prenda(
+            rs.getInt("id"),
+            rs.getString("nombre"),
+            rs.getString("talla"),
+            rs.getInt("existencia"),
+            rs.getDouble("precioMayoreo"),
+            rs.getDouble("precioMenudeo"),
+            rs.getObject("idTienda") != null ? rs.getInt("idTienda") : null,
+            rs.getString("codigoBarras")
+        );
+        return p;
+    }
 }

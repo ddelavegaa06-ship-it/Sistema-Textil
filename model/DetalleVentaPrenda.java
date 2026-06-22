@@ -26,6 +26,9 @@ public class DetalleVentaPrenda {
     public void setCantidad(int cant){
         this.cantidad = cant;
     }
+    public void setFolioVenta(int folioVenta){
+        this.folioVenta = folioVenta;
+    }
 
     public double getTotal(){
         return total;
