@@ -1,4 +1,4 @@
-import javafx.application.Application;
+﻿import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -10,11 +10,39 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import dao.ConjuntoDAO;
+import dao.DetalleVentaConjuntoDAO;
+import dao.DetalleVentaPrendaDAO;
+import dao.DevolucionConjuntoDAO;
+import dao.DevolucionPrendaDAO;
+import dao.InsumoDAO;
+import dao.InsumoPrendaDAO;
+import dao.PrendaConjuntoDAO;
+import dao.PrendaDAO;
+import dao.UsuarioDAO;
+import dao.VentaDAO;
+import model.Conjunto;
+import model.ConjuntoVendido;
+import model.DetalleVentaConjunto;
+import model.DetalleVentaPrenda;
+import model.DevolucionConjunto;
+import model.DevolucionPrenda;
+import model.DevolucionRegistrada;
+import model.Insumo;
+import model.InsumoPrenda;
+import model.ItemVenta;
+import model.MaterialPorPrenda;
+import model.Prenda;
+import model.PrendaConjunto;
+import model.PrendaVendida;
+import model.Usuario;
+import model.Venta;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
 import javafx.scene.text.Text;
 
 public class App extends Application {
@@ -43,103 +71,49 @@ public class App extends Application {
 
     private static final int DIAS_DEVOLUCION = 30;
 
-    private ObservableList<MateriaPrima> listaMateriaPrima = FXCollections.observableArrayList(
-        new MateriaPrima(1,  "BOT-001", 500,  "",        "4 hoyos nacarado, fácil costura",          "Botón para camisa",    "Blanco",       null,  null,  null,              null,             14,   null,  null,  "Plástico", "Botón"),
-        new MateriaPrima(2,  "BOT-002", 50,   "",        "Largo canal central, acabado brillante",    "Botón para pantalón",  "Metálico oro", null,  null,  null,              null,             22,   null,  null,  "Latón",    "Botón"),
-        new MateriaPrima(3,  "CRP-001", 1000, "",        "Cierre reforzado, deslizador metálico",     "Cierre pantalón",      "Negro",        null,  18.0,  null,              null,             null, null,  null,  "Latón",    "Cierre"),
-        new MateriaPrima(4,  "CRP-002", 5,    "",        "Cierre delgado de bolsa lateral",           "Cierre bolsa",         "Rojo",         null,  15.0,  null,              null,             null, null,  null,  "Nylon",    "Cierre"),
-        new MateriaPrima(5,  "TEL-001", 150,  "",        "Gabardina tejido plano, resistente",        "Gabardina",            "Azul marino",  null,  1.5,   "65% POL 35% ALG", "Tejido plano",   null, null,  null,  null,       "Tela plana"),
-        new MateriaPrima(6,  "TEL-002", 200,  "",        "Mezclilla para jeans, peso medio",          "Mezclilla",            "Índigo",       null,  1.65,  "100% ALG",        "Tejido plano",   null, null,  null,  null,       "Tela plana"),
-        new MateriaPrima(7,  "TELP-001", 80,  "",        "Tejido punto para playera, suave",          "Jersey",               "Rojo",         null,  1.5,   "100% ALG",        "Tejido de punto",null, null,  null,  null,       "Tela punto"),
-        new MateriaPrima(8,  "HIL-001", 25,   "",        "Hilo para costura industrial resistente",   "Filamento",            "Marino 592King",null, null,  "100% Poliéster",  null,             null, "40/2",null,  null,       "Hilo")
-    );
+    private PrendaDAO prendaDAO = new PrendaDAO();
+    private InsumoDAO insumoDAO = new InsumoDAO();
+    private ConjuntoDAO conjuntoDAO = new ConjuntoDAO();
+    private UsuarioDAO usuarioDAO = new UsuarioDAO();
+    private VentaDAO ventaDAO = new VentaDAO();
+    private DetalleVentaPrendaDAO detallePrendaDAO = new DetalleVentaPrendaDAO();
+    private DetalleVentaConjuntoDAO detalleConjuntoDAO = new DetalleVentaConjuntoDAO();
+    private DevolucionPrendaDAO devolucionPrendaDAO = new DevolucionPrendaDAO();
+    private DevolucionConjuntoDAO devolucionConjuntoDAO = new DevolucionConjuntoDAO();
+    private PrendaConjuntoDAO prendaConjuntoDAO = new PrendaConjuntoDAO();
+    private InsumoPrendaDAO insumoPrendaDAO = new InsumoPrendaDAO();
 
-    private ObservableList<MaterialPorPrenda> listaMaterialesPorPrenda = FXCollections.observableArrayList(
-        // Falda escolar (id 1,2,3) usa botón (id 1) y tela plana gabardina (id 5)
-        new MaterialPorPrenda("1", "5", 0.8),
-        new MaterialPorPrenda("1", "1", 4),
-        new MaterialPorPrenda("2", "5", 0.9),
-        new MaterialPorPrenda("2", "1", 4),
-        new MaterialPorPrenda("3", "5", 1.0),
-        new MaterialPorPrenda("3", "1", 4),
-        // Pantalón de vestir (id 4,5,6) usa cierre (id 3) y tela plana mezclilla (id 6) y botón (id 2)
-        new MaterialPorPrenda("4", "6", 1.1),
-        new MaterialPorPrenda("4", "3", 1),
-        new MaterialPorPrenda("4", "2", 1),
-        new MaterialPorPrenda("5", "6", 1.3),
-        new MaterialPorPrenda("5", "3", 1),
-        new MaterialPorPrenda("5", "2", 1),
-        new MaterialPorPrenda("6", "6", 1.5),
-        new MaterialPorPrenda("6", "3", 1),
-        new MaterialPorPrenda("6", "2", 1),
-        // Camisa blanca (id 7,8,9) usa tela plana gabardina (id 5) y botón (id 1) e hilo (id 8)
-        new MaterialPorPrenda("7", "5", 1.2),
-        new MaterialPorPrenda("7", "1", 8),
-        new MaterialPorPrenda("8", "5", 1.4),
-        new MaterialPorPrenda("8", "1", 8),
-        new MaterialPorPrenda("9", "5", 1.6),
-        new MaterialPorPrenda("9", "1", 8),
-        // Playera polo (id 10,11,12,13) usa tela punto jersey (id 7) y botón (id 1)
-        new MaterialPorPrenda("10", "7", 0.9),
-        new MaterialPorPrenda("10", "1", 3),
-        new MaterialPorPrenda("11", "7", 1.1),
-        new MaterialPorPrenda("11", "1", 3),
-        new MaterialPorPrenda("12", "7", 1.3),
-        new MaterialPorPrenda("12", "1", 3),
-        new MaterialPorPrenda("13", "7", 1.5),
-        new MaterialPorPrenda("13", "1", 3)
-    );
-
-    private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList(
-        new Usuario("Administrador Principal", "admin", "1234", "administrador"),
-        new Usuario("Encargado de Tienda",     "encargado", "5678", "encargado")
-    );
-
-    private ObservableList<Prenda> listaPrendas = FXCollections.observableArrayList(
-        new Prenda("Falda escolar",      "1",  "Ch", "Uniforme", 25, 180.0, 220.0, "T1", "Falda escolar talla chica"),
-        new Prenda("Falda escolar",      "2",  "M",  "Uniforme", 30, 180.0, 220.0, "T1", "Falda escolar talla mediana"),
-        new Prenda("Falda escolar",      "3",  "G",  "Uniforme", 20, 180.0, 220.0, "T1", "Falda escolar talla grande"),
-        new Prenda("Pantalón de vestir", "4",  "Ch", "Uniforme", 15, 250.0, 320.0, "T2", "Pantalón de vestir talla chica"),
-        new Prenda("Pantalón de vestir", "5",  "M",  "Uniforme", 22, 250.0, 320.0, "T2", "Pantalón de vestir talla mediana"),
-        new Prenda("Pantalón de vestir", "6",  "G",  "Uniforme", 18, 250.0, 320.0, "T2", "Pantalón de vestir talla grande"),
-        new Prenda("Camisa blanca",      "7",  "Ch", "Uniforme", 40, 150.0, 190.0, "T1", "Camisa blanca talla chica"),
-        new Prenda("Camisa blanca",      "8",  "M",  "Uniforme", 35, 150.0, 190.0, "T1", "Camisa blanca talla mediana"),
-        new Prenda("Camisa blanca",      "9",  "G",  "Uniforme", 30, 150.0, 190.0, "T1", "Camisa blanca talla grande"),
-        new Prenda("Playera polo",       "10", "Ch", "Casual",   50, 120.0, 160.0, "T3", "Playera polo talla chica"),
-        new Prenda("Playera polo",       "11", "M",  "Casual",   60, 120.0, 160.0, "T3", "Playera polo talla mediana"),
-        new Prenda("Playera polo",       "12", "G",  "Casual",   45, 120.0, 160.0, "T3", "Playera polo talla grande"),
-        new Prenda("Playera polo",       "13", "XL", "Casual",   20, 120.0, 160.0, "T3", "Playera polo talla extra grande")
-    
-    );
-
-    private ObservableList<Conjunto> listaConjuntos = FXCollections.observableArrayList(
-        new Conjunto("1", "Uniforme escolar Ch", "Uniforme escolar completo talla chica",
-            new ArrayList<>(List.of("1", "7")), 3),
-        new Conjunto("2", "Uniforme escolar M", "Uniforme escolar completo talla mediana",
-            new ArrayList<>(List.of("2", "8")), 3),
-        new Conjunto("3", "Uniforme escolar G", "Uniforme escolar completo talla grande",
-            new ArrayList<>(List.of("3", "9")), 3)
-    );
+    private ObservableList<Prenda> listaPrendas = FXCollections.observableArrayList();
+    private ObservableList<Insumo> listaMateriaPrima = FXCollections.observableArrayList();
+    private ObservableList<Conjunto> listaConjuntos = FXCollections.observableArrayList();
+    private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList();
+    private ObservableList<MaterialPorPrenda> listaMaterialesPorPrenda = FXCollections.observableArrayList();
 
     private ObservableList<PrendaVendida>   listaPrendasVendidas   = FXCollections.observableArrayList();
     private ObservableList<ConjuntoVendido> listaConjuntosVendidos = FXCollections.observableArrayList();
 
-    // ── LÓGICA CONJUNTOS ─────────────────────────────────────────────
+    // ------------------LOGICA CONJUNTOS--------------- 
     private void verificarConjuntos() {
-        listaConjuntos.removeIf(c -> {
-            long tiposDisponibles = c.getIdPrendas().stream()
-                .map(idP -> listaPrendas.stream().filter(p -> p.getId().equals(idP)).findFirst().orElse(null))
-                .filter(p -> p != null && p.getExistencia() > 0)
-                .map(Prenda::getNombre).distinct().count();
-            return tiposDisponibles <= 1 || calcularExistenciaConjunto(c) <= 0;
-        });
+        listaConjuntos.removeIf(c -> calcularExistenciaConjunto(c) <= 0);
     }
 
     private int calcularExistenciaConjunto(Conjunto c) {
-        return c.getIdPrendas().stream()
-            .mapToInt(idP -> listaPrendas.stream().filter(p -> p.getId().equals(idP))
-                .mapToInt(Prenda::getExistencia).findFirst().orElse(0))
-            .min().orElse(0);
+        try {
+            List<PrendaConjunto> relaciones = prendaConjuntoDAO.getByConjunto(c.getId());
+            int minExistencia = Integer.MAX_VALUE;
+            for (PrendaConjunto pc : relaciones) {
+                Prenda p = prendaDAO.getById(pc.getIdPrenda());
+                if (p != null) {
+                    minExistencia = Math.min(minExistencia, p.getExistencia());
+                } else {
+                    return 0;
+                }
+            }
+            return minExistencia == Integer.MAX_VALUE ? 0 : minExistencia;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
 private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
@@ -151,28 +125,76 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
 
     private String nombrePrendaConTalla(String idPrenda) {
         return listaPrendas.stream()
-            .filter(p -> p.getId().equals(idPrenda))
+            .filter(p -> String.valueOf(p.getId()).equals(idPrenda))
             .findFirst()
             .map(p -> p.getNombre() + " (" + p.getTalla() + ")")
             .orElse("ID " + idPrenda);
     }
 
     private double calcularPrecioConjunto(Conjunto c) {
-        return c.getIdPrendas().stream()
-            .mapToDouble(idP -> listaPrendas.stream().filter(p -> p.getId().equals(idP))
-                .mapToDouble(Prenda::getPrecioMenudeo).findFirst().orElse(0.0))
-            .sum();
+        try {
+            return prendaConjuntoDAO.getByConjunto(c.getId()).stream()
+                .map(PrendaConjunto::getIdPrenda)
+                .map(idPrenda -> {
+                    try {
+                        return prendaDAO.getById(idPrenda);
+                    } catch (SQLException e) {
+                        return null;
+                    }
+                })
+                .filter(p -> p != null)
+                .mapToDouble(Prenda::getPrecioMenudeo)
+                .sum();
+        } catch (SQLException e) {
+            return 0.0;
+        }
     }
 
     @Override
     public void start(Stage stage) {
         this.stage = stage;
         stage.setTitle("Sistema Textil");
+        recargarDatos();
         mostrarLogin();
         stage.show();
     }
 
-    // ── LOGIN ────────────────────────────────────────────────────────
+    private void recargarDatos() {
+        try {
+            listaPrendas.clear();
+            listaPrendas.addAll(prendaDAO.getAll());
+
+            listaMateriaPrima.clear();
+            listaMateriaPrima.addAll(insumoDAO.getAll());
+
+            listaConjuntos.clear();
+            listaConjuntos.addAll(conjuntoDAO.getAll());
+            for (Conjunto conjunto : listaConjuntos) {
+                List<String> idsPrendas = new ArrayList<>();
+                for (PrendaConjunto pc : prendaConjuntoDAO.getByConjunto(conjunto.getId())) {
+                    idsPrendas.add(String.valueOf(pc.getIdPrenda()));
+                }
+                conjunto.setIdPrendas(idsPrendas);
+            }
+
+            listaUsuarios.clear();
+            listaUsuarios.addAll(usuarioDAO.getAll());
+
+            listaMaterialesPorPrenda.clear();
+            for (InsumoPrenda ip : insumoPrendaDAO.getAll()) {
+                listaMaterialesPorPrenda.add(new MaterialPorPrenda(
+                    String.valueOf(ip.getIdPrenda()),
+                    ip.getIdInsumo(),
+                    ip.getCantidadInsumo()
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarError("Error al cargar datos: " + e.getMessage());
+        }
+    }
+
+    // ?"??"? LOGIN ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarLogin() {
         VBox panelIzquierdo = new VBox();
         panelIzquierdo.setPrefWidth(260);
@@ -184,7 +206,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         marcaNombre.setTextFill(Color.WHITE);
         marcaNombre.setStyle("-fx-padding: 0 0 12 0;");
 
-        Label marcaDesc = new Label("Gestión de inventario\ny punto de venta");
+        Label marcaDesc = new Label("Gestion de inventario\ny punto de venta");
         marcaDesc.setFont(Font.font("System", 13));
         marcaDesc.setTextFill(Color.web("#94A3B8"));
         marcaDesc.setStyle("-fx-text-alignment: center;");
@@ -202,7 +224,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 24));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Inicia sesión para continuar");
+        Label subtitulo = new Label("Inicia sesion para continuar");
         subtitulo.setFont(Font.font("System", 13));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -218,12 +240,12 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         TextField campoUsuario = crearTextField("Ingresa tu usuario");
         campoUsuario.setMaxWidth(Double.MAX_VALUE);
 
-        Label labelPass = new Label("Contraseña");
+        Label labelPass = new Label("Contrasena");
         labelPass.setFont(Font.font("System", FontWeight.BOLD, 12));
         labelPass.setTextFill(Color.web(TEXTO));
 
         PasswordField campoContrasena = new PasswordField();
-        campoContrasena.setPromptText("Ingresa tu contraseña");
+        campoContrasena.setPromptText("Ingresa tu contrasena");
         campoContrasena.setMaxWidth(Double.MAX_VALUE);
         campoContrasena.setStyle(estiloInput());
 
@@ -231,7 +253,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         mensajeError.setTextFill(Color.web(ERROR));
         mensajeError.setFont(Font.font("System", 12));
 
-        Button btnEntrar = new Button("Iniciar Sesión");
+        Button btnEntrar = new Button("Iniciar Sesion");
         btnEntrar.setMaxWidth(Double.MAX_VALUE);
         btnEntrar.setStyle(estiloBtnPrincipal());
         btnEntrar.setDefaultButton(true);
@@ -242,7 +264,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
                 if (rol.equals("administrador")) mostrarMenuAdministrador();
                 else mostrarMenuEncargado();
             } else {
-                mensajeError.setText("Usuario o contraseña incorrectos");
+                mensajeError.setText("Usuario o contrasena incorrectos");
                 campoContrasena.clear();
             }
         });
@@ -259,7 +281,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         stage.setScene(new Scene(root, 700, 460));
     }
 
-    // ── MENÚS ────────────────────────────────────────────────────────
+    // ?"??"? MEN?sS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarMenuAdministrador() { mostrarMenu("Administrador", true); }
     private void mostrarMenuEncargado()     { mostrarMenu("Encargado", false); }
 
@@ -278,9 +300,9 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     logoLabel.setStyle("-fx-background-color: " + colorLogo + "; -fx-padding: 20 16 20 16; -fx-max-width: infinity;");
     logoLabel.setMaxWidth(Double.MAX_VALUE);
 
-    // Puntito de alerta con color dinámico
+    // Puntito de alerta con color dinamico
     String colorAlerta = esAdmin ? calcularColorAlerta() : calcularColorAlertaEncargado();
-    Label rolLabel = new Label("⬤ " + rol.toUpperCase());
+    Label rolLabel = new Label("? " + rol.toUpperCase());
     rolLabel.setFont(Font.font("System", 11));
     rolLabel.setTextFill(Color.web(colorAlerta));
     rolLabel.setStyle("-fx-padding: 12 16 8 16;");
@@ -316,7 +338,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
         btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
 
-        sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACIÓN"));
+        sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACION"));
         Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
         Button btnAl  = crearBotonMenuColor("Alertas de Stock", colorHover);
         sidebar.getChildren().addAll(btnUs, btnAl);
@@ -344,7 +366,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
         btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, false));
 
-        // Encargado también tiene alertas pero solo de prendas y conjuntos
+        // Encargado tambien tiene alertas pero solo de prendas y conjuntos
         sidebar.getChildren().add(crearSeccionMenu("AVISOS"));
         Button btnAl = crearBotonMenuColor("Alertas de Stock", colorHover);
         sidebar.getChildren().add(btnAl);
@@ -353,7 +375,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
 
     Region spacer = new Region();
     VBox.setVgrow(spacer, Priority.ALWAYS);
-    Button btnCerrar = new Button("Cerrar Sesión");
+    Button btnCerrar = new Button("Cerrar Sesion");
     btnCerrar.setMaxWidth(Double.MAX_VALUE);
     btnCerrar.setStyle(
         "-fx-background-color: transparent; -fx-text-fill: #F87171; -fx-font-size: 13px;" +
@@ -381,7 +403,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     stage.setScene(new Scene(root, 960, 620));
 }
 
-    // ── MÓDULO ALERTAS DE STOCK ───────────────────────────────────────────────
+    // ?"??"? M?"DULO ALERTAS DE STOCK ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
 
 
 private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
@@ -391,9 +413,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
-    Label leyendaRojo     = new Label("⬤ Crítico — en o por debajo del mínimo");
-    Label leyendaAmarillo = new Label("⬤ Bajo — hasta el doble del mínimo");
-    Label leyendaVerde    = new Label("⬤ Normal — por encima del umbral bajo");
+    Label leyendaRojo     = new Label("Critico: en o por debajo del minimo");
+    Label leyendaAmarillo = new Label("Bajo: hasta el doble del minimo");
+    Label leyendaVerde    = new Label("Normal: por encima del umbral bajo");
     leyendaRojo.setTextFill(Color.web(ERROR));
     leyendaAmarillo.setTextFill(Color.web(ADVERTENCIA));
     leyendaVerde.setTextFill(Color.web(EXITO));
@@ -409,7 +431,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     vista.setStyle("-fx-padding: 30;");
     VBox.setVgrow(vista, Priority.ALWAYS);
 
-    // ── TABLA PRENDAS ──────────────────────────────────────────────
+    // ?"??"? TABLA PRENDAS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     Label tituloPrendas = new Label("Prendas Fabricadas");
     tituloPrendas.setFont(Font.font("System", FontWeight.BOLD, 15));
     tituloPrendas.setTextFill(Color.web(SECUNDARIO));
@@ -425,13 +447,13 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Prenda, String> colPNombre   = new TableColumn<>("Nombre");
     TableColumn<Prenda, String> colPTalla    = new TableColumn<>("Talla");
     TableColumn<Prenda, String> colPExist    = new TableColumn<>("Existencia");
-    TableColumn<Prenda, String> colPMinimo   = new TableColumn<>("Mínimo");
+    TableColumn<Prenda, String> colPMinimo   = new TableColumn<>("Minimo");
     TableColumn<Prenda, String> colPTipo     = new TableColumn<>("Tipo");
 
     colPNivel.setCellValueFactory(d -> {
         int ex = d.getValue().getExistencia();
         int min = d.getValue().getMinimoExistencia();
-        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
+        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
     });
     colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
     colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
@@ -451,7 +473,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     vista.getChildren().addAll(tituloPrendas, tablaPrendas);
 
-    // ── TABLA CONJUNTOS ────────────────────────────────────────────
+    // ?"??"? TABLA CONJUNTOS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     Label tituloConjuntos = new Label("Conjuntos");
     tituloConjuntos.setFont(Font.font("System", FontWeight.BOLD, 15));
     tituloConjuntos.setTextFill(Color.web(SECUNDARIO));
@@ -466,13 +488,13 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Conjunto, String> colCNivel  = new TableColumn<>("Nivel");
     TableColumn<Conjunto, String> colCNombre = new TableColumn<>("Nombre");
     TableColumn<Conjunto, String> colCExist  = new TableColumn<>("Existencia");
-    TableColumn<Conjunto, String> colCMinimo = new TableColumn<>("Mínimo");
+    TableColumn<Conjunto, String> colCMinimo = new TableColumn<>("Minimo");
     TableColumn<Conjunto, String> colCPiezas = new TableColumn<>("Piezas");
 
     colCNivel.setCellValueFactory(d -> {
         int ex = calcularExistenciaConjunto(d.getValue());
         int min = d.getValue().getMinimoExistencia();
-        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
+        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
     });
     colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
     colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
@@ -491,30 +513,30 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     vista.getChildren().addAll(tituloConjuntos, tablaConjuntos);
 
-    // ── TABLA MATERIA PRIMA (solo admin) ──────────────────────────
+    // ?"??"? TABLA MATERIA PRIMA (solo admin) ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     if (esAdmin) {
         Label tituloMP = new Label("Materia Prima");
         tituloMP.setFont(Font.font("System", FontWeight.BOLD, 15));
         tituloMP.setTextFill(Color.web(SECUNDARIO));
 
-        TableView<MateriaPrima> tablaMP = new TableView<>();
+        TableView<Insumo> tablaMP = new TableView<>();
         tablaMP.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tablaMP.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         tablaMP.setMinHeight(120);
         tablaMP.setMaxHeight(200);
         tablaMP.setPlaceholder(new Label("Sin alertas en materia prima"));
 
-        TableColumn<MateriaPrima, String> colMNivel    = new TableColumn<>("Nivel");
-        TableColumn<MateriaPrima, String> colMNombre   = new TableColumn<>("Nombre");
-        TableColumn<MateriaPrima, String> colMPartida  = new TableColumn<>("No. Partida");
-        TableColumn<MateriaPrima, String> colMExist    = new TableColumn<>("Existencia");
-        TableColumn<MateriaPrima, String> colMMinimo   = new TableColumn<>("Mínimo");
-        TableColumn<MateriaPrima, String> colMTipo     = new TableColumn<>("Tipo Insumo");
+        TableColumn<Insumo, String> colMNivel    = new TableColumn<>("Nivel");
+        TableColumn<Insumo, String> colMNombre   = new TableColumn<>("Nombre");
+        TableColumn<Insumo, String> colMPartida  = new TableColumn<>("No. Partida");
+        TableColumn<Insumo, String> colMExist    = new TableColumn<>("Existencia");
+        TableColumn<Insumo, String> colMMinimo   = new TableColumn<>("Minimo");
+        TableColumn<Insumo, String> colMTipo     = new TableColumn<>("Tipo Insumo");
 
         colMNivel.setCellValueFactory(d -> {
-            int ex = d.getValue().getExistencia();
-            int min = d.getValue().getMinimoExistencia();
-            return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
+            double ex = d.getValue().getExistencia();
+            double min = d.getValue().getMinimoExistencia();
+            return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
         });
         colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
@@ -524,10 +546,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         tablaMP.getColumns().addAll(colMNivel, colMNombre, colMPartida, colMExist, colMMinimo, colMTipo);
 
-        ObservableList<MateriaPrima> mpAlerta = FXCollections.observableArrayList(
+        ObservableList<Insumo> mpAlerta = FXCollections.observableArrayList(
             listaMateriaPrima.stream()
                 .filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2)
-                .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
+                .sorted((a, b) -> Double.compare(a.getExistencia(), b.getExistencia()))
                 .toList()
         );
         tablaMP.setItems(mpAlerta);
@@ -551,8 +573,8 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     Label resumen = new Label(
         totalAlertas == 0
-        ? "✔ Sin alertas de stock activas"
-        : totalAlertas + " alerta(s) activa(s)  —  " + criticas + " crítica(s)"
+        ? "Sin alertas de stock activas"
+        : totalAlertas + " alerta(s) activa(s) | " + criticas + " critica(s)"
     );
     resumen.setFont(Font.font("System", FontWeight.BOLD, 13));
     resumen.setTextFill(Color.web(totalAlertas == 0 ? EXITO : (criticas > 0 ? ERROR : ADVERTENCIA)));
@@ -573,7 +595,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     contenido.getChildren().add(wrapper);
 }
 
-// ── MÓDULO MATERIALES POR PRENDA ─────────────────────────────────
+// ?"??"? M?"DULO MATERIALES POR PRENDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarMaterialesPorPrenda(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -581,7 +603,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label nota = new Label("Nota: la cantidad de tela está dada en metros. Las demás cantidades son por pieza/unidad.");
+        Label nota = new Label("Nota: la cantidad de tela esta dada en metros. Las demas cantidades son por pieza/unidad.");
         nota.setFont(Font.font("System", FontWeight.BOLD, 12));
         nota.setTextFill(Color.web(NARANJA));
         nota.setWrapText(true);
@@ -589,7 +611,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             "-fx-background-color: #FFF7ED; -fx-padding: 10 16; -fx-background-radius: 6;" +
             "-fx-border-color: " + NARANJA + "; -fx-border-radius: 6;");
 
-        // ── Construir tabla dinámica: filas = prendas, columnas = tipos de materia prima ──
+        // ?"??"? Construir tabla dinmica: filas = prendas, columnas = tipos de materia prima ?"??"?
         TableView<String> tabla = new TableView<>();
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
@@ -602,9 +624,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         tabla.getColumns().add(colPrenda);
 
         // Una columna por cada insumo de materia prima registrado
-        for (MateriaPrima mp : listaMateriaPrima) {
+        for (Insumo mp : listaMateriaPrima) {
             String idMp = mp.getNumeroPartida(); // usamos numeroPartida como referencia legible, pero buscamos por id
-            int idNumerico = mp.getId();
+            String idNumerico = mp.getId();
 
             TableColumn<String, String> colMaterial = new TableColumn<>(mp.getNombre());
             colMaterial.setPrefWidth(140);
@@ -618,13 +640,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             tabla.getColumns().add(colMaterial);
         }
 
-        ObservableList<String> idsPrendas = FXCollections.observableArrayList(
-            listaPrendas.stream().map(Prenda::getId).toList()
-        );
+        ObservableList<String> idsPrendas = FXCollections.<String>observableArrayList(
+    listaPrendas.stream().map(p -> String.valueOf(p.getId())).toList());
         tabla.setItems(idsPrendas);
         tabla.setMinHeight(250);
 
-        // Scroll vertical Y horizontal para la tabla, ambos pueden crecer dinámicamente
+        // Scroll vertical Y horizontal para la tabla, ambos pueden crecer dinamicamente
         ScrollPane scrollTabla = new ScrollPane(tabla);
         scrollTabla.setFitToHeight(false);
         scrollTabla.setFitToWidth(false);
@@ -659,7 +680,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         return String.format("%.2f", valor);
     }
 
-    // ── FORMULARIO TIPO CARRITO PARA DAR DE ALTA MATERIALES POR PRENDA ──
+    // ?"??"? FORMULARIO TIPO CARRITO PARA DAR DE ALTA MATERIALES POR PRENDA ?"??"?
     private void mostrarFormularioAltaMaterialPorPrenda(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -667,12 +688,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label nota = new Label("Selecciona la prenda, después el material y la cantidad que se usa para producir 1 prenda.");
+        Label nota = new Label("Selecciona la prenda, despues el material y la cantidad que se usa para producir 1 prenda.");
         nota.setFont(Font.font("System", 12));
         nota.setTextFill(Color.web(TEXTO_SUAVE));
         nota.setWrapText(true);
 
-        // ── Selector de prenda ────────────────────────────────────
+        // ?"??"? Selector de prenda ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
         Label labelPrenda = new Label("Prenda:");
         labelPrenda.setFont(Font.font("System", 12));
         labelPrenda.setTextFill(Color.web(TEXTO_SUAVE));
@@ -682,26 +703,26 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         selectorPrenda.setMaxWidth(360);
         selectorPrenda.setStyle(estiloInput());
         selectorPrenda.setConverter(new javafx.util.StringConverter<Prenda>() {
-            @Override public String toString(Prenda p) { return p == null ? "" : p.getNombre() + " (" + p.getTalla() + ") — ID " + p.getId(); }
+            @Override public String toString(Prenda p) { return p == null ? "" : p.getNombre() + " (" + p.getTalla() + ") ID " + p.getId(); }
             @Override public Prenda fromString(String s) { return null; }
         });
 
-        // ── Selector de material (aparece tras elegir prenda) ─────
+        // ?"??"? Selector de material (aparece tras elegir prenda) ?"??"??"??"??"?
         Label labelMaterial = new Label("Material:");
         labelMaterial.setFont(Font.font("System", 12));
         labelMaterial.setTextFill(Color.web(TEXTO_SUAVE));
         labelMaterial.setVisible(false);
         labelMaterial.setManaged(false);
 
-        ComboBox<MateriaPrima> selectorMaterial = new ComboBox<>();
+        ComboBox<Insumo> selectorMaterial = new ComboBox<>();
         selectorMaterial.setItems(listaMateriaPrima);
         selectorMaterial.setMaxWidth(360);
         selectorMaterial.setStyle(estiloInput());
         selectorMaterial.setVisible(false);
         selectorMaterial.setManaged(false);
-        selectorMaterial.setConverter(new javafx.util.StringConverter<MateriaPrima>() {
-            @Override public String toString(MateriaPrima mp) { return mp == null ? "" : mp.getNombre() + " (" + mp.getTipoInsumo() + ") — " + mp.getNumeroPartida(); }
-            @Override public MateriaPrima fromString(String s) { return null; }
+        selectorMaterial.setConverter(new javafx.util.StringConverter<Insumo>() {
+            @Override public String toString(Insumo mp) { return mp == null ? "" : mp.getNombre() + " (" + mp.getTipoInsumo() + ") ID " + mp.getNumeroPartida(); }
+            @Override public Insumo fromString(String s) { return null; }
         });
 
         TextField campoCantidad = crearTextField("Cantidad usada por prenda (0 = N/A)");
@@ -726,7 +747,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnAgregarCarrito.setVisible(haySeleccion); btnAgregarCarrito.setManaged(haySeleccion);
         });
 
-        // ── "Carrito" temporal de materiales a dar de alta para esta prenda ──
+        // ?"??"? "Carrito" temporal de materiales a dar de alta para esta prenda ?"??"?
         ObservableList<MaterialPorPrenda> carritoTemporal = FXCollections.observableArrayList();
 
         Label tituloCarrito = new Label("Materiales agregados");
@@ -737,21 +758,21 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         tablaCarrito.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tablaCarrito.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tablaCarrito.setItems(carritoTemporal);
-        tablaCarrito.setPlaceholder(new Label("Sin materiales agregados aún"));
+        tablaCarrito.setPlaceholder(new Label("Sin materiales agregados aun"));
         tablaCarrito.setMinHeight(140);
 
         TableColumn<MaterialPorPrenda, String> colCMaterial = new TableColumn<>("Material");
         TableColumn<MaterialPorPrenda, String> colCCantidad = new TableColumn<>("Cantidad");
 
         colCMaterial.setCellValueFactory(d -> {
-            MateriaPrima mp = listaMateriaPrima.stream()
+            Insumo mp = listaMateriaPrima.stream()
                 .filter(m -> String.valueOf(m.getId()).equals(d.getValue().getIdMateriaPrima()))
                 .findFirst().orElse(null);
-            return new SimpleStringProperty(mp != null ? mp.getNombre() : "—");
+            return new SimpleStringProperty(mp != null ? mp.getNombre() : "??");
         });
         colCCantidad.setCellValueFactory(d -> {
             double c = d.getValue().getCantidad();
-            MateriaPrima mp = listaMateriaPrima.stream()
+            Insumo mp = listaMateriaPrima.stream()
                 .filter(m -> String.valueOf(m.getId()).equals(d.getValue().getIdMateriaPrima()))
                 .findFirst().orElse(null);
             String unidad = mp != null && ("Tela plana".equals(mp.getTipoInsumo()) || "Tela punto".equals(mp.getTipoInsumo())) ? " m" : "";
@@ -760,7 +781,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         tablaCarrito.getColumns().addAll(colCMaterial, colCCantidad);
 
-        Button btnQuitar = new Button("✕ Quitar seleccionado");
+        Button btnQuitar = new Button("Quitar seleccionado");
         btnQuitar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + ERROR + "; -fx-font-size: 12px; -fx-cursor: hand; -fx-border-color: " + ERROR + "; -fx-border-radius: 4; -fx-padding: 6 14;");
         btnQuitar.setOnAction(e -> {
             MaterialPorPrenda sel = tablaCarrito.getSelectionModel().getSelectedItem();
@@ -768,7 +789,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         });
 
         btnAgregarCarrito.setOnAction(e -> {
-            MateriaPrima matSel = selectorMaterial.getValue();
+            Insumo matSel = selectorMaterial.getValue();
             if (matSel == null) {
                 mensajeAgregar.setTextFill(Color.web(ERROR));
                 mensajeAgregar.setText("Selecciona un material");
@@ -785,7 +806,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 }
             } catch (NumberFormatException ex) {
                 mensajeAgregar.setTextFill(Color.web(ERROR));
-                mensajeAgregar.setText("Ingresa una cantidad válida (usa punto decimal)");
+                mensajeAgregar.setText("Ingresa una cantidad valida (usa punto decimal)");
                 return;
             }
 
@@ -793,12 +814,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             boolean yaEnCarrito = carritoTemporal.stream().anyMatch(m -> m.getIdMateriaPrima().equals(idMatStr));
             if (yaEnCarrito) {
                 mensajeAgregar.setTextFill(Color.web(ADVERTENCIA));
-                mensajeAgregar.setText("Ese material ya está en la lista. Quítalo si quieres cambiar la cantidad.");
+                mensajeAgregar.setText("Ese material ya esta en la lista. Quítalo si quieres cambiar la cantidad.");
                 return;
             }
 
             carritoTemporal.add(new MaterialPorPrenda(
-                selectorPrenda.getValue() != null ? selectorPrenda.getValue().getId() : "",
+                selectorPrenda.getValue() != null ? String.valueOf(selectorPrenda.getValue().getId()) : "",
                 idMatStr, cantidad
             ));
             mensajeAgregar.setTextFill(Color.web(EXITO));
@@ -810,7 +831,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnAceptar = new Button("✔ Aceptar y Guardar");
+        Button btnAceptar = new Button("Aceptar y Guardar");
         btnAceptar.setMaxWidth(360);
         btnAceptar.setStyle(
             "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
@@ -826,7 +847,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeEstado.setText("Agrega al menos un material a la lista");
                 return;
             }
-            String idPrendaSel = selectorPrenda.getValue().getId();
+            String idPrendaSel = String.valueOf(selectorPrenda.getValue().getId());
 
             // Elimina registros previos de esa prenda con esos materiales para evitar duplicados, y agrega los nuevos
             for (MaterialPorPrenda nuevoReg : carritoTemporal) {
@@ -838,7 +859,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             mostrarMaterialesPorPrenda(contenido);
         });
 
-        Button btnCancelar = new Button("← Regresar sin guardar");
+        Button btnCancelar = new Button("Regresar sin guardar");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarMaterialesPorPrenda(contenido));
 
@@ -862,7 +883,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── MÓDULO PRENDAS ───────────────────────────────────────────────
+    // ?"??"? M?"DULO PRENDAS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarModuloPrendas(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -883,22 +904,22 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<Prenda, String> colMayor  = new TableColumn<>("P. Mayoreo");
         TableColumn<Prenda, String> colMenud  = new TableColumn<>("P. Menudeo");
        TableColumn<Prenda, String> colTienda  = new TableColumn<>("ID Tienda");
-        TableColumn<Prenda, String> colMinimo  = new TableColumn<>("Mínimo");
+        TableColumn<Prenda, String> colMinimo  = new TableColumn<>("Minimo");
 
-        colId.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getId()));
+        colId.setCellValueFactory(d     -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
         colTalla.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getTalla()));
         colExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
         colMayor.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMayoreo()));
         colMenud.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMenudeo()));
-        colTienda.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getIdTienda()));
+        colTienda.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdTienda())));
         colMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
 
         tabla.getColumns().addAll(colId, colNombre, colTalla, colExist, colMinimo, colMayor, colMenud, colTienda);
         tabla.setItems(listaPrendas);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
-        Button btnDetalle = new Button("🔍 Ver Detalle");
+        Button btnDetalle = new Button("Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetallePrenda(contenido, esAdmin));
 
@@ -908,9 +929,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
-            Button btnAnadir = new Button("+ Añadir Prenda");
-            Button btnExist  = new Button("+ Añadir a Existente");
-            Button btnEditar = new Button("✎ Editar Prenda");
+            Button btnAnadir = new Button("+ Anadir Prenda");
+            Button btnExist  = new Button("+ Anadir a Existente");
+            Button btnEditar = new Button("Editar Prenda");
 
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -932,7 +953,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(vista);
     }
 
-    // ── VER DETALLE PRENDA ───────────────────────────────────────────
+    // ?"??"? VER DETALLE PRENDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarDetallePrenda(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -940,7 +961,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o ID para ver toda la información");
+        Label subtitulo = new Label("Busca por nombre o ID para ver toda la informacion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -961,28 +982,28 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
             Prenda p = listaPrendas.stream()
-                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getId().equals(busqueda))
+                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(x.getId()).equals(busqueda))
                 .findFirst().orElse(null);
             if (p == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró la prenda");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro la prenda");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Prenda encontrada");
                 tarjeta.getChildren().clear();
-                Label lNombre = new Label(p.getNombre() + "  —  Talla " + p.getTalla());
+                Label lNombre = new Label(p.getNombre() + "  Talla " + p.getTalla());
                 lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
                 lNombre.setTextFill(Color.web(SECUNDARIO));
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
                 tarjeta.getChildren().addAll(lNombre, sep,
-                    filaDetalle("ID:", p.getId()), filaDetalle("Tipo:", p.getTipoPrenda()),
+                    filaDetalle("ID:", String.valueOf(p.getId())), filaDetalle("Tipo:", p.getTipoPrenda()),
                     filaDetalle("Talla:", p.getTalla()), filaDetalle("Existencia:", String.valueOf(p.getExistencia())),
                     filaDetalle("P. Mayoreo:", "$" + p.getPrecioMayoreo()), filaDetalle("P. Menudeo:", "$" + p.getPrecioMenudeo()),
-                    filaDetalle("ID Tienda:", p.getIdTienda()), filaDetalle("Descripción:", p.getDescripcion()));
+                    filaDetalle("ID Tienda:", String.valueOf(p.getIdTienda())), filaDetalle("Descripcion:", p.getDescripcion()));
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
 
-        Button btnRegresar = new Button("← Regresar a lista");
+        Button btnRegresar = new Button("Regresar a lista");
         btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnRegresar.setOnAction(e -> mostrarModuloPrendas(contenido, esAdmin));
 
@@ -1006,7 +1027,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         lEtiqueta.setFont(Font.font("System", FontWeight.BOLD, 12));
         lEtiqueta.setTextFill(Color.web(TEXTO_SUAVE));
         lEtiqueta.setMinWidth(120);
-        Label lValor = new Label(valor != null ? valor : "—");
+        Label lValor = new Label(valor != null ? valor : "??");
         lValor.setFont(Font.font("System", 13));
         lValor.setTextFill(Color.web(TEXTO));
         lValor.setWrapText(true);
@@ -1015,7 +1036,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         return fila;
     }
 
-    // ── MÓDULO CONJUNTOS ─────────────────────────────────────────────
+  
     private void mostrarModuloConjuntos(StackPane contenido, boolean esAdmin) {
         verificarConjuntos();
         contenido.getChildren().clear();
@@ -1035,9 +1056,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<Conjunto, String> colPiezas = new TableColumn<>("Piezas");
         TableColumn<Conjunto, String> colExist  = new TableColumn<>("Existencia");
        TableColumn<Conjunto, String> colPrecio  = new TableColumn<>("Precio");
-        TableColumn<Conjunto, String> colMinimo  = new TableColumn<>("Mínimo");
+        TableColumn<Conjunto, String> colMinimo  = new TableColumn<>("Minimo");
 
-        colId.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getId()));
+        colId.setCellValueFactory(d     -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
         colPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
         colExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
@@ -1048,7 +1069,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         tabla.setItems(listaConjuntos);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
-        Button btnDetalle = new Button("🔍 Ver Detalle");
+        Button btnDetalle = new Button("Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleConjunto(contenido, esAdmin));
 
@@ -1059,7 +1080,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Nuevo Conjunto");
-            Button btnEditar = new Button("✎ Editar Conjunto");
+            Button btnEditar = new Button("?oZ Editar Conjunto");
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjunto(contenido));
@@ -1074,7 +1095,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(vista);
     }
 
-    // ── VER DETALLE CONJUNTO ─────────────────────────────────────────
+    // ?"??"? VER DETALLE CONJUNTO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarDetalleConjunto(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1082,7 +1103,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o ID para ver toda la información");
+        Label subtitulo = new Label("Busca por nombre o ID para ver toda la informacion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -1103,10 +1124,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
             Conjunto c = listaConjuntos.stream()
-                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getId().equals(busqueda))
+                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(x.getId()).equals(busqueda))
                 .findFirst().orElse(null);
             if (c == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el conjunto");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el conjunto");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Conjunto encontrado");
@@ -1123,10 +1144,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
                 VBox listaPrendasBox = new VBox(4);
                 for (String idP : c.getIdPrendas()) {
-                    Prenda p = listaPrendas.stream().filter(x -> x.getId().equals(idP)).findFirst().orElse(null);
+                    Prenda p = listaPrendas.stream().filter(x -> String.valueOf(x.getId()).equals(idP)).findFirst().orElse(null);
                     Label lPrenda = new Label(p != null
-                        ? "• " + p.getNombre() + " (Talla " + p.getTalla() + ") — Exist: " + p.getExistencia()
-                        : "• ID " + idP + " (no encontrada)");
+                        ? "- " + p.getNombre() + " (Talla " + p.getTalla() + ")" + "Exist: " + p.getExistencia()
+                        : "- ID " + idP + " (no encontrada)");
                     lPrenda.setFont(Font.font("System", 13));
                     lPrenda.setTextFill(p != null && p.getExistencia() > 0 ? Color.web(TEXTO) : Color.web(ERROR));
                     lPrenda.setWrapText(true);
@@ -1136,17 +1157,17 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 filaPrendas.setAlignment(Pos.TOP_LEFT);
 
                 tarjeta.getChildren().addAll(lNombre, sep,
-                    filaDetalle("ID:", c.getId()),
+                    filaDetalle("ID:", String.valueOf(c.getId())),
                     filaDetalle("Piezas:", String.valueOf(c.getIdPrendas().size())),
                     filaDetalle("Existencia:", String.valueOf(calcularExistenciaConjunto(c))),
                     filaDetalle("Precio:", "$" + String.format("%.2f", calcularPrecioConjunto(c))),
-                    filaDetalle("Descripción:", c.getDescripcion()),
+                    filaDetalle("Descripcion:", c.getDescripcion()),
                     filaPrendas);
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
 
-        Button btnRegresar = new Button("← Regresar a lista");
+        Button btnRegresar = new Button("Regresar a lista");
         btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnRegresar.setOnAction(e -> mostrarModuloConjuntos(contenido, esAdmin));
 
@@ -1165,7 +1186,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── MÓDULO PRENDAS VENDIDAS ──────────────────────────────────────
+    // ?"??"? M?"DULO PRENDAS VENDIDAS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarModuloPrendasVendidas(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1187,7 +1208,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<PrendaVendida, String> colPrecio   = new TableColumn<>("Precio Unit.");
         TableColumn<PrendaVendida, String> colTotal    = new TableColumn<>("Total");
         TableColumn<PrendaVendida, String> colFechaVta = new TableColumn<>("Fecha Venta");
-        TableColumn<PrendaVendida, String> colFechaDev = new TableColumn<>("Límite Dev.");
+        TableColumn<PrendaVendida, String> colFechaDev = new TableColumn<>("Limite Dev.");
 
         colId.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getIdVenta()));
         colNombre.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getNombrePrenda()));
@@ -1203,7 +1224,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         tabla.setItems(listaPrendasVendidas);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
-        Button btnDetalle = new Button("🔍 Ver Detalle");
+        Button btnDetalle = new Button("Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetallePrendaVendida(contenido, esAdmin));
 
@@ -1214,7 +1235,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Registrar Venta");
-            Button btnEditar = new Button("✎ Editar Registro");
+            Button btnEditar = new Button("Editar Registro");
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevaPrendaVendida(contenido));
@@ -1229,7 +1250,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(vista);
     }
 
-    // ── DETALLE PRENDA VENDIDA ───────────────────────────────────────
+
     private void mostrarDetallePrendaVendida(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1261,18 +1282,18 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (pv == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el registro");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Registro encontrado");
                 tarjeta.getChildren().clear();
-                Label lNombre = new Label(pv.getNombrePrenda() + " — Talla " + pv.getTalla());
+                Label lNombre = new Label(pv.getNombrePrenda() + " | Talla " + pv.getTalla());
                 lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
                 lNombre.setTextFill(Color.web(SECUNDARIO));
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
 
                 boolean dentroDevolucion = !LocalDate.now().isAfter(pv.getFechaLimiteDevolucion());
-                Label lEstado = new Label(dentroDevolucion ? "✔ Dentro del periodo de devolución" : "✕ Periodo de devolución vencido");
+                Label lEstado = new Label(dentroDevolucion ? "Dentro del periodo de devolucion" : "Periodo de devolucion vencido");
                 lEstado.setFont(Font.font("System", FontWeight.BOLD, 12));
                 lEstado.setTextFill(Color.web(dentroDevolucion ? EXITO : ERROR));
 
@@ -1283,14 +1304,14 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     filaDetalle("Precio unitario:",   "$" + String.format("%.2f", pv.getPrecioUnitario())),
                     filaDetalle("Total:",             "$" + String.format("%.2f", pv.getTotal())),
                     filaDetalle("Fecha de venta:",    pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Límite devolución:", pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Descripción:",       pv.getDescripcion()),
+                    filaDetalle("Limite devolucion:", pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
+                    filaDetalle("Descripcion:",       pv.getDescripcion()),
                     lEstado);
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
 
-        Button btnRegresar = new Button("← Regresar a lista");
+        Button btnRegresar = new Button("Regresar a lista");
         btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnRegresar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, esAdmin));
 
@@ -1309,7 +1330,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO NUEVA PRENDA VENDIDA ──────────────────────────────
+    // ?"??"? FORMULARIO NUEVA PRENDA VENDIDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioNuevaPrendaVendida(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -1326,7 +1347,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoTalla        = crearTextField("Talla");
         TextField campoCantidad     = crearTextField("Cantidad");
         TextField campoPrecioUnit   = crearTextField("Precio unitario");
-        TextField campoDescripcion  = crearTextField("Descripción");
+        TextField campoDescripcion  = crearTextField("Descripcion");
 
         Label labelTipoVenta = new Label("Tipo de venta:");
         labelTipoVenta.setTextFill(Color.web(TEXTO_SUAVE));
@@ -1342,7 +1363,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         labelFechaVenta.setTextFill(Color.web(TEXTO_SUAVE));
         labelFechaVenta.setFont(Font.font("System", 12));
 
-        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacío = hoy)");
+        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacio = hoy)");
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -1351,7 +1372,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
 
@@ -1385,7 +1406,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mostrarModuloPrendasVendidas(contenido, true);
             } catch (Exception ex) {
             mensajeEstado.setTextFill(Color.web(ERROR));
-            mensajeEstado.setText("Verifica que los datos sean válidos");
+            mensajeEstado.setText("Verifica que los datos sean validos");
 }
         });
 
@@ -1407,7 +1428,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO EDITAR PRENDA VENDIDA ─────────────────────────────
+    // ?"??"? FORMULARIO EDITAR PRENDA VENDIDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioEditarPrendaVendida(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -1434,7 +1455,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoTalla        = crearTextField("Talla");
         TextField campoCantidad     = crearTextField("Cantidad");
         TextField campoPrecioUnit   = crearTextField("Precio unitario");
-        TextField campoDescripcion  = crearTextField("Descripción");
+        TextField campoDescripcion  = crearTextField("Descripcion");
         TextField campoFechaVenta   = crearTextField("Fecha venta dd/MM/yyyy");
 
         Label labelTipoVenta = new Label("Tipo de venta:");
@@ -1466,7 +1487,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (pv == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el registro");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 pvEncontrada[0] = pv;
@@ -1508,11 +1529,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 pv.setDescripcion(descripcion);
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Registro actualizado correctamente");
             } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
 
@@ -1531,7 +1552,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-// ── MÓDULO MATERIA PRIMA ─────────────────────────────────────────
+// ?"??"? M?"DULO MATERIA PRIMA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarModuloMateriaPrima(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1539,46 +1560,46 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        TableView<MateriaPrima> tabla = new TableView<>();
+        TableView<Insumo> tabla = new TableView<>();
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay materia prima registrada"));
         tabla.setMinHeight(200);
 
-        TableColumn<MateriaPrima, String> colId           = new TableColumn<>("ID");
-        TableColumn<MateriaPrima, String> colPartida      = new TableColumn<>("No. Partida");
-        TableColumn<MateriaPrima, String> colNombre       = new TableColumn<>("Nombre");
-        TableColumn<MateriaPrima, String> colExist        = new TableColumn<>("Existencia");
-        TableColumn<MateriaPrima, String> colMinimo       = new TableColumn<>("Mínimo");
-        TableColumn<MateriaPrima, String> colTipoExist    = new TableColumn<>("Tipo Existencia");
-        TableColumn<MateriaPrima, String> colDescripcion  = new TableColumn<>("Descripción");
-        TableColumn<MateriaPrima, String> colColor        = new TableColumn<>("Color");
-        TableColumn<MateriaPrima, String> colMedida       = new TableColumn<>("Medida");
-        TableColumn<MateriaPrima, String> colAncho        = new TableColumn<>("Ancho");
-        TableColumn<MateriaPrima, String> colComposicion  = new TableColumn<>("Composición");
-        TableColumn<MateriaPrima, String> colTipo         = new TableColumn<>("Tipo");
-        TableColumn<MateriaPrima, String> colNo           = new TableColumn<>("No.");
-        TableColumn<MateriaPrima, String> colTamanio      = new TableColumn<>("Tamaño");
-        TableColumn<MateriaPrima, String> colTalla2       = new TableColumn<>("Talla");
-        TableColumn<MateriaPrima, String> colMaterial     = new TableColumn<>("Material");
-        TableColumn<MateriaPrima, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
+        TableColumn<Insumo, String> colId           = new TableColumn<>("ID");
+        TableColumn<Insumo, String> colPartida      = new TableColumn<>("No. Partida");
+        TableColumn<Insumo, String> colNombre       = new TableColumn<>("Nombre");
+        TableColumn<Insumo, String> colExist        = new TableColumn<>("Existencia");
+        TableColumn<Insumo, String> colMinimo       = new TableColumn<>("Minimo");
+        TableColumn<Insumo, String> colTipoExist    = new TableColumn<>("Tipo Existencia");
+        TableColumn<Insumo, String> colDescripcion  = new TableColumn<>("Descripcion");
+        TableColumn<Insumo, String> colColor        = new TableColumn<>("Color");
+        TableColumn<Insumo, String> colMedida       = new TableColumn<>("Medida");
+        TableColumn<Insumo, String> colAncho        = new TableColumn<>("Ancho");
+        TableColumn<Insumo, String> colComposicion  = new TableColumn<>("Composicion");
+        TableColumn<Insumo, String> colTipo         = new TableColumn<>("Tipo");
+        TableColumn<Insumo, String> colNo           = new TableColumn<>("No.");
+        TableColumn<Insumo, String> colTamanio      = new TableColumn<>("Tamano");
+        TableColumn<Insumo, String> colTalla2       = new TableColumn<>("Talla");
+        TableColumn<Insumo, String> colMaterial     = new TableColumn<>("Material");
+        TableColumn<Insumo, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
 
         colId.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
         colPartida.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colNombre.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getNombre()));
         colExist.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
         colMinimo.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
-        colTipoExist.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoExistencia() != null && !d.getValue().getTipoExistencia().isEmpty() ? d.getValue().getTipoExistencia() : "—"));
-        colDescripcion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getDescripcion() != null ? d.getValue().getDescripcion() : "—"));
-        colColor.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "—"));
-        colMedida.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getMedida() != null ? d.getValue().getMedida() : "—"));
-        colAncho.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getAncho() != null ? String.valueOf(d.getValue().getAncho()) : "—"));
-        colComposicion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getComposicion() != null ? d.getValue().getComposicion() : "—"));
-        colTipo.setCellValueFactory(d         -> new SimpleStringProperty(d.getValue().getTipo() != null ? d.getValue().getTipo() : "—"));
-        colNo.setCellValueFactory(d           -> new SimpleStringProperty(d.getValue().getNo() != null ? String.valueOf(d.getValue().getNo()) : "—"));
-        colTamanio.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getTamanio() != null ? d.getValue().getTamanio() : "—"));
-        colTalla2.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getTalla() != null ? d.getValue().getTalla() : "—"));
-        colMaterial.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "—"));
+        colTipoExist.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoExistencia() != null && !d.getValue().getTipoExistencia().isEmpty() ? d.getValue().getTipoExistencia() : "??"));
+        colDescripcion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getDescripcion() != null ? d.getValue().getDescripcion() : "??"));
+        colColor.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "??"));
+        colMedida.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getMedida())));
+        colAncho.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getAncho())));
+        colComposicion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getComposicion() != null ? d.getValue().getComposicion() : "??"));
+        colTipo.setCellValueFactory(d         -> new SimpleStringProperty(d.getValue().getTipo() != null ? d.getValue().getTipo() : "??"));
+        colNo.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getNo())));
+        colTamanio.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getTamanio() != null ? d.getValue().getTamanio() : "??"));
+        colTalla2.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getTalla())));
+        colMaterial.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "??"));
         colTipoInsum.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
 
         tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMinimo,
@@ -1594,7 +1615,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         scrollTablaMP.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
         VBox.setVgrow(scrollTablaMP, Priority.ALWAYS);
 
-        Button btnDetalle = new Button("🔍 Ver Detalle");
+        Button btnDetalle = new Button("Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleMateriaPrima(contenido, esAdmin));
 
@@ -1604,9 +1625,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
-            Button btnAnadir = new Button("+ Añadir Insumo");
-            Button btnExist  = new Button("+ Añadir a Existente");
-            Button btnEditar = new Button("✎ Editar Insumo");
+            Button btnAnadir = new Button("+ Anadir Insumo");
+            Button btnExist  = new Button("+ Anadir a Existente");
+            Button btnEditar = new Button("?oZ Editar Insumo");
 
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -1627,7 +1648,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     }
 
 
-    // ── VER DETALLE MATERIA PRIMA ────────────────────────────────────
+    // ?"??"? VER DETALLE MATERIA PRIMA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarDetalleMateriaPrima(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1635,11 +1656,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o número de partida para ver toda la información");
+        Label subtitulo = new Label("Busca por nombre o numero de partida para ver toda la informacion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        TextField campoBusqueda = crearTextField("Nombre o numero de partida");
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
 
@@ -1654,17 +1675,17 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
-            MateriaPrima mp = listaMateriaPrima.stream()
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            Insumo mp = listaMateriaPrima.stream()
                 .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getNumeroPartida().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (mp == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el insumo");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el insumo");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
                 tarjeta.getChildren().clear();
-                Label lNombre = new Label(mp.getNombre() + "  —  " + mp.getTipoInsumo());
+                Label lNombre = new Label(mp.getNombre() + "  ??" + mp.getTipoInsumo());
                 lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
                 lNombre.setTextFill(Color.web(SECUNDARIO));
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
@@ -1672,23 +1693,23 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     filaDetalle("ID:",              String.valueOf(mp.getId())),
                     filaDetalle("No. Partida:",     mp.getNumeroPartida()),
                     filaDetalle("Existencia:",      String.valueOf(mp.getExistencia())),
-                    filaDetalle("Tipo Existencia:", mp.getTipoExistencia() != null && !mp.getTipoExistencia().isEmpty() ? mp.getTipoExistencia() : "—"),
-                    filaDetalle("Color:",           mp.getColor()        != null ? mp.getColor()        : "—"),
-                    filaDetalle("Medida:",          mp.getMedida()       != null ? mp.getMedida()        : "—"),
-                    filaDetalle("Ancho:",           mp.getAncho()        != null ? mp.getAncho() + " m"  : "—"),
-                    filaDetalle("Composición:",     mp.getComposicion()  != null ? mp.getComposicion()   : "—"),
-                    filaDetalle("Tipo:",            mp.getTipo()         != null ? mp.getTipo()          : "—"),
-                    filaDetalle("No.:",             mp.getNo()           != null ? String.valueOf(mp.getNo()) : "—"),
-                    filaDetalle("Tamaño:",          mp.getTamanio()      != null ? mp.getTamanio()       : "—"),
-                    filaDetalle("Talla:",           mp.getTalla()        != null ? mp.getTalla()         : "—"),
-                    filaDetalle("Material:",        mp.getMaterial()     != null ? mp.getMaterial()      : "—"),
+                    filaDetalle("Tipo Existencia:", mp.getTipoExistencia() != null && !mp.getTipoExistencia().isEmpty() ? mp.getTipoExistencia() : "??"),
+                    filaDetalle("Color:",           mp.getColor()        != null ? mp.getColor()        : "??"),
+                    filaDetalle("Medida:",          String.valueOf(mp.getMedida())),
+                    filaDetalle("Ancho:",           String.valueOf(mp.getAncho()) + " m"),
+                    filaDetalle("Composicion:",     mp.getComposicion()  != null ? mp.getComposicion()   : "??"),
+                    filaDetalle("Tipo:",            mp.getTipo()         != null ? mp.getTipo()          : "??"),
+                    filaDetalle("No.:",             String.valueOf(mp.getNo())),
+                    filaDetalle("Tamano:",          mp.getTamanio()      != null ? mp.getTamanio()       : "??"),
+                    filaDetalle("Talla:",           String.valueOf(mp.getTalla())),
+                    filaDetalle("Material:",        mp.getMaterial()     != null ? mp.getMaterial()      : "??"),
                     filaDetalle("Tipo Insumo:",     mp.getTipoInsumo()),
-                    filaDetalle("Descripción:",     mp.getDescripcion()));
+                    filaDetalle("Descripcion:",     mp.getDescripcion()));
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
 
-        Button btnRegresar = new Button("← Regresar a lista");
+        Button btnRegresar = new Button("Regresar a lista");
         btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnRegresar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, esAdmin));
 
@@ -1707,7 +1728,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO NUEVO INSUMO ──────────────────────────────────────
+    // ?"??"? FORMULARIO NUEVO INSUMO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioNuevaMateriaPrima(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -1719,29 +1740,30 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoPartida      = crearTextField("Número de partida  (ej: BOT-003)");
+        TextField campoPartida      = crearTextField("Numero de partida  (ej: BOT-003)");
         TextField campoNombre       = crearTextField("Nombre del insumo");
         TextField campoExistencia   = crearTextField("Existencia inicial");
-        TextField campoMinimo       = crearTextField("Mínimo de existencia  (ej: 10)");
+        TextField campoMinimo       = crearTextField("Minimo de existencia  (ej: 10)");
         TextField campoTipoExist    = crearTextField("Tipo de existencia  (opcional)");
-        TextField campoDescripcion  = crearTextField("Descripción  (opcional)");
+        TextField campoDescripcion  = crearTextField("Descripcion  (opcional)");
         TextField campoColor        = crearTextField("Color  (opcional)");
         TextField campoMedida       = crearTextField("Medida  (opcional)");
         TextField campoAncho        = crearTextField("Ancho en metros  (opcional)");
-        TextField campoComposicion  = crearTextField("Composición  (opcional, ej: 100% ALG)");
+        TextField campoComposicion  = crearTextField("Composicion  (opcional, ej: 100% ALG)");
         TextField campoTipo         = crearTextField("Tipo de tejido/estructura  (opcional)");
         TextField campoNo           = crearTextField("No.  (opcional, ej: 14)");
-        TextField campoTamanio      = crearTextField("Tamaño  (opcional)");
+        TextField campoTamanio      = crearTextField("Tamano  (opcional)");
         TextField campoTalla        = crearTextField("Talla  (opcional)");
-        TextField campoMaterial     = crearTextField("Material  (opcional, ej: Plástico)");
+        TextField campoMaterial     = crearTextField("Material  (opcional, ej: Plastico)");
+        TextField campoUbicacion     = crearTextField("Ubicacion");
 
         Label labelTipoInsumo = new Label("Tipo de insumo:");
         labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
         labelTipoInsumo.setFont(Font.font("System", 12));
 
         ComboBox<String> selectorTipoInsumo = new ComboBox<>();
-        selectorTipoInsumo.getItems().addAll("Botón", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
-        selectorTipoInsumo.setValue("Botón");
+        selectorTipoInsumo.getItems().addAll("Boton", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
+        selectorTipoInsumo.setValue("Boton");
         selectorTipoInsumo.setMaxWidth(320);
         selectorTipoInsumo.setStyle(estiloInput());
 
@@ -1752,7 +1774,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
 
@@ -1769,45 +1791,55 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String tipo         = campoTipo.getText().trim();
             String noStr        = campoNo.getText().trim();
             String tamanio      = campoTamanio.getText().trim();
-            String talla        = campoTalla.getText().trim();
+            String talla     = campoTalla.getText().trim();
             String material     = campoMaterial.getText().trim();
             String tipoInsumo   = selectorTipoInsumo.getValue();
+            String ubicacion    = campoUbicacion.getText().trim();
 
             String minimoStr    = campoMinimo.getText().trim();
             if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre, existencia y mínimo son obligatorios"); return;
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre, existencia y minimo son obligatorios"); return;
             }
-            boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida().equalsIgnoreCase(partida));
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese número de partida"); return; }
+            boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida() != null && mp.getNumeroPartida().equalsIgnoreCase(partida));
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese numero de partida"); return; }
 
-        try {
-                int existencia   = Integer.parseInt(existStr);
-                int minimo       = Integer.parseInt(minimoStr);
-                Double ancho     = anchoStr.isEmpty()  ? null : Double.parseDouble(anchoStr);
-                Integer no       = noStr.isEmpty()     ? null : Integer.parseInt(noStr);
-                int nuevoId      = listaMateriaPrima.isEmpty() ? 1 : listaMateriaPrima.stream().mapToInt(MateriaPrima::getId).max().orElse(0) + 1;
+            try {
+                double existencia = Double.parseDouble(existStr);
+                int minimo = Integer.parseInt(minimoStr);
+                double ancho = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
+                int no = noStr.isEmpty() ? 0 : Integer.parseInt(noStr);
+                double medidaD = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
+                double tallaD = talla.isEmpty() ? 0.0 : Double.parseDouble(talla);
 
-                MateriaPrima nuevaMP = new MateriaPrima(
-                    nuevoId, partida, existencia,
-                    tipoExist.isEmpty()   ? "" : tipoExist,
+                Insumo nuevoInsumo = new Insumo(
+                    "I-" + String.valueOf(System.currentTimeMillis()),
+                    partida,
+                    existencia,
+                    tipoExist.isEmpty() ? "" : tipoExist,
                     descripcion.isEmpty() ? "" : descripcion,
                     nombre,
-                    color.isEmpty()       ? null : color,
-                    medida.isEmpty()      ? null : medida,
+                    color.isEmpty() ? "" : color,
+                    medidaD,
                     ancho,
-                    composicion.isEmpty() ? null : composicion,
-                    tipo.isEmpty()        ? null : tipo,
+                    composicion.isEmpty() ? "" : composicion,
+                    tipo.isEmpty() ? "" : tipo,
                     no,
-                    tamanio.isEmpty()     ? null : tamanio,
-                    talla.isEmpty()       ? null : talla,
-                    material.isEmpty()    ? null : material,
-                    tipoInsumo
+                    tamanio.isEmpty() ? "" : tamanio,
+                    tallaD,
+                    material.isEmpty() ? "" : material,
+                    tipoInsumo,
+                    1
                 );
-                nuevaMP.setMinimoExistencia(minimo);
-                listaMateriaPrima.add(nuevaMP);
+                nuevoInsumo.setMinimoExistencia(minimo);
+                insumoDAO.insert(nuevoInsumo);
+                recargarDatos();
                 mostrarModuloMateriaPrima(contenido, true);
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar: " + ex.getMessage());
             } catch (NumberFormatException ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Existencia, minimo, medida, ancho y talla deben ser numeros validos");
             }
         });
 
@@ -1830,19 +1862,19 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO AÑADIR A EXISTENTE (MP) ──────────────────────────
+    // ?"??"? FORMULARIO A?'ADIR A EXISTENTE (MP) ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioAnadirExistenteMP(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo    = new Label("Añadir a Existente");
+        Label titulo    = new Label("Anadir a Existente");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o número de partida y añade unidades");
+        Label subtitulo = new Label("Busca por nombre o numero de partida y añade unidades");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        TextField campoBusqueda = crearTextField("Nombre o numero de partida");
         Label mensajeBusqueda   = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
 
@@ -1852,27 +1884,27 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         panelResultado.setManaged(false);
 
         Label labelResultado    = new Label("");
-        TextField campoCantidad = crearTextField("Cantidad a añadir");
+        TextField campoCantidad = crearTextField("Cantidad a anadir");
         Label mensajeEstado     = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnAnadir = new Button("Añadir Unidades");
+        Button btnAnadir = new Button("Anadir Unidades");
         btnAnadir.setMaxWidth(320);
         btnAnadir.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
         panelResultado.getChildren().addAll(labelResultado, campoCantidad, mensajeEstado, btnAnadir);
 
-        final MateriaPrima[] mpEncontrada = {null};
+        final Insumo[] mpEncontrada = {null};
 
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
-            MateriaPrima encontrada = listaMateriaPrima.stream()
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            Insumo encontrada = listaMateriaPrima.stream()
                 .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ningún insumo");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ningun insumo");
                 panelResultado.setVisible(false); panelResultado.setManaged(false);
             } else {
                 mpEncontrada[0] = encontrada;
@@ -1890,14 +1922,19 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 int cantidad = Integer.parseInt(campoCantidad.getText().trim());
                 if (cantidad <= 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La cantidad debe ser mayor a 0"); return; }
                 mpEncontrada[0].setExistencia(mpEncontrada[0].getExistencia() + cantidad);
+                insumoDAO.update(mpEncontrada[0]);
+                recargarDatos();
                 mensajeEstado.setTextFill(Color.web(EXITO));
                 mensajeEstado.setText("Se añadieron " + cantidad + " unidades. Nueva existencia: " + mpEncontrada[0].getExistencia());
                 labelResultado.setText("Insumo: " + mpEncontrada[0].getNombre() + " | Partida: " + mpEncontrada[0].getNumeroPartida() + " | Existencia: " + mpEncontrada[0].getExistencia());
                 campoCantidad.clear();
-            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Ingresa un número válido"); }
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al actualizar: " + ex.getMessage());
+            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Ingresa un numero valido"); }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
 
@@ -1916,7 +1953,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO EDITAR INSUMO ─────────────────────────────────────
+    // ?"??"? FORMULARIO EDITAR INSUMO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioEditarMateriaPrima(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -1924,11 +1961,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o número de partida y modifica los campos");
+        Label subtitulo = new Label("Busca por nombre o numero de partida y modifica los campos");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("Nombre o número de partida");
+        TextField campoBusqueda = crearTextField("Nombre o numero de partida");
         Label mensajeBusqueda   = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
 
@@ -1938,16 +1975,16 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         TextField campoNombre      = crearTextField("Nombre del insumo");
         TextField campoExistencia  = crearTextField("Existencia");
-        TextField campoMinimo      = crearTextField("Mínimo de existencia");
+        TextField campoMinimo      = crearTextField("Minimo de existencia");
         TextField campoTipoExist   = crearTextField("Tipo de existencia");
-        TextField campoDescripcion = crearTextField("Descripción");
+        TextField campoDescripcion = crearTextField("Descripcion");
         TextField campoColor       = crearTextField("Color");
         TextField campoMedida      = crearTextField("Medida");
         TextField campoAncho       = crearTextField("Ancho en metros");
-        TextField campoComposicion = crearTextField("Composición");
+        TextField campoComposicion = crearTextField("Composicion");
         TextField campoTipo        = crearTextField("Tipo de tejido/estructura");
         TextField campoNo          = crearTextField("No.");
-        TextField campoTamanio     = crearTextField("Tamaño");
+        TextField campoTamanio     = crearTextField("Tamano");
         TextField campoTalla       = crearTextField("Talla");
         TextField campoMaterial    = crearTextField("Material");
 
@@ -1956,7 +1993,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         labelTipoInsumo.setFont(Font.font("System", 12));
 
         ComboBox<String> selectorTipoInsumo = new ComboBox<>();
-        selectorTipoInsumo.getItems().addAll("Botón", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
+        selectorTipoInsumo.getItems().addAll("Boton", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
         selectorTipoInsumo.setMaxWidth(320);
         selectorTipoInsumo.setStyle(estiloInput());
 
@@ -1973,18 +2010,18 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
                 campoDescripcion, mensajeEstado, btnGuardar);
 
-        final MateriaPrima[] mpEncontrada = {null};
+        final Insumo[] mpEncontrada = {null};
 
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o número de partida"); return; }
-            MateriaPrima encontrada = listaMateriaPrima.stream()
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            Insumo encontrada = listaMateriaPrima.stream()
                 .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ningún insumo");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ningun insumo");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 mpEncontrada[0] = encontrada;
@@ -1995,13 +2032,13 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 campoTipoExist.setText(encontrada.getTipoExistencia() != null ? encontrada.getTipoExistencia() : "");
                 campoDescripcion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
                 campoColor.setText(encontrada.getColor() != null ? encontrada.getColor() : "");
-                campoMedida.setText(encontrada.getMedida() != null ? encontrada.getMedida() : "");
-                campoAncho.setText(encontrada.getAncho() != null ? String.valueOf(encontrada.getAncho()) : "");
+                campoMedida.setText(String.valueOf(encontrada.getMedida()));
+                campoAncho.setText(String.valueOf(encontrada.getAncho()));
                 campoComposicion.setText(encontrada.getComposicion() != null ? encontrada.getComposicion() : "");
                 campoTipo.setText(encontrada.getTipo() != null ? encontrada.getTipo() : "");
-                campoNo.setText(encontrada.getNo() != null ? String.valueOf(encontrada.getNo()) : "");
+                campoNo.setText(String.valueOf(encontrada.getNo()));
                 campoTamanio.setText(encontrada.getTamanio() != null ? encontrada.getTamanio() : "");
-                campoTalla.setText(encontrada.getTalla() != null ? encontrada.getTalla() : "");
+                campoTalla.setText(String.valueOf(encontrada.getTalla()));
                 campoMaterial.setText(encontrada.getMaterial() != null ? encontrada.getMaterial() : "");
                 selectorTipoInsumo.setValue(encontrada.getTipoInsumo());
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
@@ -2025,9 +2062,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String talla       = campoTalla.getText().trim();
             String material    = campoMaterial.getText().trim();
             String tipoInsumo  = selectorTipoInsumo.getValue();
+            double medidaDouble = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
+            double TallaDouble = talla.isEmpty() ? 0.0 : Double.parseDouble(talla);
 
             if (nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre, existencia y mínimo son obligatorios"); return;
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre, existencia y minimo son obligatorios"); return;
             }
             try {
                 int existencia  = Integer.parseInt(existStr);
@@ -2036,29 +2075,34 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 Double ancho    = anchoStr.isEmpty() ? null : Double.parseDouble(anchoStr);
                 Integer no      = noStr.isEmpty()    ? null : Integer.parseInt(noStr);
 
-                MateriaPrima mp = mpEncontrada[0];
+                Insumo mp = mpEncontrada[0];
                 mp.setNombre(nombre);
                 mp.setExistencia(existencia);
                 mp.setTipoExistencia(tipoExist.isEmpty()   ? "" : tipoExist);
                 mp.setDescripcion(descripcion.isEmpty()    ? "" : descripcion);
                 mp.setColor(color.isEmpty()                ? null : color);
-                mp.setMedida(medida.isEmpty()              ? null : medida);
+                mp.setMedida(medidaDouble);
                 mp.setAncho(ancho);
                 mp.setComposicion(composicion.isEmpty()    ? null : composicion);
                 mp.setTipo(tipo.isEmpty()                  ? null : tipo);
                 mp.setNo(no);
                 mp.setTamanio(tamanio.isEmpty()            ? null : tamanio);
-                mp.setTalla(talla.isEmpty()                ? null : talla);
+                mp.setTalla(TallaDouble);
                 mp.setMaterial(material.isEmpty()          ? null : material);
                 mp.setTipoInsumo(tipoInsumo);
                 mp.setMinimoExistencia(minimo);
+                insumoDAO.update(mp);
+                recargarDatos();
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Insumo actualizado correctamente");
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al actualizar: " + ex.getMessage());
             } catch (NumberFormatException ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser números válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia, ancho y No. deben ser numeros validos");
             }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
 
@@ -2077,7 +2121,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── MÓDULO CONJUNTOS VENDIDOS ────────────────────────────────────
+    // ?"??"? M?"DULO CONJUNTOS VENDIDOS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarModuloConjuntosVendidos(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -2098,7 +2142,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<ConjuntoVendido, String> colPrecio   = new TableColumn<>("Precio Unit.");
         TableColumn<ConjuntoVendido, String> colTotal    = new TableColumn<>("Total");
         TableColumn<ConjuntoVendido, String> colFechaVta = new TableColumn<>("Fecha Venta");
-        TableColumn<ConjuntoVendido, String> colFechaDev = new TableColumn<>("Límite Dev.");
+        TableColumn<ConjuntoVendido, String> colFechaDev = new TableColumn<>("Limite Dev.");
 
         colId.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getIdVenta()));
         colNombre.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getNombreConjunto()));
@@ -2113,7 +2157,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         tabla.setItems(listaConjuntosVendidos);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
-        Button btnDetalle = new Button("🔍 Ver Detalle");
+        Button btnDetalle = new Button("Ver Detalle");
         btnDetalle.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnDetalle.setOnAction(e -> mostrarDetalleConjuntoVendido(contenido, esAdmin));
 
@@ -2124,7 +2168,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Registrar Venta");
-            Button btnEditar = new Button("✎ Editar Registro");
+            Button btnEditar = new Button("Editar Registro");
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjuntoVendido(contenido));
@@ -2139,7 +2183,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(vista);
     }
 
-    // ── DETALLE CONJUNTO VENDIDO ─────────────────────────────────────
+    // ?"??"? DETALLE CONJUNTO VENDIDO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarDetalleConjuntoVendido(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -2171,7 +2215,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (cv == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el registro");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Registro encontrado");
@@ -2182,7 +2226,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
 
                 boolean dentroDevolucion = !LocalDate.now().isAfter(cv.getFechaLimiteDevolucion());
-                Label lEstado = new Label(dentroDevolucion ? "✔ Dentro del periodo de devolución" : "✕ Periodo de devolución vencido");
+                Label lEstado = new Label(dentroDevolucion ? "Dentro del periodo de devolucion" : "Periodo de devolucion vencido");
                 lEstado.setFont(Font.font("System", FontWeight.BOLD, 12));
                 lEstado.setTextFill(Color.web(dentroDevolucion ? EXITO : ERROR));
 
@@ -2193,7 +2237,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
                 VBox listaPrendasBox = new VBox(4);
                 for (String nombreP : cv.getNombresPrendas()) {
-                    Label lP = new Label("• " + nombreP);
+                    Label lP = new Label("- " + nombreP);
                     lP.setFont(Font.font("System", 13));
                     lP.setTextFill(Color.web(TEXTO));
                     listaPrendasBox.getChildren().add(lP);
@@ -2208,14 +2252,14 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     filaDetalle("Precio unitario:",   "$" + String.format("%.2f", cv.getPrecioUnitario())),
                     filaDetalle("Total:",             "$" + String.format("%.2f", cv.getTotal())),
                     filaDetalle("Fecha de venta:",    cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Límite devolución:", cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
-                    filaDetalle("Descripción:",       cv.getDescripcion()),
+                    filaDetalle("Limite devolucion:", cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
+                    filaDetalle("Descripcion:",       cv.getDescripcion()),
                     filaPrendas, lEstado);
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
 
-        Button btnRegresar = new Button("← Regresar a lista");
+        Button btnRegresar = new Button("Regresar a lista");
         btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnRegresar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, esAdmin));
 
@@ -2234,7 +2278,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO NUEVO CONJUNTO VENDIDO ────────────────────────────
+    // ?"??"? FORMULARIO NUEVO CONJUNTO VENDIDO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioNuevoConjuntoVendido(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2250,7 +2294,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoNombreConjunto = crearTextField("Nombre del conjunto");
         TextField campoCantidad       = crearTextField("Cantidad");
         TextField campoPrecioUnit     = crearTextField("Precio unitario");
-        TextField campoDescripcion    = crearTextField("Descripción");
+        TextField campoDescripcion    = crearTextField("Descripcion");
         TextField campoNombresPrendas = crearTextField("Nombres de prendas separados por coma");
         campoNombresPrendas.setMaxWidth(400);
 
@@ -2268,7 +2312,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         labelFechaVenta.setTextFill(Color.web(TEXTO_SUAVE));
         labelFechaVenta.setFont(Font.font("System", 12));
 
-        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacío = hoy)");
+        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacio = hoy)");
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -2277,7 +2321,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
 
@@ -2314,7 +2358,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 listaConjuntosVendidos.add(new ConjuntoVendido(idVenta, nombreConjunto, cantidad, tipoVenta, precioUnit, fechaVenta, fechaDev, descripcion, nombresPrendas));
                 mostrarModuloConjuntosVendidos(contenido, true);
             } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
@@ -2336,7 +2380,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO EDITAR CONJUNTO VENDIDO ───────────────────────────
+    // ?"??"? FORMULARIO EDITAR CONJUNTO VENDIDO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioEditarConjuntoVendido(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2362,7 +2406,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TextField campoNombreConjunto = crearTextField("Nombre del conjunto");
         TextField campoCantidad       = crearTextField("Cantidad");
         TextField campoPrecioUnit     = crearTextField("Precio unitario");
-        TextField campoDescripcion    = crearTextField("Descripción");
+        TextField campoDescripcion    = crearTextField("Descripcion");
         TextField campoFechaVenta     = crearTextField("Fecha venta dd/MM/yyyy");
         TextField campoNombresPrendas = crearTextField("Nombres de prendas separados por coma");
         campoNombresPrendas.setMaxWidth(400);
@@ -2397,7 +2441,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (cv == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el registro");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 cvEncontrado[0] = cv;
@@ -2443,11 +2487,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 cv.setDescripcion(descripcion); cv.setNombresPrendas(nombresPrendas);
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Registro actualizado correctamente");
             } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
 
@@ -2466,7 +2510,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO NUEVO CONJUNTO ────────────────────────────────────
+    // ?"??"? FORMULARIO NUEVO CONJUNTO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioNuevoConjunto(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2476,9 +2520,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         TextField campoId          = crearTextField("ID del conjunto");
         TextField campoNombre      = crearTextField("Nombre del conjunto");
-        TextField campoDescripcion = crearTextField("Descripción");
-        TextField campoPiezas      = crearTextField("Número de piezas");
-        TextField campoMinimo      = crearTextField("Mínimo de existencia  (ej: 3)");
+        TextField campoDescripcion = crearTextField("Descripcion");
+        TextField campoPiezas      = crearTextField("Numero de piezas");
+        TextField campoMinimo      = crearTextField("Minimo de existencia  (ej: 3)");
         TextField campoIdPrendas   = crearTextField("IDs de prendas separados por coma (ej: 1,7)");
         campoIdPrendas.setMaxWidth(400);
 
@@ -2489,7 +2533,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
@@ -2503,25 +2547,33 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             if (id.isEmpty() || nombre.isEmpty() || piezasStr.isEmpty() || idPrendasStr.isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
             }
-            boolean yaExiste = listaConjuntos.stream().anyMatch(c -> c.getId().equals(id));
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un conjunto con ese ID"); return; }
-
             try {
+                int idConjunto = Integer.parseInt(id);
                 int piezas = Integer.parseInt(piezasStr);
                 List<String> ids = new ArrayList<>();
                 for (String s : idPrendasStr.split(",")) {
                     String idLimpio = s.trim();
-                    if (!listaPrendas.stream().anyMatch(p -> p.getId().equals(idLimpio))) {
-                        mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("No se encontró la prenda con ID: " + idLimpio); return;
+                    if (!listaPrendas.stream().anyMatch(p -> String.valueOf(p.getId()).equals(idLimpio))) {
+                        mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("No se encontro la prenda con ID: " + idLimpio); return;
                     }
                     ids.add(idLimpio);
                 }
                 int minimo = campoMinimo.getText().trim().isEmpty() ? 3 : Integer.parseInt(campoMinimo.getText().trim());
-                Conjunto nuevoConj = new Conjunto(id, nombre, descripcion, ids, piezas);
+                Conjunto nuevoConj = new Conjunto(idConjunto, nombre, piezas, 0.0);
+                nuevoConj.setDescripcion(descripcion);
                 nuevoConj.setMinimoExistencia(minimo);
-                listaConjuntos.add(nuevoConj);                mostrarModuloConjuntos(contenido, true);
+                conjuntoDAO.insert(nuevoConj);
+                for (String idPrendaTxt : ids) {
+                    PrendaConjunto pc = new PrendaConjunto(0, Integer.parseInt(idPrendaTxt), idConjunto);
+                    prendaConjuntoDAO.insert(pc);
+                }
+                recargarDatos();
+                mostrarModuloConjuntos(contenido, true);
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar: " + ex.getMessage());
             } catch (NumberFormatException ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El número de piezas debe ser un número válido");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El numero de piezas debe ser un numero valido");
             }
         });
 
@@ -2541,7 +2593,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO EDITAR CONJUNTO ───────────────────────────────────
+    // ?"??"? FORMULARIO EDITAR CONJUNTO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioEditarConjunto(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2565,9 +2617,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         panelEdicion.setManaged(false);
 
         TextField campoNombre      = crearTextField("Nombre del conjunto");
-        TextField campoDescripcion = crearTextField("Descripción");
-        TextField campoPiezas      = crearTextField("Número de piezas");
-        TextField campoMinimo      = crearTextField("Mínimo de existencia");
+        TextField campoDescripcion = crearTextField("Descripcion");
+        TextField campoPiezas      = crearTextField("Numero de piezas");
+        TextField campoMinimo      = crearTextField("Minimo de existencia");
         TextField campoIdPrendas   = crearTextField("IDs de prendas separados por coma");
         campoIdPrendas.setMaxWidth(400);
 
@@ -2585,10 +2637,10 @@ panelEdicion.getChildren().addAll(campoNombre, campoDescripcion, campoPiezas, ca
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
             Conjunto c = listaConjuntos.stream()
-                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getId().equals(busqueda))
+                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(x.getId()).equals(busqueda))
                 .findFirst().orElse(null);
             if (c == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró el conjunto");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el conjunto");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 conjuntoEncontrado[0] = c;
@@ -2613,8 +2665,8 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 List<String> ids = new ArrayList<>();
                 for (String s : idPrendasStr.split(",")) {
                     String idLimpio = s.trim();
-                    if (!listaPrendas.stream().anyMatch(p -> p.getId().equals(idLimpio))) {
-                        mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("No se encontró la prenda con ID: " + idLimpio); return;
+                    if (!listaPrendas.stream().anyMatch(p -> String.valueOf(p.getId()).equals(idLimpio))) {
+                        mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("No se encontro la prenda con ID: " + idLimpio); return;
                     }
                     ids.add(idLimpio);
                 }
@@ -2622,13 +2674,34 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 conjuntoEncontrado[0].setNombre(nombre); conjuntoEncontrado[0].setDescripcion(descripcion);
                 conjuntoEncontrado[0].setPiezas(piezas); conjuntoEncontrado[0].setIdPrendas(ids);
                 conjuntoEncontrado[0].setMinimoExistencia(minimo);
-                mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Conjunto actualizado correctamente");
+
+                double precioConjunto = ids.stream()
+                    .map(id -> listaPrendas.stream()
+                        .filter(p -> String.valueOf(p.getId()).equals(id))
+                        .findFirst()
+                        .orElse(null))
+                    .filter(p -> p != null)
+                    .mapToDouble(Prenda::getPrecioMayoreo)
+                    .sum();
+                conjuntoEncontrado[0].setPrecio(precioConjunto);
+
+                conjuntoDAO.update(conjuntoEncontrado[0]);
+                prendaConjuntoDAO.deleteByConjunto(conjuntoEncontrado[0].getId());
+                for (String idPrenda : ids) {
+                    prendaConjuntoDAO.insert(new PrendaConjunto(0, Integer.parseInt(idPrenda), conjuntoEncontrado[0].getId()));
+                }
+
+                recargarDatos();
+                mostrarModuloConjuntos(contenido, true);
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al actualizar: " + ex.getMessage());
             } catch (NumberFormatException ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El número de piezas debe ser un número válido");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("El numero de piezas debe ser un numero valido");
             }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
 
@@ -2647,7 +2720,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO NUEVA PRENDA ──────────────────────────────────────
+    // ?"??"? FORMULARIO NUEVA PRENDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioNuevaPrenda(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2662,9 +2735,9 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         TextField campoNombre      = crearTextField("Nombre de la prenda");
         TextField campoId          = crearTextField("ID");
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
-        TextField campoDescripcion = crearTextField("Descripción");
+        TextField campoDescripcion = crearTextField("Descripcion");
         TextField campoExistencia  = crearTextField("Existencia inicial");
-        TextField campoMinimo      = crearTextField("Mínimo de existencia  (ej: 5)");
+        TextField campoMinimo      = crearTextField("Minimo de existencia  (ej: 5)");
         TextField campoPMayoreo    = crearTextField("Precio mayoreo");
         TextField campoPMenudeo    = crearTextField("Precio menudeo");
         TextField campoIdTienda    = crearTextField("ID Tienda (pendiente)");
@@ -2686,35 +2759,50 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
         btnGuardar.setOnAction(e -> {
             String nombre      = campoNombre.getText().trim();
-            String id          = campoId.getText().trim();
             String talla       = selectorTalla.getValue();
-            String tipoPrenda  = campoTipoPrenda.getText().trim();
-            String descripcion = campoDescripcion.getText().trim();
             String idTienda    = campoIdTienda.getText().trim();
 
-            if (nombre.isEmpty() || id.isEmpty() || campoExistencia.getText().isEmpty()
+            if (nombre.isEmpty() || campoExistencia.getText().isEmpty()
                     || campoPMayoreo.getText().isEmpty() || campoPMenudeo.getText().isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
             }
             if (listaPrendas.stream().anyMatch(p -> p.getNombre().equalsIgnoreCase(nombre) && p.getTalla().equalsIgnoreCase(talla))) {
-                mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe esa prenda con esa talla. Usa 'Añadir a Existente'."); return;
+                mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe esa prenda con esa talla. Usa 'Anadir a Existente'."); return;
             }
             try {
                 int existencia  = Integer.parseInt(campoExistencia.getText().trim());
                 int minimo      = campoMinimo.getText().trim().isEmpty() ? 5 : Integer.parseInt(campoMinimo.getText().trim());
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
-                Prenda nuevaPrenda = new Prenda(nombre, id, talla, tipoPrenda, existencia, pMayoreo, pMenudeo, idTienda, descripcion);
+
+                Integer idTiendaInt = null;
+                if (!idTienda.isBlank()) {
+                    String soloDigitos = idTienda.replaceAll("[^0-9]", "");
+                    if (!soloDigitos.isBlank()) {
+                        idTiendaInt = Integer.parseInt(soloDigitos);
+                    }
+                }
+
+                String codigoBarras = campoId.getText().trim();
+                Prenda nuevaPrenda = new Prenda(nombre, talla, existencia, pMayoreo, pMenudeo, idTiendaInt, codigoBarras);
                 nuevaPrenda.setMinimoExistencia(minimo);
-                listaPrendas.add(nuevaPrenda);                mostrarModuloPrendas(contenido, true);
+                int idGenerado = prendaDAO.insert(nuevaPrenda);
+                if (idGenerado > 0) {
+                    nuevaPrenda.setId(idGenerado);
+                    recargarDatos();
+                    mostrarModuloPrendas(contenido, true);
+                }
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar: " + ex.getMessage());
             } catch (NumberFormatException ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia y precios deben ser números válidos");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia y precios deben ser numeros validos");
             }
         });
 
@@ -2735,11 +2823,11 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO AÑADIR A EXISTENTE ────────────────────────────────
+    // ?"??"? FORMULARIO A?'ADIR A EXISTENTE ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioAnadirExistente(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo    = new Label("Añadir a Existente");
+        Label titulo    = new Label("Anadir a Existente");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
@@ -2757,11 +2845,11 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         panelResultado.setManaged(false);
 
         Label labelResultado    = new Label("");
-        TextField campoCantidad = crearTextField("Cantidad a añadir");
+        TextField campoCantidad = crearTextField("Cantidad a anadir");
         Label mensajeEstado     = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnAnadir = new Button("Añadir Unidades");
+        Button btnAnadir = new Button("Anadir Unidades");
         btnAnadir.setMaxWidth(320);
         btnAnadir.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
         panelResultado.getChildren().addAll(labelResultado, campoCantidad, mensajeEstado, btnAnadir);
@@ -2774,10 +2862,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
             Prenda encontrada = listaPrendas.stream()
-                .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || p.getId().equals(busqueda))
+                .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(p.getId()).equals(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ninguna prenda");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ninguna prenda");
                 panelResultado.setVisible(false); panelResultado.setManaged(false);
             } else {
                 prendaEncontrada[0] = encontrada;
@@ -2795,14 +2883,19 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 int cantidad = Integer.parseInt(campoCantidad.getText().trim());
                 if (cantidad <= 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La cantidad debe ser mayor a 0"); return; }
                 prendaEncontrada[0].setExistencia(prendaEncontrada[0].getExistencia() + cantidad);
+                prendaDAO.update(prendaEncontrada[0]);
+                recargarDatos();
                 mensajeEstado.setTextFill(Color.web(EXITO));
                 mensajeEstado.setText("Se añadieron " + cantidad + " unidades. Nueva existencia: " + prendaEncontrada[0].getExistencia());
                 labelResultado.setText("Prenda: " + prendaEncontrada[0].getNombre() + " | Talla: " + prendaEncontrada[0].getTalla() + " | Existencia: " + prendaEncontrada[0].getExistencia());
                 campoCantidad.clear();
-            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Ingresa un número válido"); }
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al actualizar: " + ex.getMessage());
+            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Ingresa un numero valido"); }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
@@ -2821,7 +2914,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── FORMULARIO EDITAR PRENDA ─────────────────────────────────────
+    // ?"??"? FORMULARIO EDITAR PRENDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioEditarPrenda(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2845,9 +2938,9 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         TextField campoPMayoreo    = crearTextField("Precio mayoreo");
         TextField campoPMenudeo    = crearTextField("Precio menudeo");
         TextField campoExistencia  = crearTextField("Existencia");
-        TextField campoMinimo      = crearTextField("Mínimo de existencia");
+        TextField campoMinimo      = crearTextField("Minimo de existencia");
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
-        TextField campoDescripcion = crearTextField("Descripción");
+        TextField campoDescripcion = crearTextField("Descripcion");
         TextField campoIdTienda    = crearTextField("ID Tienda");
 
         Label labelTalla = new Label("Talla:");
@@ -2876,10 +2969,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
             Prenda encontrada = listaPrendas.stream()
-                .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || p.getId().equals(busqueda))
+                .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(p.getId()).equals(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontró ninguna prenda");
+                mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ninguna prenda");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 prendaEncontrada[0] = encontrada;
@@ -2888,7 +2981,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 campoPMenudeo.setText(String.valueOf(encontrada.getPrecioMenudeo())); campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
                 campoMinimo.setText(String.valueOf(encontrada.getMinimoExistencia()));               
                 campoTipoPrenda.setText(encontrada.getTipoPrenda()); campoDescripcion.setText(encontrada.getDescripcion());
-                campoIdTienda.setText(encontrada.getIdTienda()); selectorTalla.setValue(encontrada.getTalla());
+                campoIdTienda.setText(String.valueOf(encontrada.getIdTienda())); selectorTalla.setValue(encontrada.getTalla());
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
             }
         });
@@ -2911,19 +3004,33 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
                 Prenda p = prendaEncontrada[0];
                 if (existencia == 0) {
-                    listaPrendas.remove(p); verificarConjuntos(); mostrarModuloPrendas(contenido, true);
+                    prendaDAO.delete(p.getId());
+                    recargarDatos();
+                    verificarConjuntos();
+                    mostrarModuloPrendas(contenido, true);
                 } else {
-                    p.setNombre(nombre); p.setTalla(talla); p.setTipoPrenda(tipoPrenda);
-                    p.setDescripcion(descripcion); p.setIdTienda(idTienda);
-                    p.setExistencia(existencia); p.setPrecioMayoreo(pMayoreo); p.setPrecioMenudeo(pMenudeo);
+                    p.setNombre(nombre);
+                    p.setTalla(talla);
+                    if (idTienda != null && !idTienda.isBlank()) {
+                        String soloDigitos = idTienda.replaceAll("[^0-9]", "");
+                        p.setIdTienda(soloDigitos.isBlank() ? null : Integer.parseInt(soloDigitos));
+                    }
+                    p.setExistencia(existencia);
+                    p.setPrecioMayoreo(pMayoreo);
+                    p.setPrecioMenudeo(pMenudeo);
                     p.setMinimoExistencia(minimo);
+                    prendaDAO.update(p);
+                    recargarDatos();
                     verificarConjuntos();
                     mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Prenda actualizada correctamente");
                 }
-            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia y precios deben ser números válidos"); }
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al actualizar: " + ex.getMessage());
+            } catch (NumberFormatException ex) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Existencia y precios deben ser numeros validos"); }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloPrendas(contenido, true));
 
@@ -2942,7 +3049,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── PUNTO DE VENTA ───────────────────────────────────────────────
+    // ?"??"? PUNTO DE VENTA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarPuntoDeVenta(StackPane contenido) {
         verificarConjuntos();
         contenido.getChildren().clear();
@@ -3023,7 +3130,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
 
             if (selectorTipoBusqueda.getValue().equals("Prendas")) {
                 Prenda encontrada = listaPrendas.stream()
-                    .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || p.getId().equals(busqueda))
+                    .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(p.getId()).equals(busqueda))
                     .findFirst().orElse(null);
                 if (encontrada == null) {
                     mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Producto no encontrado");
@@ -3034,7 +3141,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 } else {
                     prendaSeleccionada[0] = encontrada;
                     mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Producto encontrado");
-                    labelResultado.setText(encontrada.getNombre() + " — Talla " + encontrada.getTalla());
+                    labelResultado.setText(encontrada.getNombre() + " | Talla: " + encontrada.getTalla());
                     labelStock.setText("Existencia disponible: " + encontrada.getExistencia());
                     labelPrecioInfo.setText("Menudeo: $" + encontrada.getPrecioMenudeo() + "   |   Mayoreo: $" + encontrada.getPrecioMayoreo());
                     mensajeAdd.setText(""); campoCantidad.clear();
@@ -3042,7 +3149,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 }
             } else {
                 Conjunto encontrado = listaConjuntos.stream()
-                    .filter(c -> c.getNombre().equalsIgnoreCase(busqueda) || c.getId().equals(busqueda))
+                    .filter(c -> c.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(c.getId()).equals(busqueda))
                     .findFirst().orElse(null);
                 int existenciaConj = encontrado != null ? calcularExistenciaConjunto(encontrado) : 0;
                 if (encontrado == null) {
@@ -3055,7 +3162,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                     conjuntoSeleccionado[0] = encontrado;
                     double precio = calcularPrecioConjunto(encontrado);
                     mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Conjunto encontrado");
-                    labelResultado.setText(encontrado.getNombre() + " — " + encontrado.getIdPrendas().size() + " piezas");
+                    labelResultado.setText(encontrado.getNombre() + " | " + encontrado.getIdPrendas().size() + " piezas");
                     labelStock.setText("Existencia disponible: " + existenciaConj);
                     labelPrecioInfo.setText("Precio: $" + String.format("%.2f", precio));
                     mensajeAdd.setText(""); campoCantidad.clear();
@@ -3095,7 +3202,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 campoBusqueda.clear(); campoCantidad.clear();
                 panelResultado.setVisible(false); panelResultado.setManaged(false);
                 mensajeBusqueda.setText(""); prendaSeleccionada[0] = null; conjuntoSeleccionado[0] = null;
-            } catch (NumberFormatException ex) { mensajeAdd.setTextFill(Color.web(ERROR)); mensajeAdd.setText("Ingresa una cantidad válida"); }
+            } catch (NumberFormatException ex) { mensajeAdd.setTextFill(Color.web(ERROR)); mensajeAdd.setText("Ingresa una cantidad valida"); }
         });
 
         ScrollPane scrollBusqueda = new ScrollPane(new VBox(10, tituloBusqueda, labelTipoBusqueda, selectorTipoBusqueda, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado));
@@ -3136,7 +3243,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         tablaCarrito.getColumns().addAll(colNombre, colTipo, colCantidad, colPUnit, colSubtotal);
         VBox.setVgrow(tablaCarrito, Priority.ALWAYS);
 
-        Button btnQuitar = new Button("✕ Quitar seleccionado");
+        Button btnQuitar = new Button("Quitar seleccionado");
         btnQuitar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + ERROR + "; -fx-font-size: 12px; -fx-cursor: hand; -fx-border-color: " + ERROR + "; -fx-border-radius: 4; -fx-padding: 6 14;");
         btnQuitar.setOnAction(e -> { ItemVenta sel = tablaCarrito.getSelectionModel().getSelectedItem(); if (sel != null) carrito.remove(sel); });
 
@@ -3149,10 +3256,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             labelTotal.setText("Total: $" + String.format("%.2f", total));
         });
 
-        Button btnCobrar = new Button("✔ Cobrar y Generar Recibo");
+        Button btnCobrar = new Button("Cobrar y Generar Recibo");
         btnCobrar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 12 24; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelarVenta = new Button("✕ Cancelar venta");
+        Button btnCancelarVenta = new Button("Cancelar venta");
         btnCancelarVenta.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelarVenta.setOnAction(e -> { carrito.clear(); campoBusqueda.clear(); mensajeBusqueda.setText(""); panelResultado.setVisible(false); panelResultado.setManaged(false); });
 
@@ -3186,55 +3293,64 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(vista);
     }
 
-    // ── RECIBO ───────────────────────────────────────────────────────
+    // ?"??"? RECIBO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarRecibo(StackPane contenido, ObservableList<ItemVenta> carrito) {
         contenido.getChildren().clear();
 
-        List<Prenda> prendasAEliminar = new ArrayList<>();
         LocalDate fechaHoy       = LocalDate.now();
         LocalDate fechaDevolucion = fechaHoy.plusDays(DIAS_DEVOLUCION);
-        String idVentaBase        = String.valueOf(contadorIdVenta++);
+        int folioGenerado;
+        try {
+            List<DetalleVentaPrenda> detallesPrenda = new ArrayList<>();
+            List<DetalleVentaConjunto> detallesConjunto = new ArrayList<>();
 
-        int contadorItem = 0;
-        for (ItemVenta item : carrito) {
-            contadorItem++;
-            String idVenta = idVentaBase + (carrito.size() > 1 ? "-" + contadorItem : "");
+            for (ItemVenta item : carrito) {
+                if (item.getPrenda() != null) {
+                    DetalleVentaPrenda detalle = new DetalleVentaPrenda(
+                        0,
+                        item.getPrenda().getId(),
+                        item.getCantidad(),
+                        item.getSubtotal()
+                    );
+                    detallesPrenda.add(detalle);
 
-            if (item.getPrenda() != null) {
-                Prenda p = item.getPrenda();
-                int nuevaExist = p.getExistencia() - item.getCantidad();
-                if (nuevaExist <= 0) prendasAEliminar.add(p);
-                else p.setExistencia(nuevaExist);
+                    listaPrendasVendidas.add(new PrendaVendida(
+                        "TMP", item.getPrenda().getNombre(), item.getPrenda().getTalla(), item.getCantidad(),
+                        item.getTipoVenta(), item.getPrecioUnitario(), fechaHoy, fechaDevolucion, ""
+                    ));
+                } else if (item.getConjunto() != null) {
+                    DetalleVentaConjunto detalle = new DetalleVentaConjunto(
+                        0,
+                        item.getConjunto().getId(),
+                        item.getCantidad(),
+                        item.getSubtotal()
+                    );
+                    detallesConjunto.add(detalle);
 
-                listaPrendasVendidas.add(new PrendaVendida(
-                    idVenta, p.getNombre(), p.getTalla(), item.getCantidad(),
-                    item.getTipoVenta(), item.getPrecioUnitario(),
-                    fechaHoy, fechaDevolucion, ""
-                ));
-
-            } else if (item.getConjunto() != null) {
-                Conjunto c = item.getConjunto();
-                List<String> nombresPrendas = new ArrayList<>();
-
-                for (String idP : c.getIdPrendas()) {
-                    listaPrendas.stream().filter(p -> p.getId().equals(idP)).findFirst().ifPresent(p -> {
-                        nombresPrendas.add(p.getNombre() + " (Talla " + p.getTalla() + ")");
-                        int nuevaExist = p.getExistencia() - item.getCantidad();
-                        if (nuevaExist <= 0) prendasAEliminar.add(p);
-                        else p.setExistencia(nuevaExist);
-                    });
+                    listaConjuntosVendidos.add(new ConjuntoVendido(
+                        "TMP", item.getConjunto().getNombre(), item.getCantidad(),
+                        item.getTipoVenta(), item.getPrecioUnitario(), fechaHoy, fechaDevolucion, "", new ArrayList<>()
+                    ));
                 }
-
-                listaConjuntosVendidos.add(new ConjuntoVendido(
-                    idVenta, c.getNombre(), item.getCantidad(),
-                    item.getTipoVenta(), item.getPrecioUnitario(),
-                    fechaHoy, fechaDevolucion, "", nombresPrendas
-                ));
             }
-        }
 
-        listaPrendas.removeAll(prendasAEliminar);
-        verificarConjuntos();
+            folioGenerado = ventaDAO.registrarVenta(detallesPrenda, detallesConjunto);
+            for (PrendaVendida pv : listaPrendasVendidas) {
+                if ("TMP".equals(pv.getIdVenta())) {
+                    pv.setDescripcion("Folio " + folioGenerado);
+                }
+            }
+            for (ConjuntoVendido cv : listaConjuntosVendidos) {
+                if ("TMP".equals(cv.getIdVenta())) {
+                    cv.setDescripcion("Folio " + folioGenerado);
+                }
+            }
+            recargarDatos();
+            verificarConjuntos();
+        } catch (SQLException ex) {
+            mostrarError("Error al registrar venta: " + ex.getMessage());
+            return;
+        }
 
         double total = carrito.stream().mapToDouble(ItemVenta::getSubtotal).sum();
         String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
@@ -3247,7 +3363,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         subtituloRecibo.setFont(Font.font("System", FontWeight.BOLD, 13));
         subtituloRecibo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        Label labelFecha = new Label("Fecha: " + fecha + "   |   Venta #" + idVentaBase);
+        Label labelFecha = new Label("Fecha: " + fecha + "   |   Venta #" + folioGenerado);
         labelFecha.setFont(Font.font("System", 12));
         labelFecha.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -3323,7 +3439,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── DEVOLUCIONES ─────────────────────────────────────────────────
+    // ?"??"? DEVOLUCIONES ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarDevoluciones(StackPane contenido) {
         contenido.getChildren().clear();
  
@@ -3331,7 +3447,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
  
-        Label subtitulo = new Label("Busca por ID de venta o nombre del producto para procesar la devolución");
+        Label subtitulo = new Label("Busca por ID de venta o nombre del producto para procesar la devolucion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
  
@@ -3376,7 +3492,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         Label mensajeDevolucion = new Label("");
         mensajeDevolucion.setFont(Font.font("System", 12));
  
-        Button btnConfirmar = new Button("✔ Confirmar Devolución");
+        Button btnConfirmar = new Button("Confirmar Devolucion");
         btnConfirmar.setStyle(
             "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
             "-fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -3418,7 +3534,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
  
             if (pv == null && cv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("No se encontró ninguna venta con ese dato");
+                mensajeBusqueda.setText("No se encontro ninguna venta con ese dato");
                 panelResultado.setVisible(false); panelResultado.setManaged(false);
                 return;
             }
@@ -3427,22 +3543,22 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             if (pv != null) {
                 pvRef[0] = pv;
                 dentroDelPlazo = !LocalDate.now().isAfter(pv.getFechaLimiteDevolucion());
-                labelNombre.setText("Prenda: " + pv.getNombrePrenda() + " — Talla " + pv.getTalla());
+                labelNombre.setText("Prenda: " + pv.getNombrePrenda() + " Talla " + pv.getTalla());
                 labelFechaVenta.setText("Fecha de venta: " + pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelLimite.setText("Límite de devolución: " + pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelLimite.setText("Limite de devolucion: " + pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
             } else {
                 cvRef[0] = cv;
                 dentroDelPlazo = !LocalDate.now().isAfter(cv.getFechaLimiteDevolucion());
                 labelNombre.setText("Conjunto: " + cv.getNombreConjunto());
                 labelFechaVenta.setText("Fecha de venta: " + cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelLimite.setText("Límite de devolución: " + cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                labelLimite.setText("Limite de devolucion: " + cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
             }
  
             labelEstadoDev.setText(dentroDelPlazo
-                ? "✔ Dentro del periodo de devolución"
-                : "⚠ Periodo de devolución vencido — se puede registrar igualmente");
+                ? "Dentro del periodo de devolucion"
+                : "Periodo de devolucion vencido (se puede registrar igualmente)");
             labelEstadoDev.setTextFill(Color.web(dentroDelPlazo ? EXITO : ADVERTENCIA));
  
             mensajeBusqueda.setTextFill(Color.web(EXITO));
@@ -3469,7 +3585,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                     PrendaVendida pv = pvRef[0];
                     if (cantDevolver > pv.getCantidad()) {
                         mensajeDevolucion.setTextFill(Color.web(ERROR));
-                        mensajeDevolucion.setText("No puedes devolver más de " + pv.getCantidad() + " unidades");
+                        mensajeDevolucion.setText("No puedes devolver mas de " + pv.getCantidad() + " unidades");
                         return;
                     }
  
@@ -3479,14 +3595,31 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                         .findFirst().orElse(null);
  
                     if (prendaExistente != null) {
-                        prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                        try {
+                            prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                            prendaDAO.update(prendaExistente);
+
+                            int folioVenta = Integer.parseInt(pv.getIdVenta().replaceAll("[^0-9]", ""));
+                            DevolucionPrenda devolucion = new DevolucionPrenda(
+                                devolucionPrendaDAO.getNextId(),
+                                folioVenta,
+                                prendaExistente.getId(),
+                                LocalDate.now()
+                            );
+                            devolucionPrendaDAO.insert(devolucion);
+                            recargarDatos();
+                        } catch (SQLException ex) {
+                            mensajeDevolucion.setTextFill(Color.web(ERROR));
+                            mensajeDevolucion.setText("Error al procesar devolucion: " + ex.getMessage());
+                            return;
+                        }
                     } else {
                         String idNuevo = "DEV-" + contadorIdVenta++;
                         listaPrendas.add(new Prenda(
                             pv.getNombrePrenda(), idNuevo, pv.getTalla(),
                             "Devuelto", cantDevolver,
                             pv.getPrecioUnitario(), pv.getPrecioUnitario(),
-                            "—", "Prenda devuelta — ID venta: " + pv.getIdVenta()
+                            "??", "Prenda devuelta ID venta: " + pv.getIdVenta()
                         ));
                     }
  
@@ -3507,7 +3640,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                         labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
                     }
  
-                    // Abrir formulario para capturar el motivo y registrar la devolución
+                    // Abrir formulario para capturar el motivo y registrar la devolucion
                     mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, tallaProd,
                         cantDevolver, tipoVentaProd, precioUnitProd, false);
                     return;
@@ -3516,7 +3649,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                     ConjuntoVendido cv = cvRef[0];
                     if (cantDevolver > cv.getCantidad()) {
                         mensajeDevolucion.setTextFill(Color.web(ERROR));
-                        mensajeDevolucion.setText("No puedes devolver más de " + cv.getCantidad() + " unidades");
+                        mensajeDevolucion.setText("No puedes devolver mas de " + cv.getCantidad() + " unidades");
                         return;
                     }
  
@@ -3537,15 +3670,45 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                             .findFirst().orElse(null);
  
                         if (prendaExistente != null) {
-                            prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                            try {
+                                prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
+                                prendaDAO.update(prendaExistente);
+                            } catch (SQLException ex) {
+                                mensajeDevolucion.setTextFill(Color.web(ERROR));
+                                mensajeDevolucion.setText("Error al actualizar stock: " + ex.getMessage());
+                                return;
+                            }
                         } else {
                             String idNuevo = "DEV-" + contadorIdVenta++;
                             listaPrendas.add(new Prenda(
                                 nBase, idNuevo, talla.isEmpty() ? "?" : talla,
-                                "Devuelto", cantDevolver, 0.0, 0.0, "—",
-                                "Prenda devuelta de conjunto — ID venta: " + cv.getIdVenta()
+                                "Devuelto", cantDevolver, 0.0, 0.0, "??",
+                                "Prenda devuelta de conjunto ID venta: " + cv.getIdVenta()
                             ));
                         }
+                    }
+
+                    try {
+                        int folioVenta = Integer.parseInt(cv.getIdVenta().replaceAll("[^0-9]", ""));
+                        int idConjunto = listaConjuntos.stream()
+                            .filter(c -> c.getNombre().equalsIgnoreCase(cv.getNombreConjunto()))
+                            .map(Conjunto::getId)
+                            .findFirst()
+                            .orElse(0);
+                        if (idConjunto > 0) {
+                            DevolucionConjunto devolucion = new DevolucionConjunto(
+                                devolucionConjuntoDAO.getNextId(),
+                                folioVenta,
+                                idConjunto,
+                                LocalDate.now()
+                            );
+                            devolucionConjuntoDAO.insert(devolucion);
+                        }
+                        recargarDatos();
+                    } catch (SQLException ex) {
+                        mensajeDevolucion.setTextFill(Color.web(ERROR));
+                        mensajeDevolucion.setText("Error al registrar devolucion: " + ex.getMessage());
+                        return;
                     }
  
                     boolean eliminarRegistro = (cantDevolver == cv.getCantidad());
@@ -3564,15 +3727,14 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                         labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
                     }
  
-                    // Abrir formulario para capturar el motivo y registrar la devolución
-                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, "—",
+                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, "??",
                         cantDevolver, tipoVentaProd, precioUnitProd, true);
                     return;
                 }
  
             } catch (NumberFormatException ex) {
                 mensajeDevolucion.setTextFill(Color.web(ERROR));
-                mensajeDevolucion.setText("Ingresa una cantidad válida");
+                mensajeDevolucion.setText("Ingresa una cantidad valida");
             }
         });
  
@@ -3592,17 +3754,17 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
  
-    // ── FORMULARIO CAPTURA DE MOTIVO (tras confirmar devolución) ─────
+    // ?"??"? FORMULARIO CAPTURA DE MOTIVO (tras confirmar devolucion) ?"??"??"??"??"?
     private void mostrarFormularioMotivoDevolucion(StackPane contenido, String idVentaOriginal,
             String nombreProducto, String talla, int cantidad, String tipoVenta,
             double precioUnitario, boolean esConjunto) {
         contenido.getChildren().clear();
  
-        Label titulo = new Label("Confirmar Devolución");
+        Label titulo = new Label("Confirmar Devolucion");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
  
-        Label subtitulo = new Label("La devolución ya fue procesada en el inventario. Indica el motivo para completar el registro.");
+        Label subtitulo = new Label("La devolucion ya fue procesada en el inventario. Indica el motivo para completar el registro.");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
         subtitulo.setWrapText(true);
@@ -3622,17 +3784,17 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             filaDetalle("Reembolso:", "$" + String.format("%.2f", total))
         );
  
-        Label labelMotivo = new Label("Motivo de la devolución:");
+        Label labelMotivo = new Label("Motivo de la devolucion:");
         labelMotivo.setFont(Font.font("System", 12));
         labelMotivo.setTextFill(Color.web(TEXTO_SUAVE));
  
-        TextField campoMotivo = crearTextField("Ej: Talla incorrecta, defecto de fábrica...");
+        TextField campoMotivo = crearTextField("Ej: Talla incorrecta, defecto de fabrica...");
         campoMotivo.setMaxWidth(400);
  
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
  
-        Button btnGuardar = new Button("✔ Guardar Registro de Devolución");
+        Button btnGuardar = new Button("Guardar Registro de Devolucion");
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle(
             "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
@@ -3678,11 +3840,11 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
  
  
 
-    // ── MÓDULO USUARIOS ──────────────────────────────────────────────
+    // ?"??"? M?"DULO USUARIOS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarModuloUsuarios(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo = new Label("Gestión de Usuarios");
+        Label titulo = new Label("Gestion de Usuarios");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
@@ -3715,7 +3877,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(vista);
     }
 
-    // ── FORMULARIO CREAR USUARIO ─────────────────────────────────────
+    // ?"??"? FORMULARIO CREAR USUARIO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private void mostrarFormularioCrearUsuario(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -3731,10 +3893,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         TextField campoUsuario = crearTextField("Usuario");
 
         PasswordField campoPass = new PasswordField();
-        campoPass.setPromptText("Contraseña"); campoPass.setMaxWidth(320); campoPass.setStyle(estiloInput());
+        campoPass.setPromptText("Contrasena"); campoPass.setMaxWidth(320); campoPass.setStyle(estiloInput());
 
         PasswordField campoPassConfirm = new PasswordField();
-        campoPassConfirm.setPromptText("Confirmar contraseña"); campoPassConfirm.setMaxWidth(320); campoPassConfirm.setStyle(estiloInput());
+        campoPassConfirm.setPromptText("Confirmar contrasena"); campoPassConfirm.setMaxWidth(320); campoPassConfirm.setStyle(estiloInput());
 
         Label labelRol = new Label("Rol del usuario:");
         labelRol.setTextFill(Color.web(TEXTO_SUAVE)); labelRol.setFont(Font.font("System", 12));
@@ -3749,7 +3911,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         Button btnGuardar = new Button("Crear Usuario");
         btnGuardar.setMaxWidth(320); btnGuardar.setStyle(estiloBtnPrincipal());
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarModuloUsuarios(contenido));
 
@@ -3761,10 +3923,16 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             if (nombre.isEmpty() || usuario.isEmpty() || pass.isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios");
             } else if (!pass.equals(passC)) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Las contraseñas no coinciden");
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Las contrasenas no coinciden");
             } else {
-                listaUsuarios.add(new Usuario(nombre, usuario, pass, selectorRol.getValue()));
-                mostrarModuloUsuarios(contenido);
+                try {
+                    usuarioDAO.insert(new Usuario(nombre, usuario, pass, selectorRol.getValue()));
+                    recargarDatos();
+                    mostrarModuloUsuarios(contenido);
+                } catch (SQLException ex) {
+                    mensajeEstado.setTextFill(Color.web(ERROR));
+                    mensajeEstado.setText("Error al crear usuario: " + ex.getMessage());
+                }
             }
         });
 
@@ -3784,7 +3952,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ── HELPERS ──────────────────────────────────────────────────────
+    // ?"??"? HELPERS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private Label crearSeccionMenu(String texto) {
         Label label = new Label(texto);
         label.setFont(Font.font("System", FontWeight.BOLD, 10));
@@ -3805,7 +3973,7 @@ private String calcularColorAlerta() {
         if (ex <= c.getMinimoExistencia())           hayCritica = true;
         else if (ex <= c.getMinimoExistencia() * 2)  hayBaja = true;
     }
-    for (MateriaPrima mp : listaMateriaPrima) {
+    for (Insumo mp : listaMateriaPrima) {
         if (mp.getExistencia() <= mp.getMinimoExistencia())           hayCritica = true;
         else if (mp.getExistencia() <= mp.getMinimoExistencia() * 2)  hayBaja = true;
     }
@@ -3833,7 +4001,7 @@ private String calcularColorAlertaEncargado() {
     private StackPane crearContenidoVacio() {
         StackPane contenido = new StackPane();
         contenido.setStyle("-fx-background-color: " + FONDO + ";");
-        Label placeholder = new Label("Selecciona un módulo del menú");
+        Label placeholder = new Label("Selecciona un modulo del menu");
         placeholder.setTextFill(Color.web("#D1D5DB"));
         placeholder.setFont(Font.font("System", 16));
         contenido.getChildren().add(placeholder);
@@ -3874,16 +4042,29 @@ private String calcularColorAlertaEncargado() {
         contenido.getChildren().add(label);
     }
 
+    private void mostrarError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText("Operaci?n no completada");
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
     private String verificarLogin(String usuario, String contrasena) {
-        for (Usuario u : listaUsuarios) {
-            if (u.getUsuario().equals(usuario) && u.getPassword().equals(contrasena)) return u.getRol();
+        try {
+            Usuario u = usuarioDAO.getByUsuario(usuario);
+            if (u != null && u.getPassword().equals(contrasena)) {
+                return u.getRol();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return null;
     }
 
     public static void main(String[] args) { launch(); }
 
-    // ── REGISTRO DE DEVOLUCIONES ─────────────────────────────────────
+    // ?"??"? REGISTRO DE DEVOLUCIONES ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
     private ObservableList<DevolucionRegistrada> listaDevolucionesRegistradas = FXCollections.observableArrayList();
 
     private void mostrarRegistroDevoluciones(StackPane contenido, boolean esAdmin) {
@@ -3970,8 +4151,8 @@ private String calcularColorAlertaEncargado() {
         VBox.setVgrow(vista, Priority.ALWAYS);
 
         if (esAdmin) {
-            Button btnNuevo = new Button("+ Registrar Devolución");
-            Button btnEditar = new Button("✎ Editar Registro");
+            Button btnNuevo = new Button("+ Registrar Devolucion");
+            Button btnEditar = new Button("Editar Registro");
             btnNuevo.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnNuevo.setOnAction(e  -> mostrarFormularioNuevaDevolucion(contenido));
@@ -3994,20 +4175,20 @@ private String calcularColorAlertaEncargado() {
     private void mostrarFormularioNuevaDevolucion(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo    = new Label("Registrar Devolución");
+        Label titulo    = new Label("Registrar Devolucion");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Completa los campos para registrar la devolución");
+        Label subtitulo = new Label("Completa los campos para registrar la devolucion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoId         = crearTextField("ID de devolución");
+        TextField campoId         = crearTextField("ID de devolucion");
         TextField campoProducto   = crearTextField("Nombre del producto");
         TextField campoTalla      = crearTextField("Talla");
         TextField campoCantidad   = crearTextField("Cantidad");
         TextField campoPrecioUnit = crearTextField("Precio unitario");
-        TextField campoMotivo     = crearTextField("Motivo de la devolución");
+        TextField campoMotivo     = crearTextField("Motivo de la devolucion");
 
         Label labelTipo = new Label("Tipo de venta original:");
         labelTipo.setTextFill(Color.web(TEXTO_SUAVE));
@@ -4019,20 +4200,20 @@ private String calcularColorAlertaEncargado() {
         selectorTipo.setMaxWidth(320);
         selectorTipo.setStyle(estiloInput());
 
-        Label labelFecha = new Label("Fecha de devolución (dd/MM/yyyy):");
+        Label labelFecha = new Label("Fecha de devolucion (dd/MM/yyyy):");
         labelFecha.setTextFill(Color.web(TEXTO_SUAVE));
         labelFecha.setFont(Font.font("System", 12));
 
-        TextField campoFecha = crearTextField("dd/MM/yyyy  (vacío = hoy)");
+        TextField campoFecha = crearTextField("dd/MM/yyyy  (vacio = hoy)");
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnGuardar = new Button("Guardar Devolución");
+        Button btnGuardar = new Button("Guardar Devolucion");
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
 
@@ -4054,7 +4235,7 @@ private String calcularColorAlertaEncargado() {
             boolean yaExiste = listaDevolucionesRegistradas.stream().anyMatch(d -> d.getIdDevolucion().equals(id));
             if (yaExiste) {
                 mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
-                mensajeEstado.setText("Ya existe una devolución con ese ID");
+                mensajeEstado.setText("Ya existe una devolucion con ese ID");
                 return;
             }
             try {
@@ -4065,7 +4246,7 @@ private String calcularColorAlertaEncargado() {
                 mostrarRegistroDevoluciones(contenido, true);
             } catch (Exception ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("Verifica que los datos sean válidos");
+                mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
@@ -4090,15 +4271,15 @@ private String calcularColorAlertaEncargado() {
     private void mostrarFormularioEditarDevolucion(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo    = new Label("Editar Registro de Devolución");
+        Label titulo    = new Label("Editar Registro de Devolucion");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por ID de devolución o nombre del producto");
+        Label subtitulo = new Label("Busca por ID de devolucion o nombre del producto");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("ID de devolución o nombre del producto");
+        TextField campoBusqueda = crearTextField("ID de devolucion o nombre del producto");
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
 
@@ -4113,7 +4294,7 @@ private String calcularColorAlertaEncargado() {
         TextField campoTalla      = crearTextField("Talla");
         TextField campoCantidad   = crearTextField("Cantidad");
         TextField campoPrecioUnit = crearTextField("Precio unitario");
-        TextField campoFecha      = crearTextField("Fecha devolución dd/MM/yyyy");
+        TextField campoFecha      = crearTextField("Fecha devolucion dd/MM/yyyy");
         TextField campoMotivo     = crearTextField("Motivo");
 
         Label labelTipo = new Label("Tipo de venta original:");
@@ -4150,7 +4331,7 @@ private String calcularColorAlertaEncargado() {
                 .findFirst().orElse(null);
             if (dev == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("No se encontró el registro");
+                mensajeBusqueda.setText("No se encontro el registro");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
             } else {
                 devRef[0] = dev;
@@ -4196,11 +4377,11 @@ private String calcularColorAlertaEncargado() {
                 mensajeEstado.setText("Registro actualizado correctamente");
             } catch (Exception ex) {
                 mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("Verifica que los datos sean válidos");
+                mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
-        Button btnCancelar = new Button("← Regresar a lista");
+        Button btnCancelar = new Button("Regresar a lista");
         btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
         btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
 
@@ -4219,285 +4400,9 @@ private String calcularColorAlertaEncargado() {
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
     }
-
-
-
-    // ── CLASES MODELO ────────────────────────────────────────────────
-    public static class Usuario {
-        private String nombre, usuario, password, rol;
-        public Usuario(String nombre, String usuario, String password, String rol) {
-            this.nombre = nombre; this.usuario = usuario; this.password = password; this.rol = rol;
-        }
-        public String getNombre()   { return nombre; }
-        public String getUsuario()  { return usuario; }
-        public String getPassword() { return password; }
-        public String getRol()      { return rol; }
-    }
-
-public static class DevolucionRegistrada {
-        private String idDevolucion, nombreProducto, talla, tipoVenta, motivo;
-        private int cantidad;
-        private double precioUnitario;
-        private LocalDate fechaDevolucion;
-
-        public DevolucionRegistrada(String idDevolucion, String nombreProducto, String talla,
-                                    int cantidad, String tipoVenta, double precioUnitario,
-                                    LocalDate fechaDevolucion, String motivo) {
-            this.idDevolucion  = idDevolucion;  this.nombreProducto = nombreProducto;
-            this.talla         = talla;          this.cantidad       = cantidad;
-            this.tipoVenta     = tipoVenta;      this.precioUnitario = precioUnitario;
-            this.fechaDevolucion = fechaDevolucion; this.motivo       = motivo;
-        }
-
-        public String    getIdDevolucion()   { return idDevolucion; }
-        public String    getNombreProducto() { return nombreProducto; }
-        public String    getTalla()          { return talla; }
-        public int       getCantidad()       { return cantidad; }
-        public String    getTipoVenta()      { return tipoVenta; }
-        public double    getPrecioUnitario() { return precioUnitario; }
-        public double    getTotal()          { return cantidad * precioUnitario; }
-        public LocalDate getFechaDevolucion(){ return fechaDevolucion; }
-        public String    getMotivo()         { return motivo; }
-
-        public void setNombreProducto(String n)    { this.nombreProducto  = n; }
-        public void setTalla(String t)             { this.talla           = t; }
-        public void setCantidad(int c)             { this.cantidad        = c; }
-        public void setTipoVenta(String t)         { this.tipoVenta       = t; }
-        public void setPrecioUnitario(double p)    { this.precioUnitario  = p; }
-        public void setFechaDevolucion(LocalDate f){ this.fechaDevolucion = f; }
-        public void setMotivo(String m)            { this.motivo          = m; }
-    }
-
-public static class Prenda {
-        private String nombre, id, talla, tipoPrenda, idTienda, descripcion;
-        private int existencia, minimoExistencia;
-        private double precioMayoreo, precioMenudeo;
-
-        public Prenda(String nombre, String id, String talla, String tipoPrenda,
-                      int existencia, double precioMayoreo, double precioMenudeo,
-                      String idTienda, String descripcion) {
-            this.nombre = nombre; this.id = id; this.talla = talla;
-            this.tipoPrenda = tipoPrenda; this.existencia = existencia;
-            this.precioMayoreo = precioMayoreo; this.precioMenudeo = precioMenudeo;
-            this.idTienda = idTienda; this.descripcion = descripcion;
-            this.minimoExistencia = 5;
-        }
-
-        public String getNombre()        { return nombre; }
-        public String getId()            { return id; }
-        public String getTalla()         { return talla; }
-        public String getTipoPrenda()    { return tipoPrenda; }
-        public int    getExistencia()    { return existencia; }
-        public int    getMinimoExistencia() { return minimoExistencia; }
-        public double getPrecioMayoreo() { return precioMayoreo; }
-        public double getPrecioMenudeo() { return precioMenudeo; }
-        public String getIdTienda()      { return idTienda; }
-        public String getDescripcion()   { return descripcion; }
-
-        public void setNombre(String n)           { this.nombre = n; }
-        public void setTalla(String t)            { this.talla = t; }
-        public void setTipoPrenda(String t)       { this.tipoPrenda = t; }
-        public void setIdTienda(String t)         { this.idTienda = t; }
-        public void setDescripcion(String d)      { this.descripcion = d; }
-        public void setExistencia(int e)          { this.existencia = e; }
-        public void setMinimoExistencia(int m)    { this.minimoExistencia = m; }
-        public void setPrecioMayoreo(double p)    { this.precioMayoreo = p; }
-        public void setPrecioMenudeo(double p)    { this.precioMenudeo = p; }
-    }
-
-public static class Conjunto {
-        private String id, nombre, descripcion;
-        private List<String> idPrendas;
-        private int piezas, minimoExistencia;
-
-        public Conjunto(String id, String nombre, String descripcion, List<String> idPrendas, int piezas) {
-            this.id = id; this.nombre = nombre; this.descripcion = descripcion;
-            this.idPrendas = idPrendas; this.piezas = piezas;
-            this.minimoExistencia = 3;
-        }
-
-        public String       getId()                 { return id; }
-        public String       getNombre()             { return nombre; }
-        public String       getDescripcion()        { return descripcion; }
-        public List<String> getIdPrendas()          { return idPrendas; }
-        public int          getPiezas()             { return piezas; }
-        public int          getMinimoExistencia()   { return minimoExistencia; }
-
-        public void setNombre(String n)             { this.nombre = n; }
-        public void setDescripcion(String d)        { this.descripcion = d; }
-        public void setIdPrendas(List<String> l)    { this.idPrendas = l; }
-        public void setPiezas(int p)                { this.piezas = p; }
-        public void setMinimoExistencia(int m)      { this.minimoExistencia = m; }
-    }
-
-    public static class PrendaVendida {
-        private String idVenta, nombrePrenda, talla, tipoVenta, descripcion;
-        private int cantidad;
-        private double precioUnitario;
-        private LocalDate fechaVenta, fechaLimiteDevolucion;
-
-        public PrendaVendida(String idVenta, String nombrePrenda, String talla, int cantidad,
-                             String tipoVenta, double precioUnitario,
-                             LocalDate fechaVenta, LocalDate fechaLimiteDevolucion, String descripcion) {
-            this.idVenta = idVenta; this.nombrePrenda = nombrePrenda; this.talla = talla;
-            this.cantidad = cantidad; this.tipoVenta = tipoVenta; this.precioUnitario = precioUnitario;
-            this.fechaVenta = fechaVenta; this.fechaLimiteDevolucion = fechaLimiteDevolucion;
-            this.descripcion = descripcion;
-        }
-
-        public String    getIdVenta()               { return idVenta; }
-        public String    getNombrePrenda()           { return nombrePrenda; }
-        public String    getTalla()                  { return talla; }
-        public int       getCantidad()               { return cantidad; }
-        public String    getTipoVenta()              { return tipoVenta; }
-        public double    getPrecioUnitario()         { return precioUnitario; }
-        public double    getTotal()                  { return cantidad * precioUnitario; }
-        public LocalDate getFechaVenta()             { return fechaVenta; }
-        public LocalDate getFechaLimiteDevolucion()  { return fechaLimiteDevolucion; }
-        public String    getDescripcion()            { return descripcion; }
-
-        public void setNombrePrenda(String n)             { this.nombrePrenda = n; }
-        public void setTalla(String t)                    { this.talla = t; }
-        public void setCantidad(int c)                    { this.cantidad = c; }
-        public void setTipoVenta(String t)                { this.tipoVenta = t; }
-        public void setPrecioUnitario(double p)           { this.precioUnitario = p; }
-        public void setFechaVenta(LocalDate f)            { this.fechaVenta = f; }
-        public void setFechaLimiteDevolucion(LocalDate f) { this.fechaLimiteDevolucion = f; }
-        public void setDescripcion(String d)              { this.descripcion = d; }
-    }
-
-    public static class ConjuntoVendido {
-        private String idVenta, nombreConjunto, tipoVenta, descripcion;
-        private int cantidad;
-        private double precioUnitario;
-        private LocalDate fechaVenta, fechaLimiteDevolucion;
-        private List<String> nombresPrendas;
-
-        public ConjuntoVendido(String idVenta, String nombreConjunto, int cantidad,
-                               String tipoVenta, double precioUnitario,
-                               LocalDate fechaVenta, LocalDate fechaLimiteDevolucion,
-                               String descripcion, List<String> nombresPrendas) {
-            this.idVenta = idVenta; this.nombreConjunto = nombreConjunto; this.cantidad = cantidad;
-            this.tipoVenta = tipoVenta; this.precioUnitario = precioUnitario;
-            this.fechaVenta = fechaVenta; this.fechaLimiteDevolucion = fechaLimiteDevolucion;
-            this.descripcion = descripcion; this.nombresPrendas = nombresPrendas;
-        }
-
-        public String       getIdVenta()               { return idVenta; }
-        public String       getNombreConjunto()        { return nombreConjunto; }
-        public int          getCantidad()              { return cantidad; }
-        public String       getTipoVenta()             { return tipoVenta; }
-        public double       getPrecioUnitario()        { return precioUnitario; }
-        public double       getTotal()                 { return cantidad * precioUnitario; }
-        public LocalDate    getFechaVenta()            { return fechaVenta; }
-        public LocalDate    getFechaLimiteDevolucion() { return fechaLimiteDevolucion; }
-        public String       getDescripcion()           { return descripcion; }
-        public List<String> getNombresPrendas()        { return nombresPrendas; }
-
-        public void setNombreConjunto(String n)            { this.nombreConjunto = n; }
-        public void setCantidad(int c)                     { this.cantidad = c; }
-        public void setTipoVenta(String t)                 { this.tipoVenta = t; }
-        public void setPrecioUnitario(double p)            { this.precioUnitario = p; }
-        public void setFechaVenta(LocalDate f)             { this.fechaVenta = f; }
-        public void setFechaLimiteDevolucion(LocalDate f)  { this.fechaLimiteDevolucion = f; }
-        public void setDescripcion(String d)               { this.descripcion = d; }
-        public void setNombresPrendas(List<String> l)      { this.nombresPrendas = l; }
-    }
-
-    public static class ItemVenta {
-        private String nombreProducto, tipoVenta;
-        private int cantidad;
-        private double precioUnitario;
-        private Prenda prenda;
-        private Conjunto conjunto;
-
-        public ItemVenta(String nombreProducto, int cantidad, double precioUnitario,
-                         String tipoVenta, Prenda prenda, Conjunto conjunto) {
-            this.nombreProducto = nombreProducto; this.cantidad = cantidad;
-            this.precioUnitario = precioUnitario; this.tipoVenta = tipoVenta;
-            this.prenda = prenda; this.conjunto = conjunto;
-        }
-
-        public String   getNombreProducto() { return nombreProducto; }
-        public int      getCantidad()       { return cantidad; }
-        public double   getPrecioUnitario() { return precioUnitario; }
-        public String   getTipoVenta()      { return tipoVenta; }
-        public double   getSubtotal()       { return cantidad * precioUnitario; }
-        public Prenda   getPrenda()         { return prenda; }
-        public Conjunto getConjunto()       { return conjunto; }
-        public void     setCantidad(int c)  { this.cantidad = c; }
-    }
-
-    public static class MateriaPrima {
-        private int id, existencia;
-        private String numeroPartida, tipoExistencia, descripcion, nombre;
-        private String color, medida, composicion, tipo, tamanio, talla, material, tipoInsumo;
-        private Double ancho;
-        private Integer no;
-
-        private int minimoExistencia;
-
-        public MateriaPrima(int id, String numeroPartida, int existencia, String tipoExistencia,
-                            String descripcion, String nombre, String color, String medida,
-                            Double ancho, String composicion, String tipo, Integer no,
-                            String tamanio, String talla, String material, String tipoInsumo) {
-            this.id = id; this.numeroPartida = numeroPartida; this.existencia = existencia;
-            this.tipoExistencia = tipoExistencia; this.descripcion = descripcion;
-            this.nombre = nombre; this.color = color; this.medida = medida;
-            this.ancho = ancho; this.composicion = composicion; this.tipo = tipo;
-            this.no = no; this.tamanio = tamanio; this.talla = talla;
-            this.material = material; this.tipoInsumo = tipoInsumo;
-            this.minimoExistencia = 10;
-        }
-
-        public int     getId()             { return id; }
-        public String  getNumeroPartida()  { return numeroPartida; }
-        public int     getExistencia()     { return existencia; }
-        public String  getTipoExistencia() { return tipoExistencia; }
-        public String  getDescripcion()    { return descripcion; }
-        public String  getNombre()         { return nombre; }
-        public String  getColor()          { return color; }
-        public String  getMedida()         { return medida; }
-        public Double  getAncho()          { return ancho; }
-        public String  getComposicion()    { return composicion; }
-        public String  getTipo()           { return tipo; }
-        public Integer getNo()             { return no; }
-        public String  getTamanio()        { return tamanio; }
-        public String  getTalla()          { return talla; }
-        public String  getMaterial()       { return material; }
-        public String  getTipoInsumo()     { return tipoInsumo; }
-
-        public void setNombre(String n)         { this.nombre = n; }
-        public void setExistencia(int e)        { this.existencia = e; }
-        public void setTipoExistencia(String t) { this.tipoExistencia = t; }
-        public void setDescripcion(String d)    { this.descripcion = d; }
-        public void setColor(String c)          { this.color = c; }
-        public void setMedida(String m)         { this.medida = m; }
-        public void setAncho(Double a)          { this.ancho = a; }
-        public void setComposicion(String c)    { this.composicion = c; }
-        public void setTipo(String t)           { this.tipo = t; }
-        public void setNo(Integer n)            { this.no = n; }
-        public void setTamanio(String t)        { this.tamanio = t; }
-        public void setTalla(String t)          { this.talla = t; }
-        public void setMaterial(String m)       { this.material = m; }
-        public void setTipoInsumo(String t)     { this.tipoInsumo = t; }
-        public int  getMinimoExistencia()   { return minimoExistencia; }
-        public void setMinimoExistencia(int m) { this.minimoExistencia = m; }
-    }
-
-public static class MaterialPorPrenda {
-    private String idPrenda, idMateriaPrima;
-    private double cantidad; // en metros para telas, en piezas para botones/cierres, etc.
-
-    public MaterialPorPrenda(String idPrenda, String idMateriaPrima, double cantidad) {
-        this.idPrenda = idPrenda; this.idMateriaPrima = idMateriaPrima; this.cantidad = cantidad;
-    }
-
-    public String getIdPrenda()       { return idPrenda; }
-    public String getIdMateriaPrima() { return idMateriaPrima; }
-    public double getCantidad()       { return cantidad; }
-
-    public void setCantidad(double c) { this.cantidad = c; }
 }
 
-}
+
+
+
+

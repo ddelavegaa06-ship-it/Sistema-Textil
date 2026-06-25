@@ -16,8 +16,8 @@ public class UsuarioDAO {
     public List<Usuario> getAll() throws SQLException {
         List<Usuario> lista = new ArrayList<>();
         String sql = "SELECT * FROM usuarios";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(new Usuario(
@@ -34,8 +34,8 @@ public class UsuarioDAO {
 
     public Usuario getByUsuario(String usuario) throws SQLException {
         String sql = "SELECT * FROM usuarios WHERE usuario = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, usuario);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -54,8 +54,8 @@ public class UsuarioDAO {
 
     public boolean insert(Usuario usuario) throws SQLException {
         String sql = "INSERT INTO usuarios (nombre, usuario, password, rol) VALUES (?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, usuario.getNombre());
             pstmt.setString(2, usuario.getUsuario());
             pstmt.setString(3, usuario.getPassword());

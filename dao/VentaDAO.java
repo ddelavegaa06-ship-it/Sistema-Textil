@@ -47,8 +47,8 @@ public class VentaDAO {
     public List<Venta> getAll() throws SQLException {
         List<Venta> lista = new ArrayList<>();
         String sql = "SELECT * FROM venta";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(new Venta(rs.getInt("folio"), rs.getDate("fecha").toLocalDate()));
@@ -59,8 +59,8 @@ public class VentaDAO {
 
     public Venta getById(int folio) throws SQLException {
         String sql = "SELECT * FROM venta WHERE folio = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, folio);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {

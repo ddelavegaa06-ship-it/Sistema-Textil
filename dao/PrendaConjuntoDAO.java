@@ -16,8 +16,8 @@ public class PrendaConjuntoDAO {
     public List<PrendaConjunto> getByConjunto(int idConjunto) throws SQLException {
         List<PrendaConjunto> lista = new ArrayList<>();
         String sql = "SELECT * FROM prendaconjunto WHERE idConjunto = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, idConjunto);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -30,8 +30,8 @@ public class PrendaConjuntoDAO {
 
     public boolean insert(PrendaConjunto pc) throws SQLException {
         String sql = "INSERT INTO prendaconjunto (id, idPrenda, idConjunto) VALUES (?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             int id = pc.getId();
             if (id <= 0) {
                 id = getNextId();
@@ -45,8 +45,8 @@ public class PrendaConjuntoDAO {
 
     public boolean delete(int id) throws SQLException {
         String sql = "DELETE FROM prendaconjunto WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         }
@@ -54,8 +54,8 @@ public class PrendaConjuntoDAO {
 
     public boolean deleteByConjunto(int idConjunto) throws SQLException {
         String sql = "DELETE FROM prendaconjunto WHERE idConjunto = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, idConjunto);
             return pstmt.executeUpdate() > 0;
         }
@@ -63,8 +63,8 @@ public class PrendaConjuntoDAO {
 
     public int getNextId() throws SQLException {
         String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS nextId FROM prendaconjunto";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt("nextId");

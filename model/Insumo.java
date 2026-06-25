@@ -21,15 +21,11 @@ public class Insumo {
     private int minimoExistencia = 10;
 
     public Insumo() {}
-
-    public Insumo(String id, String numeroPartida, double existencia, String tipoExistencia, String descripcion, String nombre, String color, double medida, double ancho, String composicion, String tipo, int no, String tamanio, double talla, String material, String tipoInsumo, Integer idUbicacion) {
-        this.id = id;
-    }
-
-    public Insumo(int id, String numeroPartida, int existencia, String tipoExistencia,
-                  String descripcion, String nombre, String color, String medidaStr,
-                  Double ancho, String composicion, String tipo, Integer no,
-                  String tamanio, String tallaStr, String material, String tipoInsumo) {
+    
+    public Insumo(String id, String numeroPartida, double existencia, String tipoExistencia,
+                  String descripcion, String nombre, String color, double medidaStr,
+                  double ancho, String composicion, String tipo, int no,
+                  String tamanio, double tallaStr, String material, String tipoInsumo,int idUbicacion) {
         this.id = String.valueOf(id);
         this.numeroPartida = numeroPartida;
         this.existencia = existencia;
@@ -37,21 +33,13 @@ public class Insumo {
         this.descripcion = descripcion;
         this.nombre = nombre;
         this.color = color;
-        try {
-            this.medida = medidaStr != null && !medidaStr.isEmpty() ? Double.parseDouble(medidaStr) : 0.0;
-        } catch (NumberFormatException e) {
-            this.medida = 0.0;
-        }
-        this.ancho = ancho != null ? ancho : 0.0;
+        this.medida = medidaStr;
+        this.ancho = ancho;
         this.composicion = composicion;
         this.tipo = tipo;
-        this.no = no != null ? no : 0;
+        this.no = no;
         this.tamanio = tamanio;
-        try {
-            this.talla = tallaStr != null && !tallaStr.isEmpty() ? Double.parseDouble(tallaStr) : 0.0;
-        } catch (NumberFormatException e) {
-            this.talla = 0.0;
-        }
+        this.talla = tallaStr;
         this.material = material;
         this.tipoInsumo = tipoInsumo;
         this.idUbicacion = 1;
@@ -204,8 +192,15 @@ public class Insumo {
     public Integer getIdUbicacion() {
         return idUbicacion;
     }
-
     public void setIdUbicacion(Integer idUbicacion) {
         this.idUbicacion = idUbicacion;
+    }
+
+public void setMinimoExistencia(int minimoExistencia) {
+        this.minimoExistencia = minimoExistencia;
+    }
+
+    public int getMinimoExistencia() {
+        return minimoExistencia;
     }
 }

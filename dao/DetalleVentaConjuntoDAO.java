@@ -15,8 +15,8 @@ public class DetalleVentaConjuntoDAO {
 
     public boolean insert(DetalleVentaConjunto detalle) throws SQLException {
         String sql = "INSERT INTO detalleventaconjunto (folioVenta, idConjunto, cantidad, total) VALUES (?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, detalle.getFolioVenta());
             pstmt.setInt(2, detalle.getIdConjunto());
             pstmt.setInt(3, detalle.getCantidad());
@@ -28,8 +28,8 @@ public class DetalleVentaConjuntoDAO {
     public List<DetalleVentaConjunto> getByVenta(int folioVenta) throws SQLException {
         List<DetalleVentaConjunto> lista = new ArrayList<>();
         String sql = "SELECT * FROM detalleventaconjunto WHERE folioVenta = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, folioVenta);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -48,8 +48,8 @@ public class DetalleVentaConjuntoDAO {
     public List<DetalleVentaConjunto> getAll() throws SQLException {
         List<DetalleVentaConjunto> lista = new ArrayList<>();
         String sql = "SELECT * FROM detalleventaconjunto";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(new DetalleVentaConjunto(

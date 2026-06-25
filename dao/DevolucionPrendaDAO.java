@@ -17,8 +17,8 @@ public class DevolucionPrendaDAO {
     public boolean insert(DevolucionPrenda devolucion) throws SQLException {
         int id = devolucion.getId() > 0 ? devolucion.getId() : getNextId();
         String sql = "INSERT INTO devolucionprenda (id, folioVenta, idPrenda, fecha) VALUES (?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             pstmt.setInt(2, devolucion.getFolioVenta());
             pstmt.setInt(3, devolucion.getIdPrenda());
@@ -31,8 +31,8 @@ public class DevolucionPrendaDAO {
     public List<DevolucionPrenda> getAll() throws SQLException {
         List<DevolucionPrenda> lista = new ArrayList<>();
         String sql = "SELECT * FROM devolucionprenda";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(new DevolucionPrenda(
@@ -48,8 +48,8 @@ public class DevolucionPrendaDAO {
 
     public int getNextId() throws SQLException {
         String sql = "SELECT COALESCE(MAX(id), 0) + 1 AS nextId FROM devolucionprenda";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt("nextId");

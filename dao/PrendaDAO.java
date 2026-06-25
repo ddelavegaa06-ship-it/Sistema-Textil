@@ -16,8 +16,8 @@ public class PrendaDAO {
     public List<Prenda> getAll() throws SQLException {
         List<Prenda> lista = new ArrayList<>();
         String sql = "SELECT * FROM prenda";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(mapResultSet(rs));
@@ -28,8 +28,8 @@ public class PrendaDAO {
 
     public Prenda getById(int id) throws SQLException {
         String sql = "SELECT * FROM prenda WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -42,8 +42,8 @@ public class PrendaDAO {
 
     public int insert(Prenda p) throws SQLException {
         String sql = "INSERT INTO prenda (nombre, talla, existencia, precioMayoreo, precioMenudeo, idTienda, codigoBarras) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, p.getNombre());
             pstmt.setString(2, p.getTalla());
             pstmt.setInt(3, p.getExistencia());
@@ -66,8 +66,8 @@ public class PrendaDAO {
 
     public boolean update(Prenda p) throws SQLException {
         String sql = "UPDATE prenda SET nombre = ?, talla = ?, existencia = ?, precioMayoreo = ?, precioMenudeo = ?, idTienda = ?, codigoBarras = ? WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, p.getNombre());
             pstmt.setString(2, p.getTalla());
             pstmt.setInt(3, p.getExistencia());
@@ -83,8 +83,8 @@ public class PrendaDAO {
 
     public boolean delete(int id) throws SQLException {
         String sql = "DELETE FROM prenda WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         }
@@ -93,8 +93,8 @@ public class PrendaDAO {
     public List<Prenda> getByNombre(String nombre) throws SQLException {
         List<Prenda> lista = new ArrayList<>();
         String sql = "SELECT * FROM prenda WHERE nombre LIKE ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, "%" + nombre + "%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {

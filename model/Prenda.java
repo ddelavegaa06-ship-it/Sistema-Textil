@@ -42,6 +42,15 @@ public class Prenda {
             this.idTienda = 1;
         }
     }
+    public Prenda(String nombre, String talla, int existencia, double precioMayoreo, double precioMenudeo, Integer idTienda, String codigoBarras) {
+        this.nombre = nombre;
+        this.talla = talla;
+        this.existencia = existencia;
+        this.precioMayoreo = precioMayoreo;
+        this.precioMenudeo = precioMenudeo;
+        this.idTienda = idTienda;
+        this.codigoBarras = codigoBarras;
+    }
 
 
     public int getId() {

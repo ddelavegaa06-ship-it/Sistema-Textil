@@ -16,8 +16,8 @@ public class InsumoDAO {
     public List<Insumo> getAll() throws SQLException {
         List<Insumo> lista = new ArrayList<>();
         String sql = "SELECT * FROM insumo";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 lista.add(mapResultSet(rs));
@@ -28,8 +28,8 @@ public class InsumoDAO {
 
     public Insumo getById(String id) throws SQLException {
         String sql = "SELECT * FROM insumo WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -42,8 +42,8 @@ public class InsumoDAO {
 
     public boolean insert(Insumo insumo) throws SQLException {
         String sql = "INSERT INTO insumo (id, numeroPartida, existencia, tipoExistencia, descripcion, nombre, color, medida, ancho, composicion, tipo, `no.`, tamanio, talla, material, tipoInsumo, idUbicacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, insumo.getId());
             pstmt.setString(2, insumo.getNumeroPartida());
             pstmt.setDouble(3, insumo.getExistencia());
@@ -67,8 +67,8 @@ public class InsumoDAO {
 
     public boolean update(Insumo insumo) throws SQLException {
         String sql = "UPDATE insumo SET numeroPartida = ?, existencia = ?, tipoExistencia = ?, descripcion = ?, nombre = ?, color = ?, medida = ?, ancho = ?, composicion = ?, tipo = ?, `no.` = ?, tamanio = ?, talla = ?, material = ?, tipoInsumo = ?, idUbicacion = ? WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, insumo.getNumeroPartida());
             pstmt.setDouble(2, insumo.getExistencia());
             pstmt.setString(3, insumo.getTipoExistencia());
@@ -92,8 +92,8 @@ public class InsumoDAO {
 
     public boolean delete(String id) throws SQLException {
         String sql = "DELETE FROM insumo WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id);
             return pstmt.executeUpdate() > 0;
         }
