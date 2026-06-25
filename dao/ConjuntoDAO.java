@@ -47,6 +47,7 @@ public class ConjuntoDAO {
         String sql = "DELETE FROM conjunto WHERE id = ?";
 
         try(PreparedStatement ps = getConnection().prepareStatement(sql)){
+            ps.setInt(1, id);
             return ps.executeUpdate() > 0; 
         }catch(SQLException e){
             e.printStackTrace();

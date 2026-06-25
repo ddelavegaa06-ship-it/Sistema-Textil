@@ -40,6 +40,13 @@ public class PrendaDAO {
 
         try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
             ps.setString(1, prenda.getNombre());
+            ps.setString(2, prenda.getTalla());
+            ps.setInt(3, prenda.getExistencia());
+            ps.setDouble(4, prenda.getPrecioMayoreo());
+            ps.setDouble(5, prenda.getPrecioMenudeo());
+            ps.setInt(6, prenda.getIdTienda());
+            ps.setString(7, prenda.getCodigoBarras());
+            ps.setInt(8, prenda.getId());
             return ps.executeUpdate() > 0; 
         }catch(SQLException e){
             e.printStackTrace();
@@ -51,6 +58,7 @@ public class PrendaDAO {
         String sql = "DELETE FROM prenda WHERE id = ?";
 
         try(PreparedStatement ps = getConnection().prepareStatement(sql)){
+            ps.setInt(1, id);
             return ps.executeUpdate() > 0; 
         }catch(SQLException e){
             e.printStackTrace();

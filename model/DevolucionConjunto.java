@@ -10,8 +10,14 @@ public class DevolucionConjunto {
     public DevolucionConjunto(int id, int folio, int idConjunto){
         this.id = id;
         this.folio = folio;
-        this.idConjunto = folio;
-        this.fecha = LocalDate.now();
+        this.idConjunto = idConjunto;
+        this.fecha = null;
+    }
+    public DevolucionConjunto(int id, int folio, int idConjunto, LocalDate fecha){
+        this.id = id;
+        this.folio = folio;
+        this.idConjunto = idConjunto;
+        this.fecha = fecha;
     }
 
     public int getId(){
