@@ -10,6 +10,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import model.Tienda;
+import model.Ubicacion;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -322,6 +325,9 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         sidebar.getChildren().addAll(btnUs, btnAl);
         btnUs.setOnAction(e -> mostrarModuloUsuarios(contenido));
         btnAl.setOnAction(e -> mostrarAlertasStock(contenido, true));
+        Button btnTU  = crearBotonMenuColor("Tiendas y Ubicaciones", colorHover);
+        sidebar.getChildren().add(btnTU);
+        btnTU.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, true));
 
     } else {
         sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
@@ -349,6 +355,9 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         Button btnAl = crearBotonMenuColor("Alertas de Stock", colorHover);
         sidebar.getChildren().add(btnAl);
         btnAl.setOnAction(e -> mostrarAlertasStock(contenido, false));
+        Button btnTU2 = crearBotonMenuColor("Tiendas", colorHover);
+        sidebar.getChildren().add(btnTU2);
+        btnTU2.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, false));
     }
 
     Region spacer = new Region();
@@ -1563,6 +1572,24 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<MateriaPrima, String> colMaterial     = new TableColumn<>("Material");
         TableColumn<MateriaPrima, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
 
+        colId.setPrefWidth(60);
+        colPartida.setPrefWidth(110);
+        colNombre.setPrefWidth(160);
+        colExist.setPrefWidth(90);
+        colMinimo.setPrefWidth(80);
+        colTipoExist.setPrefWidth(120);
+        colDescripcion.setPrefWidth(220);
+        colColor.setPrefWidth(120);
+        colMedida.setPrefWidth(100);
+        colAncho.setPrefWidth(80);
+        colComposicion.setPrefWidth(150);
+        colTipo.setPrefWidth(130);
+        colNo.setPrefWidth(70);
+        colTamanio.setPrefWidth(100);
+        colTalla2.setPrefWidth(80);
+        colMaterial.setPrefWidth(110);
+        colTipoInsum.setPrefWidth(110);
+
         colId.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
         colPartida.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colNombre.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getNombre()));
@@ -1586,12 +1613,21 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 colComposicion, colTipo, colNo, colTamanio, colTalla2, colMaterial, colTipoInsum);
         tabla.setItems(listaMateriaPrima);
 
+        // Ancho total = suma de los anchos preferidos de cada columna, así la tabla
+        // no genera su propio scroll horizontal interno: el ScrollPane exterior controla todo.
+        double anchoTotalColumnas = tabla.getColumns().stream()
+            .mapToDouble(TableColumn::getPrefWidth)
+            .sum();
+        tabla.setPrefWidth(anchoTotalColumnas);
+        tabla.setMinWidth(anchoTotalColumnas);
+
         ScrollPane scrollTablaMP = new ScrollPane(tabla);
-        scrollTablaMP.setFitToHeight(true);
+        scrollTablaMP.setFitToHeight(false);
         scrollTablaMP.setFitToWidth(false);
         scrollTablaMP.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollTablaMP.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollTablaMP.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        scrollTablaMP.setPrefViewportHeight(400);
         VBox.setVgrow(scrollTablaMP, Priority.ALWAYS);
 
         Button btnDetalle = new Button("🔍 Ver Detalle");
@@ -3883,9 +3919,315 @@ private String calcularColorAlertaEncargado() {
 
     public static void main(String[] args) { launch(); }
 
+    // ── MÓDULO TIENDAS Y UBICACIONES ────────────────────────────────────
+private void mostrarModuloTiendasUbicaciones(StackPane contenido, boolean esAdmin) {
+    contenido.getChildren().clear();
+
+    Label titulo = new Label("Tiendas y Ubicaciones");
+    titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+    titulo.setTextFill(Color.web(SECUNDARIO));
+
+    Label tituloTiendas = new Label("Tiendas");
+    tituloTiendas.setFont(Font.font("System", FontWeight.BOLD, 15));
+    tituloTiendas.setTextFill(Color.web(SECUNDARIO));
+
+    TableView<Tienda> tablaTiendas = new TableView<>();
+    tablaTiendas.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+    tablaTiendas.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+    tablaTiendas.setPlaceholder(new Label("No hay tiendas registradas"));
+    tablaTiendas.setMinHeight(160);
+    tablaTiendas.setMaxHeight(220);
+    tablaTiendas.setItems(listaTiendas);
+
+    TableColumn<Tienda, String> colTId      = new TableColumn<>("ID");
+    TableColumn<Tienda, String> colTTipo    = new TableColumn<>("Tipo");
+    TableColumn<Tienda, String> colTNombre  = new TableColumn<>("Nombre");
+    TableColumn<Tienda, String> colTIdPadre = new TableColumn<>("ID Padre");
+
+    colTId.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getId()));
+    colTTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipo()));
+    colTNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
+    colTIdPadre.setCellValueFactory(d -> new SimpleStringProperty(
+        d.getValue().getIdPadre() != null ? d.getValue().getIdPadre() : "—"));
+
+    tablaTiendas.getColumns().addAll(colTId, colTTipo, colTNombre, colTIdPadre);
+
+    HBox botonesTiendas = new HBox(10);
+    Button btnNuevaTienda  = new Button("+ Nueva Tienda");
+    Button btnEditarTienda = new Button("✎ Editar Tienda");
+    btnNuevaTienda.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+    btnEditarTienda.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+    btnNuevaTienda.setOnAction(e  -> mostrarFormularioTienda(contenido, null, esAdmin));
+    btnEditarTienda.setOnAction(e -> {
+        Tienda sel = tablaTiendas.getSelectionModel().getSelectedItem();
+        if (sel != null) mostrarFormularioTienda(contenido, sel, esAdmin);
+    });
+    botonesTiendas.getChildren().addAll(btnNuevaTienda, btnEditarTienda);
+
+    VBox vista = new VBox(16, titulo, tituloTiendas, tablaTiendas, botonesTiendas);
+
+    if (esAdmin) {
+        Label tituloUbicaciones = new Label("Ubicaciones de Materia Prima");
+        tituloUbicaciones.setFont(Font.font("System", FontWeight.BOLD, 15));
+        tituloUbicaciones.setTextFill(Color.web(SECUNDARIO));
+
+        Label notaUbicaciones = new Label("Indican dónde se almacena cada insumo dentro de una tienda.");
+        notaUbicaciones.setFont(Font.font("System", 12));
+        notaUbicaciones.setTextFill(Color.web(TEXTO_SUAVE));
+
+        TableView<Ubicacion> tablaUbicaciones = new TableView<>();
+        tablaUbicaciones.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tablaUbicaciones.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tablaUbicaciones.setPlaceholder(new Label("No hay ubicaciones registradas"));
+        tablaUbicaciones.setMinHeight(160);
+        tablaUbicaciones.setMaxHeight(220);
+        tablaUbicaciones.setItems(listaUbicaciones);
+
+        TableColumn<Ubicacion, String> colUId      = new TableColumn<>("ID");
+        TableColumn<Ubicacion, String> colUTipo    = new TableColumn<>("Tipo");
+        TableColumn<Ubicacion, String> colUNombre  = new TableColumn<>("Nombre");
+        TableColumn<Ubicacion, String> colUIdPadre = new TableColumn<>("ID Tienda (Padre)");
+
+        colUId.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getId()));
+        colUTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipo()));
+        colUNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
+        colUIdPadre.setCellValueFactory(d -> new SimpleStringProperty(
+            d.getValue().getIdPadre() != null ? d.getValue().getIdPadre() : "—"));
+
+        tablaUbicaciones.getColumns().addAll(colUId, colUTipo, colUNombre, colUIdPadre);
+
+        Button btnNuevaUbic  = new Button("+ Nueva Ubicación");
+        Button btnEditarUbic = new Button("✎ Editar Ubicación");
+        btnNuevaUbic.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnEditarUbic.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnNuevaUbic.setOnAction(e  -> mostrarFormularioUbicacion(contenido, null));
+        btnEditarUbic.setOnAction(e -> {
+            Ubicacion sel = tablaUbicaciones.getSelectionModel().getSelectedItem();
+            if (sel != null) mostrarFormularioUbicacion(contenido, sel);
+        });
+
+        HBox botonesUbic = new HBox(10, btnNuevaUbic, btnEditarUbic);
+        vista.getChildren().addAll(tituloUbicaciones, notaUbicaciones, tablaUbicaciones, botonesUbic);
+    }
+
+    vista.setStyle("-fx-padding: 30;");
+
+    ScrollPane scroll = new ScrollPane(vista);
+    scroll.setFitToWidth(true);
+    scroll.setFitToHeight(false);
+    scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+    StackPane wrapper = new StackPane(scroll);
+    wrapper.setStyle("-fx-background-color: " + FONDO + ";");
+    contenido.getChildren().add(wrapper);
+}
+
+// ── FORMULARIO TIENDA ────────────────────────────────────────────
+private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, boolean esAdmin) {
+    contenido.getChildren().clear();
+    boolean esEdicion = tiendaEditar != null;
+
+    Label titulo = new Label(esEdicion ? "Editar Tienda" : "Nueva Tienda");
+    titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+    titulo.setTextFill(Color.web(SECUNDARIO));
+
+    TextField campoId      = crearTextField("ID  (ej: T1)");
+    TextField campoTipo    = crearTextField("Tipo  (ej: Matriz, Sucursal)");
+    TextField campoNombre  = crearTextField("Nombre de la tienda");
+    TextField campoIdPadre = crearTextField("ID Padre  (opcional)");
+
+    campoId.setMaxWidth(360); campoTipo.setMaxWidth(360);
+    campoNombre.setMaxWidth(360); campoIdPadre.setMaxWidth(360);
+
+    if (esEdicion) {
+        campoId.setText(tiendaEditar.getId()); campoId.setDisable(true);
+        campoTipo.setText(tiendaEditar.getTipo());
+        campoNombre.setText(tiendaEditar.getNombre());
+        campoIdPadre.setText(tiendaEditar.getIdPadre() != null ? tiendaEditar.getIdPadre() : "");
+    }
+
+    Label mensajeEstado = new Label("");
+    mensajeEstado.setFont(Font.font("System", 12));
+
+    Button btnGuardar = new Button(esEdicion ? "Guardar Cambios" : "Guardar Tienda");
+    btnGuardar.setMaxWidth(360);
+    btnGuardar.setStyle("-fx-background-color: " + (esEdicion ? AZUL_EDITAR : NARANJA) +
+        "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+    Button btnCancelar = new Button("← Regresar");
+    btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+    btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, esAdmin));
+
+    btnGuardar.setOnAction(e -> {
+        String id      = campoId.getText().trim();
+        String tipo    = campoTipo.getText().trim();
+        String nombre  = campoNombre.getText().trim();
+        String idPadre = campoIdPadre.getText().trim();
+
+        if (id.isEmpty() || tipo.isEmpty() || nombre.isEmpty()) {
+            mensajeEstado.setTextFill(Color.web(ERROR));
+            mensajeEstado.setText("ID, tipo y nombre son obligatorios");
+            return;
+        }
+        if (!esEdicion) {
+            boolean yaExiste = listaTiendas.stream().anyMatch(t -> t.getId().equalsIgnoreCase(id));
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una tienda con ese ID"); return; }
+            listaTiendas.add(new Tienda(id, tipo, nombre, idPadre.isEmpty() ? null : idPadre));
+        } else {
+            tiendaEditar.setTipo(tipo);
+            tiendaEditar.setNombre(nombre);
+            tiendaEditar.setIdPadre(idPadre.isEmpty() ? null : idPadre);
+        }
+        mostrarModuloTiendasUbicaciones(contenido, esAdmin);
+    });
+
+    VBox form = new VBox(12, titulo, campoId, campoTipo, campoNombre, campoIdPadre,
+            mensajeEstado, btnGuardar, btnCancelar);
+    form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
+    form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+    ScrollPane scroll = new ScrollPane(form);
+    scroll.setFitToWidth(false); scroll.setFitToHeight(false);
+    scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+    StackPane wrapper = new StackPane(scroll);
+    wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+    wrapper.setAlignment(Pos.CENTER);
+    contenido.getChildren().add(wrapper);
+}
+
+// ── FORMULARIO UBICACIÓN ─────────────────────────────────────────
+private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacionEditar) {
+    contenido.getChildren().clear();
+    boolean esEdicion = ubicacionEditar != null;
+
+    Label titulo = new Label(esEdicion ? "Editar Ubicación" : "Nueva Ubicación");
+    titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+    titulo.setTextFill(Color.web(SECUNDARIO));
+
+    TextField campoId     = crearTextField("ID  (ej: U1)");
+    TextField campoTipo   = crearTextField("Tipo  (ej: Estante, Bodega, Gaveta)");
+    TextField campoNombre = crearTextField("Nombre  (ej: Estante A-3)");
+
+    Label labelIdPadre = new Label("Tienda a la que pertenece:");
+    labelIdPadre.setFont(Font.font("System", 12));
+    labelIdPadre.setTextFill(Color.web(TEXTO_SUAVE));
+
+    ComboBox<String> selectorTienda = new ComboBox<>();
+    selectorTienda.setMaxWidth(360);
+    selectorTienda.setStyle(estiloInput());
+    selectorTienda.getItems().add("— Ninguna —");
+    for (Tienda t : listaTiendas) selectorTienda.getItems().add(t.getId() + " — " + t.getNombre());
+    selectorTienda.setValue("— Ninguna —");
+
+    campoId.setMaxWidth(360); campoTipo.setMaxWidth(360); campoNombre.setMaxWidth(360);
+
+    if (esEdicion) {
+        campoId.setText(ubicacionEditar.getId()); campoId.setDisable(true);
+        campoTipo.setText(ubicacionEditar.getTipo());
+        campoNombre.setText(ubicacionEditar.getNombre());
+        if (ubicacionEditar.getIdPadre() != null) {
+            String selVal = listaTiendas.stream()
+                .filter(t -> t.getId().equals(ubicacionEditar.getIdPadre()))
+                .findFirst()
+                .map(t -> t.getId() + " — " + t.getNombre())
+                .orElse("— Ninguna —");
+            selectorTienda.setValue(selVal);
+        }
+    }
+
+    Label mensajeEstado = new Label("");
+    mensajeEstado.setFont(Font.font("System", 12));
+
+    Button btnGuardar = new Button(esEdicion ? "Guardar Cambios" : "Guardar Ubicación");
+    btnGuardar.setMaxWidth(360);
+    btnGuardar.setStyle("-fx-background-color: " + (esEdicion ? AZUL_EDITAR : NARANJA) +
+        "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+
+    Button btnCancelar = new Button("← Regresar");
+    btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+    btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, true));
+
+    btnGuardar.setOnAction(e -> {
+        String id     = campoId.getText().trim();
+        String tipo   = campoTipo.getText().trim();
+        String nombre = campoNombre.getText().trim();
+        String selTienda = selectorTienda.getValue();
+        String idPadre = (selTienda == null || selTienda.equals("— Ninguna —"))
+            ? null : selTienda.split(" — ")[0].trim();
+
+        if (id.isEmpty() || tipo.isEmpty() || nombre.isEmpty()) {
+            mensajeEstado.setTextFill(Color.web(ERROR));
+            mensajeEstado.setText("ID, tipo y nombre son obligatorios");
+            return;
+        }
+        if (!esEdicion) {
+            boolean yaExiste = listaUbicaciones.stream().anyMatch(u -> u.getId().equalsIgnoreCase(id));
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una ubicación con ese ID"); return; }
+            listaUbicaciones.add(new Ubicacion(id, tipo, nombre, idPadre));
+        } else {
+            ubicacionEditar.setTipo(tipo);
+            ubicacionEditar.setNombre(nombre);
+            ubicacionEditar.setIdPadre(idPadre);
+        }
+        mostrarModuloTiendasUbicaciones(contenido, true);
+    });
+
+    VBox form = new VBox(12, titulo, campoId, campoTipo, campoNombre,
+            labelIdPadre, selectorTienda, mensajeEstado, btnGuardar, btnCancelar);
+    form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
+    form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+    ScrollPane scroll = new ScrollPane(form);
+    scroll.setFitToWidth(false); scroll.setFitToHeight(false);
+    scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+    StackPane wrapper = new StackPane(scroll);
+    wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+    wrapper.setAlignment(Pos.CENTER);
+    contenido.getChildren().add(wrapper);
+}
+
+// ── CLASES MODELO TIENDA Y UBICACIÓN ────────────────────────────
+public static class Tienda {
+    private String id, tipo, nombre, idPadre;
+
+    public Tienda(String id, String tipo, String nombre, String idPadre) {
+        this.id = id; this.tipo = tipo; this.nombre = nombre; this.idPadre = idPadre;
+    }
+
+    public String getId()      { return id; }
+    public String getTipo()    { return tipo; }
+    public String getNombre()  { return nombre; }
+    public String getIdPadre() { return idPadre; }
+
+    public void setTipo(String t)    { this.tipo = t; }
+    public void setNombre(String n)  { this.nombre = n; }
+    public void setIdPadre(String p) { this.idPadre = p; }
+}
+
+public static class Ubicacion {
+    private String id, tipo, nombre, idPadre;
+
+    public Ubicacion(String id, String tipo, String nombre, String idPadre) {
+        this.id = id; this.tipo = tipo; this.nombre = nombre; this.idPadre = idPadre;
+    }
+
+    public String getId()      { return id; }
+    public String getTipo()    { return tipo; }
+    public String getNombre()  { return nombre; }
+    public String getIdPadre() { return idPadre; }
+
+    public void setTipo(String t)    { this.tipo = t; }
+    public void setNombre(String n)  { this.nombre = n; }
+    public void setIdPadre(String p) { this.idPadre = p; }
+}
+
+
     // ── REGISTRO DE DEVOLUCIONES ─────────────────────────────────────
     private ObservableList<DevolucionRegistrada> listaDevolucionesRegistradas = FXCollections.observableArrayList();
-
+    private ObservableList<Tienda> listaTiendas = FXCollections.observableArrayList();
+    private ObservableList<Ubicacion> listaUbicaciones = FXCollections.observableArrayList();
     private void mostrarRegistroDevoluciones(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -3991,6 +4333,7 @@ private String calcularColorAlertaEncargado() {
         contenido.getChildren().add(wrapper);
     }
 
+    
     private void mostrarFormularioNuevaDevolucion(StackPane contenido) {
         contenido.getChildren().clear();
 
