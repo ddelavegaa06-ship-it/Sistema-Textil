@@ -4,7 +4,6 @@ import database.Conexion;
 import model.InsumoPrenda;
 
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +15,7 @@ public class InsumoPrendaDAO {
 
     public List<InsumoPrenda> getAll() throws SQLException {
         List<InsumoPrenda> lista = new ArrayList<>();
-        String sql = "SELECT * FROM insumoprenda";
+        String sql = "SELECT folio, idInsumo, idPrenda, fecha, cantidadInsumo FROM insumoprenda ORDER BY folio";
         Connection conn = getConnection();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -28,7 +27,7 @@ public class InsumoPrendaDAO {
     }
 
     public InsumoPrenda getById(int folio) throws SQLException {
-        String sql = "SELECT * FROM insumoprenda WHERE folio = ?";
+        String sql = "SELECT folio, idInsumo, idPrenda, fecha, cantidadInsumo FROM insumoprenda WHERE folio = ?";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, folio);
@@ -43,7 +42,7 @@ public class InsumoPrendaDAO {
 
     public List<InsumoPrenda> getByPrenda(int idPrenda) throws SQLException {
         List<InsumoPrenda> lista = new ArrayList<>();
-        String sql = "SELECT * FROM insumoprenda WHERE idPrenda = ?";
+        String sql = "SELECT folio, idInsumo, idPrenda, fecha, cantidadInsumo FROM insumoprenda WHERE idPrenda = ? ORDER BY folio";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, idPrenda);
@@ -57,27 +56,38 @@ public class InsumoPrendaDAO {
     }
 
     public boolean insert(InsumoPrenda ip) throws SQLException {
-        String sql = "INSERT INTO insumoprenda (folio, idInsumo, idPrenda, fecha, cantidadInsumo) VALUES (?, ?, ?, ?, ?)";
-        Connection conn = getConnection();
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, ip.getFolio());
-            pstmt.setString(2, ip.getIdInsumo());
-            pstmt.setInt(3, ip.getIdPrenda());
-            LocalDate fecha = ip.getFecha() != null ? ip.getFecha() : LocalDate.now();
-            pstmt.setDate(4, Date.valueOf(fecha));
-            pstmt.setDouble(5, ip.getCantidadInsumo());
-            return pstmt.executeUpdate() > 0;
-        }
-    }
-
-    public boolean update(InsumoPrenda ip) throws SQLException {
-        String sql = "UPDATE insumoprenda SET idInsumo = ?, idPrenda = ?, fecha = ?, cantidadInsumo = ? WHERE folio = ?";
+        String sql = "INSERT INTO insumoprenda (idInsumo, idPrenda, cantidadInsumo) VALUES (?, ?, ?)";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, ip.getIdInsumo());
             pstmt.setInt(2, ip.getIdPrenda());
-            pstmt.setDate(3, Date.valueOf(ip.getFecha() != null ? ip.getFecha() : LocalDate.now()));
-            pstmt.setDouble(4, ip.getCantidadInsumo());
+            pstmt.setDouble(3, ip.getCantidadInsumo());
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public int insertAll(List<InsumoPrenda> lista) throws SQLException {
+        int insertados = 0;
+        for (InsumoPrenda ip : lista) {
+            if (insert(ip)) {
+                insertados++;
+            }
+        }
+        return insertados;
+    }
+
+    public boolean update(InsumoPrenda ip) throws SQLException {
+        String sql = "UPDATE insumoprenda SET idInsumo = ?, idPrenda = ?, cantidadInsumo = ?, fecha = ? WHERE folio = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, ip.getIdInsumo());
+            pstmt.setInt(2, ip.getIdPrenda());
+            pstmt.setDouble(3, ip.getCantidadInsumo());
+            if (ip.getFecha() != null) {
+                pstmt.setDate(4, Date.valueOf(ip.getFecha()));
+            } else {
+                pstmt.setNull(4, Types.DATE);
+            }
             pstmt.setInt(5, ip.getFolio());
             return pstmt.executeUpdate() > 0;
         }

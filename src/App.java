@@ -27,7 +27,8 @@ import model.DetalleVentaConjunto;
 import model.DetalleVentaPrenda;
 import model.DevolucionConjunto;
 import model.DevolucionPrenda;
-import model.DevolucionRegistrada;
+import model.DevolucionConjuntoVista;
+import model.DevolucionVista;
 import model.Insumo;
 import model.InsumoPrenda;
 import model.ItemVenta;
@@ -37,19 +38,20 @@ import model.PrendaConjunto;
 import model.PrendaVendida;
 import model.Usuario;
 import model.Venta;
+import model.VentaResumen;
+import database.Conexion;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.sql.SQLException;
-import javafx.scene.text.Text;
+import java.sql.Connection;
 
 public class App extends Application {
 
     private Stage stage;
     private String rolActual;
-    private int contadorIdVenta = 1;
 
     private static final String FONDO          = "#F5F7FA";
     private static final String PANEL          = "#FFFFFF";
@@ -88,9 +90,6 @@ public class App extends Application {
     private ObservableList<Conjunto> listaConjuntos = FXCollections.observableArrayList();
     private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList();
     private ObservableList<MaterialPorPrenda> listaMaterialesPorPrenda = FXCollections.observableArrayList();
-
-    private ObservableList<PrendaVendida>   listaPrendasVendidas   = FXCollections.observableArrayList();
-    private ObservableList<ConjuntoVendido> listaConjuntosVendidos = FXCollections.observableArrayList();
 
     // ------------------LOGICA CONJUNTOS--------------- 
     private void verificarConjuntos() {
@@ -180,21 +179,75 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
             listaUsuarios.clear();
             listaUsuarios.addAll(usuarioDAO.getAll());
 
-            listaMaterialesPorPrenda.clear();
-            for (InsumoPrenda ip : insumoPrendaDAO.getAll()) {
-                listaMaterialesPorPrenda.add(new MaterialPorPrenda(
-                    String.valueOf(ip.getIdPrenda()),
-                    ip.getIdInsumo(),
-                    ip.getCantidadInsumo()
-                ));
-            }
+            recargarMaterialesPorPrendaDesdeBD();
         } catch (SQLException e) {
             e.printStackTrace();
             mostrarError("Error al cargar datos: " + e.getMessage());
         }
     }
 
-    // ?"??"? LOGIN ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    private void recargarMaterialesPorPrendaDesdeBD() throws SQLException {
+        listaMaterialesPorPrenda.clear();
+        for (InsumoPrenda ip : insumoPrendaDAO.getAll()) {
+            listaMaterialesPorPrenda.add(new MaterialPorPrenda(
+                String.valueOf(ip.getIdPrenda()),
+                ip.getIdInsumo(),
+                ip.getCantidadInsumo()
+            ));
+        }
+    }
+
+    private ObservableList<PrendaVendida> cargarPrendasVendidasDesdeBD() throws SQLException {
+        return ventaDAO.obtenerTodasLasVentas();
+    }
+
+    private ObservableList<ConjuntoVendido> cargarConjuntosVendidosDesdeBD() throws SQLException {
+        ObservableList<ConjuntoVendido> ventas = FXCollections.observableArrayList();
+        for (Venta venta : ventaDAO.getAll()) {
+            List<DetalleVentaConjunto> detalles = detalleConjuntoDAO.getByVenta(venta.getFolio());
+            for (DetalleVentaConjunto detalle : detalles) {
+                Conjunto conjunto = conjuntoDAO.getById(detalle.getIdConjunto());
+                if (conjunto == null) continue;
+
+                List<String> nombresPrendas = new ArrayList<>();
+                for (PrendaConjunto pc : prendaConjuntoDAO.getByConjunto(conjunto.getId())) {
+                    Prenda p = prendaDAO.getById(pc.getIdPrenda());
+                    if (p != null) {
+                        nombresPrendas.add(p.getNombre() + " (Talla " + p.getTalla() + ")");
+                    }
+                }
+
+                double precioUnitario = detalle.getCantidad() > 0 ? detalle.getTotal() / detalle.getCantidad() : 0.0;
+                LocalDate fechaVenta = venta.getFecha();
+                ventas.add(new ConjuntoVendido(
+                    String.valueOf(venta.getFolio()),
+                    conjunto.getNombre(),
+                    detalle.getCantidad(),
+                    "Menudeo",
+                    precioUnitario,
+                    fechaVenta,
+                    fechaVenta.plusDays(DIAS_DEVOLUCION),
+                    "Folio " + venta.getFolio(),
+                    nombresPrendas
+                ));
+            }
+        }
+        return ventas;
+    }
+
+    private PrendaVendida buscarPrendaVendidaEnBD(String busqueda) throws SQLException {
+        return cargarPrendasVendidasDesdeBD().stream()
+            .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
+            .findFirst().orElse(null);
+    }
+
+    private ConjuntoVendido buscarConjuntoVendidoEnBD(String busqueda) throws SQLException {
+        return cargarConjuntosVendidosDesdeBD().stream()
+            .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
+            .findFirst().orElse(null);
+    }
+
+    // ----------------------- LOGIN ---------------------------
     private void mostrarLogin() {
         VBox panelIzquierdo = new VBox();
         panelIzquierdo.setPrefWidth(260);
@@ -403,7 +456,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     stage.setScene(new Scene(root, 960, 620));
 }
 
-    // ?"??"? M?"DULO ALERTAS DE STOCK ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ---------------MODULO ALERTAS DE STOCK -----------------------------
 
 
 private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
@@ -431,7 +484,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     vista.setStyle("-fx-padding: 30;");
     VBox.setVgrow(vista, Priority.ALWAYS);
 
-    // ?"??"? TABLA PRENDAS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // --------------TABLA PRENDAS -------------------------
     Label tituloPrendas = new Label("Prendas Fabricadas");
     tituloPrendas.setFont(Font.font("System", FontWeight.BOLD, 15));
     tituloPrendas.setTextFill(Color.web(SECUNDARIO));
@@ -473,7 +526,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     vista.getChildren().addAll(tituloPrendas, tablaPrendas);
 
-    // ?"??"? TABLA CONJUNTOS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ---------------TABLA CONJUNTOS -------------------------
     Label tituloConjuntos = new Label("Conjuntos");
     tituloConjuntos.setFont(Font.font("System", FontWeight.BOLD, 15));
     tituloConjuntos.setTextFill(Color.web(SECUNDARIO));
@@ -513,7 +566,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     vista.getChildren().addAll(tituloConjuntos, tablaConjuntos);
 
-    // ?"??"? TABLA MATERIA PRIMA (solo admin) ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ---------------TABLA MATERIA PRIMA (solo admin) -------------------------
     if (esAdmin) {
         Label tituloMP = new Label("Materia Prima");
         tituloMP.setFont(Font.font("System", FontWeight.BOLD, 15));
@@ -595,8 +648,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     contenido.getChildren().add(wrapper);
 }
 
-// ?"??"? M?"DULO MATERIALES POR PRENDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+// ---------------MODULO MATERIALES POR PRENDA -----------------------------
     private void mostrarMaterialesPorPrenda(StackPane contenido) {
+        try {
+            recargarMaterialesPorPrendaDesdeBD();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            mostrarError("Error al cargar materiales por prenda: " + ex.getMessage());
+        }
+
         contenido.getChildren().clear();
 
         Label titulo = new Label("Materiales por Prenda");
@@ -680,7 +740,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         return String.format("%.2f", valor);
     }
 
-    // ?"??"? FORMULARIO TIPO CARRITO PARA DAR DE ALTA MATERIALES POR PRENDA ?"??"?
+    // ---------------FORMULARIO TIPO CARRITO PARA DAR DE ALTA MATERIALES POR PRENDA -----------------------------
     private void mostrarFormularioAltaMaterialPorPrenda(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -693,7 +753,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         nota.setTextFill(Color.web(TEXTO_SUAVE));
         nota.setWrapText(true);
 
-        // ?"??"? Selector de prenda ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+        // ---------------Selector de prenda -------------------------
         Label labelPrenda = new Label("Prenda:");
         labelPrenda.setFont(Font.font("System", 12));
         labelPrenda.setTextFill(Color.web(TEXTO_SUAVE));
@@ -707,7 +767,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             @Override public Prenda fromString(String s) { return null; }
         });
 
-        // ?"??"? Selector de material (aparece tras elegir prenda) ?"??"??"??"??"?
+        // ---------------Selector de material (aparece tras elegir prenda) -------------------------
         Label labelMaterial = new Label("Material:");
         labelMaterial.setFont(Font.font("System", 12));
         labelMaterial.setTextFill(Color.web(TEXTO_SUAVE));
@@ -747,7 +807,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnAgregarCarrito.setVisible(haySeleccion); btnAgregarCarrito.setManaged(haySeleccion);
         });
 
-        // ?"??"? "Carrito" temporal de materiales a dar de alta para esta prenda ?"??"?
+        // ---------------"Carrito" temporal de materiales a dar de alta para esta prenda -------------------------
         ObservableList<MaterialPorPrenda> carritoTemporal = FXCollections.observableArrayList();
 
         Label tituloCarrito = new Label("Materiales agregados");
@@ -847,16 +907,32 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeEstado.setText("Agrega al menos un material a la lista");
                 return;
             }
-            String idPrendaSel = String.valueOf(selectorPrenda.getValue().getId());
 
-            // Elimina registros previos de esa prenda con esos materiales para evitar duplicados, y agrega los nuevos
-            for (MaterialPorPrenda nuevoReg : carritoTemporal) {
-                listaMaterialesPorPrenda.removeIf(m ->
-                    m.getIdPrenda().equals(idPrendaSel) && m.getIdMateriaPrima().equals(nuevoReg.getIdMateriaPrima()));
-                listaMaterialesPorPrenda.add(nuevoReg);
+            try {
+                int idPrenda = selectorPrenda.getValue().getId();
+                List<InsumoPrenda> registros = new ArrayList<>();
+
+                for (MaterialPorPrenda mp : carritoTemporal) {
+                    InsumoPrenda ip = new InsumoPrenda(mp.getIdMateriaPrima(), idPrenda, mp.getCantidad());
+                    registros.add(ip);
+                }
+
+                int guardados = insumoPrendaDAO.insertAll(registros);
+                recargarMaterialesPorPrendaDesdeBD();
+                carritoTemporal.clear();
+
+                mensajeEstado.setTextFill(Color.web(EXITO));
+                mensajeEstado.setText("Se guardaron " + guardados + " material(es) correctamente");
+
+                mostrarMaterialesPorPrenda(contenido);
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("ID de material invalido. Debe ser numerico");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar en BD: " + ex.getMessage());
             }
-
-            mostrarMaterialesPorPrenda(contenido);
         });
 
         Button btnCancelar = new Button("Regresar sin guardar");
@@ -883,7 +959,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? M?"DULO PRENDAS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // -----------MODULO PRENDAS ---------------------
     private void mostrarModuloPrendas(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -931,7 +1007,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         if (esAdmin) {
             Button btnAnadir = new Button("+ Anadir Prenda");
             Button btnExist  = new Button("+ Anadir a Existente");
-            Button btnEditar = new Button("Editar Prenda");
+            Button btnEditar = new Button("✎ Editar Prenda");
 
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -1080,7 +1156,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         if (esAdmin) {
             Button btnAnadir = new Button("+ Nuevo Conjunto");
-            Button btnEditar = new Button("?oZ Editar Conjunto");
+            Button btnEditar = new Button("✎ Editar Conjunto");
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjunto(contenido));
@@ -1221,7 +1297,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colFechaDev.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
 
         tabla.getColumns().addAll(colId, colNombre, colTalla, colCantidad, colTipo, colPrecio, colTotal, colFechaVta, colFechaDev);
-        tabla.setItems(listaPrendasVendidas);
+        try {
+            tabla.setItems(cargarPrendasVendidasDesdeBD());
+        } catch (SQLException ex) {
+            mostrarError("Error al cargar ventas de prendas: " + ex.getMessage());
+            tabla.setItems(FXCollections.observableArrayList());
+        }
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
         Button btnDetalle = new Button("Ver Detalle");
@@ -1278,9 +1359,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un ID o nombre"); return; }
-            PrendaVendida pv = listaPrendasVendidas.stream()
-                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
+            PrendaVendida pv;
+            try {
+                pv = buscarPrendaVendidaEnBD(busqueda);
+            } catch (SQLException ex) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Error al consultar ventas: " + ex.getMessage());
+                tarjeta.setVisible(false); tarjeta.setManaged(false);
+                return;
+            }
             if (pv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
@@ -1338,32 +1425,27 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Completa los campos para registrar la venta");
+        Label subtitulo = new Label("Selecciona la prenda y captura cantidad/precio unitario");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoIdVenta      = crearTextField("ID de venta");
-        TextField campoNombrePrenda = crearTextField("Nombre de la prenda");
-        TextField campoTalla        = crearTextField("Talla");
+        Label labelPrenda = new Label("Prenda:");
+        labelPrenda.setTextFill(Color.web(TEXTO_SUAVE));
+        labelPrenda.setFont(Font.font("System", 12));
+
+        ComboBox<Prenda> selectorPrenda = new ComboBox<>();
+        selectorPrenda.setItems(listaPrendas);
+        selectorPrenda.setMaxWidth(320);
+        selectorPrenda.setStyle(estiloInput());
+        selectorPrenda.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Prenda p) {
+                return p == null ? "" : p.getNombre() + " (Talla " + p.getTalla() + ")";
+            }
+            @Override public Prenda fromString(String s) { return null; }
+        });
+
         TextField campoCantidad     = crearTextField("Cantidad");
         TextField campoPrecioUnit   = crearTextField("Precio unitario");
-        TextField campoDescripcion  = crearTextField("Descripcion");
-
-        Label labelTipoVenta = new Label("Tipo de venta:");
-        labelTipoVenta.setTextFill(Color.web(TEXTO_SUAVE));
-        labelTipoVenta.setFont(Font.font("System", 12));
-
-        ComboBox<String> selectorTipo = new ComboBox<>();
-        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
-        selectorTipo.setValue("Menudeo");
-        selectorTipo.setMaxWidth(320);
-        selectorTipo.setStyle(estiloInput());
-
-        Label labelFechaVenta = new Label("Fecha de venta (dd/MM/yyyy):");
-        labelFechaVenta.setTextFill(Color.web(TEXTO_SUAVE));
-        labelFechaVenta.setFont(Font.font("System", 12));
-
-        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacio = hoy)");
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -1377,43 +1459,56 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnCancelar.setOnAction(e -> mostrarModuloPrendasVendidas(contenido, true));
 
         btnGuardar.setOnAction(e -> {
-            String idVenta      = campoIdVenta.getText().trim();
-            String nombrePrenda = campoNombrePrenda.getText().trim();
-            String talla        = campoTalla.getText().trim();
+            Prenda prendaSeleccionada = selectorPrenda.getValue();
             String cantidadStr  = campoCantidad.getText().trim();
             String precioStr    = campoPrecioUnit.getText().trim();
-            String descripcion  = campoDescripcion.getText().trim();
-            String tipoVenta    = selectorTipo.getValue();
-            String fechaStr     = campoFechaVenta.getText().trim();
 
-            if (idVenta.isEmpty() || nombrePrenda.isEmpty() || talla.isEmpty() || cantidadStr.isEmpty() || precioStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos obligatorios deben llenarse"); return;
+            if (prendaSeleccionada == null || cantidadStr.isEmpty() || precioStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Selecciona prenda y completa cantidad/precio");
+                return;
             }
-            boolean yaExiste = listaPrendasVendidas.stream().anyMatch(pv -> pv.getIdVenta().equals(idVenta));
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un registro con ese ID de venta"); return; }
 
             try {
-                int cantidad      = Integer.parseInt(cantidadStr);
+                int cantidad = Integer.parseInt(cantidadStr);
                 double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fechaVenta;
-                if (fechaStr.isEmpty()) {
-                    fechaVenta = LocalDate.now();
-                } else {
-                    fechaVenta = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                if (cantidad <= 0 || precioUnit < 0) {
+                    mensajeEstado.setTextFill(Color.web(ERROR));
+                    mensajeEstado.setText("Cantidad y precio deben ser validos");
+                    return;
                 }
-                LocalDate fechaDevolucion = fechaVenta.plusDays(DIAS_DEVOLUCION);
-                listaPrendasVendidas.add(new PrendaVendida(idVenta, nombrePrenda, talla, cantidad, tipoVenta, precioUnit, fechaVenta, fechaDevolucion, descripcion));
+                if (cantidad > prendaSeleccionada.getExistencia()) {
+                    mensajeEstado.setTextFill(Color.web(ERROR));
+                    mensajeEstado.setText("Stock insuficiente. Disponible: " + prendaSeleccionada.getExistencia());
+                    return;
+                }
+
+                int folio = ventaDAO.crearVenta(LocalDate.now());
+                DetalleVentaPrenda detalle = new DetalleVentaPrenda(
+                    folio,
+                    prendaSeleccionada.getId(),
+                    cantidad,
+                    cantidad * precioUnit
+                );
+                detallePrendaDAO.insert(detalle);
+
+                prendaSeleccionada.setExistencia(prendaSeleccionada.getExistencia() - cantidad);
+                prendaDAO.update(prendaSeleccionada);
+
+                recargarDatos();
+                verificarConjuntos();
                 mostrarModuloPrendasVendidas(contenido, true);
-            } catch (Exception ex) {
-            mensajeEstado.setTextFill(Color.web(ERROR));
-            mensajeEstado.setText("Verifica que los datos sean validos");
-}
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Cantidad y precio deben ser numericos");
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar venta: " + ex.getMessage());
+            }
         });
 
-        VBox form = new VBox(12, titulo, subtitulo, campoIdVenta, campoNombrePrenda, campoTalla,
-                campoCantidad, campoPrecioUnit, labelTipoVenta, selectorTipo,
-                labelFechaVenta, campoFechaVenta, campoDescripcion,
-                mensajeEstado, btnGuardar, btnCancelar);
+        VBox form = new VBox(12, titulo, subtitulo, labelPrenda, selectorPrenda,
+                campoCantidad, campoPrecioUnit, mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
@@ -1428,7 +1523,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? FORMULARIO EDITAR PRENDA VENDIDA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ------------------ FORMULARIO EDITAR PRENDA VENDIDA -----------------------
     private void mostrarFormularioEditarPrendaVendida(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -1436,7 +1531,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por ID de venta o nombre de prenda");
+        Label subtitulo = new Label("Consulta una venta registrada (edicion deshabilitada para datos transaccionales)");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -1471,9 +1566,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnGuardar = new Button("Guardar Cambios");
+        Button btnGuardar = new Button("Edicion no disponible");
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnGuardar.setDisable(true);
 
         panelEdicion.getChildren().addAll(campoNombrePrenda, campoTalla, campoCantidad, campoPrecioUnit,
                 labelTipoVenta, selectorTipo, campoFechaVenta, campoDescripcion, mensajeEstado, btnGuardar);
@@ -1483,9 +1579,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un ID o nombre"); return; }
-            PrendaVendida pv = listaPrendasVendidas.stream()
-                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
+            PrendaVendida pv;
+            try {
+                pv = buscarPrendaVendidaEnBD(busqueda);
+            } catch (SQLException ex) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Error al consultar ventas: " + ex.getMessage());
+                panelEdicion.setVisible(false); panelEdicion.setManaged(false);
+                return;
+            }
             if (pv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
@@ -1499,37 +1601,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 selectorTipo.setValue(pv.getTipoVenta());
                 campoFechaVenta.setText(pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 campoDescripcion.setText(pv.getDescripcion());
-                mensajeEstado.setText("");
+                mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
+                mensajeEstado.setText("Las ventas se administran directamente en BD y no se editan desde este formulario");
                 panelEdicion.setVisible(true); panelEdicion.setManaged(true);
-            }
-        });
-
-        btnGuardar.setOnAction(e -> {
-            if (pvEncontrada[0] == null) return;
-            String nombrePrenda = campoNombrePrenda.getText().trim();
-            String talla        = campoTalla.getText().trim();
-            String cantStr      = campoCantidad.getText().trim();
-            String precioStr    = campoPrecioUnit.getText().trim();
-            String fechaStr     = campoFechaVenta.getText().trim();
-            String descripcion  = campoDescripcion.getText().trim();
-            String tipoVenta    = selectorTipo.getValue();
-
-            if (nombrePrenda.isEmpty() || talla.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty() || fechaStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
-            }
-            try {
-                int cantidad      = Integer.parseInt(cantStr);
-                double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fechaVenta = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                LocalDate fechaDev   = fechaVenta.plusDays(DIAS_DEVOLUCION);
-                PrendaVendida pv = pvEncontrada[0];
-                pv.setNombrePrenda(nombrePrenda); pv.setTalla(talla); pv.setCantidad(cantidad);
-                pv.setPrecioUnitario(precioUnit); pv.setTipoVenta(tipoVenta);
-                pv.setFechaVenta(fechaVenta); pv.setFechaLimiteDevolucion(fechaDev);
-                pv.setDescripcion(descripcion);
-                mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Registro actualizado correctamente");
-            } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
@@ -1627,7 +1701,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         if (esAdmin) {
             Button btnAnadir = new Button("+ Anadir Insumo");
             Button btnExist  = new Button("+ Anadir a Existente");
-            Button btnEditar = new Button("?oZ Editar Insumo");
+            Button btnEditar = new Button("✎ Editar Insumo");
 
             btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -1648,7 +1722,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     }
 
 
-    // ?"??"? VER DETALLE MATERIA PRIMA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ---------------VER DETALLE MATERIA PRIMA ---------------------
     private void mostrarDetalleMateriaPrima(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -1685,7 +1759,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
                 tarjeta.getChildren().clear();
-                Label lNombre = new Label(mp.getNombre() + "  ??" + mp.getTipoInsumo());
+                Label lNombre = new Label(mp.getNombre() + " " + mp.getTipoInsumo());
                 lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
                 lNombre.setTextFill(Color.web(SECUNDARIO));
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
@@ -1728,7 +1802,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? FORMULARIO NUEVO INSUMO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ------FORMULARIO NUEVO INSUMO --------------------
     private void mostrarFormularioNuevaMateriaPrima(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -2069,11 +2143,11 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre, existencia y minimo son obligatorios"); return;
             }
             try {
-                int existencia  = Integer.parseInt(existStr);
+                double existencia  = existStr.isEmpty() ? 0.0 : Double.parseDouble(existStr);
                 int minimo      = Integer.parseInt(minimoStr);
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
-                Double ancho    = anchoStr.isEmpty() ? null : Double.parseDouble(anchoStr);
-                Integer no      = noStr.isEmpty()    ? null : Integer.parseInt(noStr);
+                double ancho    = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
+                int no      = noStr.isEmpty()    ? 0 : Integer.parseInt(noStr);
 
                 Insumo mp = mpEncontrada[0];
                 mp.setNombre(nombre);
@@ -2154,7 +2228,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colFechaDev.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
 
         tabla.getColumns().addAll(colId, colNombre, colCantidad, colTipo, colPrecio, colTotal, colFechaVta, colFechaDev);
-        tabla.setItems(listaConjuntosVendidos);
+        try {
+            tabla.setItems(cargarConjuntosVendidosDesdeBD());
+        } catch (SQLException ex) {
+            mostrarError("Error al cargar ventas de conjuntos: " + ex.getMessage());
+            tabla.setItems(FXCollections.observableArrayList());
+        }
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
         Button btnDetalle = new Button("Ver Detalle");
@@ -2211,9 +2290,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un ID o nombre"); return; }
-            ConjuntoVendido cv = listaConjuntosVendidos.stream()
-                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
+            ConjuntoVendido cv;
+            try {
+                cv = buscarConjuntoVendidoEnBD(busqueda);
+            } catch (SQLException ex) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Error al consultar ventas: " + ex.getMessage());
+                tarjeta.setVisible(false); tarjeta.setManaged(false);
+                return;
+            }
             if (cv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
@@ -2286,33 +2371,27 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Completa los campos para registrar la venta");
+        Label subtitulo = new Label("Selecciona el conjunto y captura cantidad/precio unitario");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoIdVenta        = crearTextField("ID de venta");
-        TextField campoNombreConjunto = crearTextField("Nombre del conjunto");
+        Label labelConjunto = new Label("Conjunto:");
+        labelConjunto.setTextFill(Color.web(TEXTO_SUAVE));
+        labelConjunto.setFont(Font.font("System", 12));
+
+        ComboBox<Conjunto> selectorConjunto = new ComboBox<>();
+        selectorConjunto.setItems(listaConjuntos);
+        selectorConjunto.setMaxWidth(320);
+        selectorConjunto.setStyle(estiloInput());
+        selectorConjunto.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Conjunto c) {
+                return c == null ? "" : c.getNombre();
+            }
+            @Override public Conjunto fromString(String s) { return null; }
+        });
+
         TextField campoCantidad       = crearTextField("Cantidad");
         TextField campoPrecioUnit     = crearTextField("Precio unitario");
-        TextField campoDescripcion    = crearTextField("Descripcion");
-        TextField campoNombresPrendas = crearTextField("Nombres de prendas separados por coma");
-        campoNombresPrendas.setMaxWidth(400);
-
-        Label labelTipoVenta = new Label("Tipo de venta:");
-        labelTipoVenta.setTextFill(Color.web(TEXTO_SUAVE));
-        labelTipoVenta.setFont(Font.font("System", 12));
-
-        ComboBox<String> selectorTipo = new ComboBox<>();
-        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
-        selectorTipo.setValue("Menudeo");
-        selectorTipo.setMaxWidth(320);
-        selectorTipo.setStyle(estiloInput());
-
-        Label labelFechaVenta = new Label("Fecha de venta (dd/MM/yyyy):");
-        labelFechaVenta.setTextFill(Color.web(TEXTO_SUAVE));
-        labelFechaVenta.setFont(Font.font("System", 12));
-
-        TextField campoFechaVenta = crearTextField("dd/MM/yyyy  (vacio = hoy)");
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -2326,46 +2405,50 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnCancelar.setOnAction(e -> mostrarModuloConjuntosVendidos(contenido, true));
 
         btnGuardar.setOnAction(e -> {
-            String idVenta        = campoIdVenta.getText().trim();
-            String nombreConjunto = campoNombreConjunto.getText().trim();
-            String cantStr        = campoCantidad.getText().trim();
-            String precioStr      = campoPrecioUnit.getText().trim();
-            String descripcion    = campoDescripcion.getText().trim();
-            String tipoVenta      = selectorTipo.getValue();
-            String fechaStr       = campoFechaVenta.getText().trim();
-            String prendasStr     = campoNombresPrendas.getText().trim();
+            Conjunto conjuntoSeleccionado = selectorConjunto.getValue();
+            String cantStr = campoCantidad.getText().trim();
+            String precioStr = campoPrecioUnit.getText().trim();
 
-            if (idVenta.isEmpty() || nombreConjunto.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos obligatorios deben llenarse"); return;
+            if (conjuntoSeleccionado == null || cantStr.isEmpty() || precioStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Selecciona conjunto y completa cantidad/precio");
+                return;
             }
-            boolean yaExiste = listaConjuntosVendidos.stream().anyMatch(cv -> cv.getIdVenta().equals(idVenta));
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un registro con ese ID de venta"); return; }
 
             try {
-                int cantidad      = Integer.parseInt(cantStr);
+                int cantidad = Integer.parseInt(cantStr);
                 double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fechaVenta;
-                if (fechaStr.isEmpty()) {
-                    fechaVenta = LocalDate.now();
-                } else {
-                    fechaVenta = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                if (cantidad <= 0 || precioUnit < 0) {
+                    mensajeEstado.setTextFill(Color.web(ERROR));
+                    mensajeEstado.setText("Cantidad y precio deben ser validos");
+                    return;
                 }
-                LocalDate fechaDev = fechaVenta.plusDays(DIAS_DEVOLUCION);
-                List<String> nombresPrendas = new ArrayList<>();
-                if (!prendasStr.isEmpty()) {
-                    for (String s : prendasStr.split(",")) nombresPrendas.add(s.trim());
-                }
-                listaConjuntosVendidos.add(new ConjuntoVendido(idVenta, nombreConjunto, cantidad, tipoVenta, precioUnit, fechaVenta, fechaDev, descripcion, nombresPrendas));
+
+                List<DetalleVentaConjunto> detallesConjunto = new ArrayList<>();
+                detallesConjunto.add(new DetalleVentaConjunto(
+                    0,
+                    conjuntoSeleccionado.getId(),
+                    cantidad,
+                    cantidad * precioUnit
+                ));
+
+                int folio = ventaDAO.registrarVenta(new ArrayList<>(), detallesConjunto);
+                recargarDatos();
+                verificarConjuntos();
+                mensajeEstado.setTextFill(Color.web(EXITO));
+                mensajeEstado.setText("Venta registrada con folio " + folio);
                 mostrarModuloConjuntosVendidos(contenido, true);
-            } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Cantidad y precio deben ser numericos");
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al guardar venta: " + ex.getMessage());
             }
         });
 
-        VBox form = new VBox(12, titulo, subtitulo, campoIdVenta, campoNombreConjunto,
-                campoCantidad, campoPrecioUnit, labelTipoVenta, selectorTipo,
-                labelFechaVenta, campoFechaVenta, campoNombresPrendas,
-                campoDescripcion, mensajeEstado, btnGuardar, btnCancelar);
+        VBox form = new VBox(12, titulo, subtitulo, labelConjunto, selectorConjunto,
+                campoCantidad, campoPrecioUnit, mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(440);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
@@ -2388,7 +2471,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por ID de venta o nombre del conjunto");
+        Label subtitulo = new Label("Consulta una venta registrada (edicion deshabilitada para datos transaccionales)");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -2424,9 +2507,10 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
-        Button btnGuardar = new Button("Guardar Cambios");
+        Button btnGuardar = new Button("Edicion no disponible");
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnGuardar.setDisable(true);
 
         panelEdicion.getChildren().addAll(campoNombreConjunto, campoCantidad, campoPrecioUnit,
                 labelTipoVenta, selectorTipo, campoFechaVenta, campoNombresPrendas,
@@ -2437,9 +2521,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un ID o nombre"); return; }
-            ConjuntoVendido cv = listaConjuntosVendidos.stream()
-                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
+            ConjuntoVendido cv;
+            try {
+                cv = buscarConjuntoVendidoEnBD(busqueda);
+            } catch (SQLException ex) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Error al consultar ventas: " + ex.getMessage());
+                panelEdicion.setVisible(false); panelEdicion.setManaged(false);
+                return;
+            }
             if (cv == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el registro");
                 panelEdicion.setVisible(false); panelEdicion.setManaged(false);
@@ -2453,41 +2543,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 campoFechaVenta.setText(cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 campoNombresPrendas.setText(String.join(", ", cv.getNombresPrendas()));
                 campoDescripcion.setText(cv.getDescripcion());
-                mensajeEstado.setText("");
+                mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
+                mensajeEstado.setText("Las ventas se administran directamente en BD y no se editan desde este formulario");
                 panelEdicion.setVisible(true); panelEdicion.setManaged(true);
-            }
-        });
-
-        btnGuardar.setOnAction(e -> {
-            if (cvEncontrado[0] == null) return;
-            String nombreConj  = campoNombreConjunto.getText().trim();
-            String cantStr     = campoCantidad.getText().trim();
-            String precioStr   = campoPrecioUnit.getText().trim();
-            String fechaStr    = campoFechaVenta.getText().trim();
-            String descripcion = campoDescripcion.getText().trim();
-            String tipoVenta   = selectorTipo.getValue();
-            String prendasStr  = campoNombresPrendas.getText().trim();
-
-            if (nombreConj.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty() || fechaStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
-            }
-            try {
-                int cantidad      = Integer.parseInt(cantStr);
-                double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fechaVenta = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                LocalDate fechaDev   = fechaVenta.plusDays(DIAS_DEVOLUCION);
-                List<String> nombresPrendas = new ArrayList<>();
-                if (!prendasStr.isEmpty()) {
-                    for (String s : prendasStr.split(",")) nombresPrendas.add(s.trim());
-                }
-                ConjuntoVendido cv = cvEncontrado[0];
-                cv.setNombreConjunto(nombreConj); cv.setCantidad(cantidad);
-                cv.setPrecioUnitario(precioUnit); cv.setTipoVenta(tipoVenta);
-                cv.setFechaVenta(fechaVenta); cv.setFechaLimiteDevolucion(fechaDev);
-                cv.setDescripcion(descripcion); cv.setNombresPrendas(nombresPrendas);
-                mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Registro actualizado correctamente");
-            } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Verifica que los datos sean validos");
             }
         });
 
@@ -2733,7 +2791,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
         TextField campoNombre      = crearTextField("Nombre de la prenda");
-        TextField campoId          = crearTextField("ID");
+        TextField campoCodigoBarras         = crearTextField("Codigo de barras");
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
         TextField campoDescripcion = crearTextField("Descripcion");
         TextField campoExistencia  = crearTextField("Existencia inicial");
@@ -2789,7 +2847,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                     }
                 }
 
-                String codigoBarras = campoId.getText().trim();
+                String codigoBarras = campoCodigoBarras.getText().trim();
                 Prenda nuevaPrenda = new Prenda(nombre, talla, existencia, pMayoreo, pMenudeo, idTiendaInt, codigoBarras);
                 nuevaPrenda.setMinimoExistencia(minimo);
                 int idGenerado = prendaDAO.insert(nuevaPrenda);
@@ -2806,7 +2864,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             }
         });
 
-        VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoId, campoTipoPrenda,
+        VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoCodigoBarras, campoTipoPrenda,
                 campoDescripcion, labelTalla, selectorTalla, campoExistencia, campoMinimo , 
                 campoPMayoreo, campoPMenudeo, campoIdTienda, mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
@@ -2823,11 +2881,11 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? FORMULARIO A?'ADIR A EXISTENTE ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ------------------- FORMULARIO AÑADIR A EXISTENTE ----------------------------
     private void mostrarFormularioAnadirExistente(StackPane contenido) {
         contenido.getChildren().clear();
 
-        Label titulo    = new Label("Anadir a Existente");
+        Label titulo    = new Label("Añadir a Existente");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
@@ -3049,7 +3107,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? PUNTO DE VENTA ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ------------------ PUNTO DE VENTA -------------
     private void mostrarPuntoDeVenta(StackPane contenido) {
         verificarConjuntos();
         contenido.getChildren().clear();
@@ -3130,7 +3188,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
 
             if (selectorTipoBusqueda.getValue().equals("Prendas")) {
                 Prenda encontrada = listaPrendas.stream()
-                    .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(p.getId()).equals(busqueda))
+                    .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || p.getCodigoBarras().equalsIgnoreCase(busqueda))
                     .findFirst().orElse(null);
                 if (encontrada == null) {
                     mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Producto no encontrado");
@@ -3293,7 +3351,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(vista);
     }
 
-    // ?"??"? RECIBO ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // -------------- RECIBO-----------------------
     private void mostrarRecibo(StackPane contenido, ObservableList<ItemVenta> carrito) {
         contenido.getChildren().clear();
 
@@ -3313,11 +3371,6 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                         item.getSubtotal()
                     );
                     detallesPrenda.add(detalle);
-
-                    listaPrendasVendidas.add(new PrendaVendida(
-                        "TMP", item.getPrenda().getNombre(), item.getPrenda().getTalla(), item.getCantidad(),
-                        item.getTipoVenta(), item.getPrecioUnitario(), fechaHoy, fechaDevolucion, ""
-                    ));
                 } else if (item.getConjunto() != null) {
                     DetalleVentaConjunto detalle = new DetalleVentaConjunto(
                         0,
@@ -3326,25 +3379,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                         item.getSubtotal()
                     );
                     detallesConjunto.add(detalle);
-
-                    listaConjuntosVendidos.add(new ConjuntoVendido(
-                        "TMP", item.getConjunto().getNombre(), item.getCantidad(),
-                        item.getTipoVenta(), item.getPrecioUnitario(), fechaHoy, fechaDevolucion, "", new ArrayList<>()
-                    ));
                 }
             }
 
             folioGenerado = ventaDAO.registrarVenta(detallesPrenda, detallesConjunto);
-            for (PrendaVendida pv : listaPrendasVendidas) {
-                if ("TMP".equals(pv.getIdVenta())) {
-                    pv.setDescripcion("Folio " + folioGenerado);
-                }
-            }
-            for (ConjuntoVendido cv : listaConjuntosVendidos) {
-                if ("TMP".equals(cv.getIdVenta())) {
-                    cv.setDescripcion("Folio " + folioGenerado);
-                }
-            }
             recargarDatos();
             verificarConjuntos();
         } catch (SQLException ex) {
@@ -3439,408 +3477,312 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? DEVOLUCIONES ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // --------------- DEVOLUCIONES --------------
     private void mostrarDevoluciones(StackPane contenido) {
         contenido.getChildren().clear();
- 
+
         Label titulo = new Label("Devoluciones");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
- 
-        Label subtitulo = new Label("Busca por ID de venta o nombre del producto para procesar la devolucion");
+
+        Label subtitulo = new Label("Busca por folio o nombre de prenda/conjunto y procesa devoluciones desde BD");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
- 
-        TextField campoBusqueda = crearTextField("ID de venta o nombre de prenda/conjunto");
-        campoBusqueda.setMaxWidth(400);
- 
-        Label mensajeBusqueda = new Label("");
-        mensajeBusqueda.setFont(Font.font("System", 12));
- 
-        VBox panelResultado = new VBox(12);
-        panelResultado.setStyle(
-            "-fx-background-color: #FFF7ED; -fx-border-color: " + NARANJA + ";" +
-            "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 16;");
-        panelResultado.setVisible(false);
-        panelResultado.setManaged(false);
-        panelResultado.setMaxWidth(480);
- 
-        final PrendaVendida[]   pvRef = {null};
-        final ConjuntoVendido[] cvRef = {null};
- 
-        Label labelNombre      = new Label("");
-        Label labelFechaVenta  = new Label("");
-        Label labelLimite      = new Label("");
-        Label labelEstadoDev   = new Label("");
-        Label labelCantVendida = new Label("");
- 
-        labelNombre.setFont(Font.font("System", FontWeight.BOLD, 15));
-        labelNombre.setTextFill(Color.web(SECUNDARIO));
-        for (Label l : new Label[]{labelFechaVenta, labelLimite, labelCantVendida}) {
-            l.setFont(Font.font("System", 12));
-            l.setTextFill(Color.web(TEXTO_SUAVE));
-        }
-        labelEstadoDev.setFont(Font.font("System", FontWeight.BOLD, 12));
- 
-        Label labelCantDev = new Label("Cantidad a devolver:");
-        labelCantDev.setFont(Font.font("System", 12));
-        labelCantDev.setTextFill(Color.web(TEXTO_SUAVE));
- 
+
+        TextField campoBusqueda = crearTextField("Folio o nombre del producto");
+        campoBusqueda.setMaxWidth(420);
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        TableView<VentaResumen> tabla = new TableView<>();
+        tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tabla.setPlaceholder(new Label("Busca ventas para procesar devoluciones"));
+        tabla.setMinHeight(260);
+
+        TableColumn<VentaResumen, String> colFolio = new TableColumn<>("Folio");
+        TableColumn<VentaResumen, String> colFecha = new TableColumn<>("Fecha Venta");
+        TableColumn<VentaResumen, String> colTipo = new TableColumn<>("Tipo");
+        TableColumn<VentaResumen, String> colProducto = new TableColumn<>("Producto");
+        TableColumn<VentaResumen, String> colTalla = new TableColumn<>("Talla");
+        TableColumn<VentaResumen, String> colCantidad = new TableColumn<>("Cant.");
+        TableColumn<VentaResumen, String> colTotal = new TableColumn<>("Total");
+        TableColumn<VentaResumen, String> colEstado = new TableColumn<>("Estado");
+
+        colFolio.setPrefWidth(80);
+        colFecha.setPrefWidth(110);
+        colTipo.setPrefWidth(100);
+        colProducto.setPrefWidth(220);
+        colTalla.setPrefWidth(70);
+        colCantidad.setPrefWidth(70);
+        colTotal.setPrefWidth(100);
+        colEstado.setPrefWidth(100);
+
+        colFolio.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getFolioVenta())));
+        colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoItem()));
+        colProducto.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombreItem()));
+        colTalla.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTalla() == null || d.getValue().getTalla().isEmpty() ? "-" : d.getValue().getTalla()));
+        colCantidad.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getCantidadVendida())));
+        colTotal.setCellValueFactory(d -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getTotal())));
+        colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado()));
+
+        tabla.getColumns().addAll(colFolio, colFecha, colTipo, colProducto, colTalla, colCantidad, colTotal, colEstado);
+
+        Label labelCantidad = new Label("Cantidad a devolver:");
+        labelCantidad.setTextFill(Color.web(TEXTO_SUAVE));
+        labelCantidad.setFont(Font.font("System", 12));
+
         TextField campoCantidad = crearTextField("Cantidad");
-        campoCantidad.setMaxWidth(200);
- 
-        Label mensajeDevolucion = new Label("");
-        mensajeDevolucion.setFont(Font.font("System", 12));
- 
-        Button btnConfirmar = new Button("Confirmar Devolucion");
-        btnConfirmar.setStyle(
-            "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
-            "-fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
- 
-        Region sepInterno = new Region();
-        sepInterno.setPrefHeight(1);
-        sepInterno.setStyle("-fx-background-color: #E5E7EB;");
- 
-        panelResultado.getChildren().addAll(
-            labelNombre, sepInterno,
-            labelFechaVenta, labelLimite, labelEstadoDev, labelCantVendida,
-            labelCantDev, campoCantidad, mensajeDevolucion, btnConfirmar
-        );
- 
+        campoCantidad.setMaxWidth(180);
+
         Button btnBuscar = new Button("Buscar");
         btnBuscar.setStyle(estiloBtnPrincipal());
- 
+
+        Button btnProcesar = new Button("Procesar Devolucion");
+        btnProcesar.setStyle("-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        tabla.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, selected) -> {
+            if (selected != null) {
+                campoCantidad.setText(String.valueOf(selected.getCantidadVendida()));
+            }
+        });
+
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
             if (busqueda.isEmpty()) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("Ingresa un ID de venta o nombre");
-                return;
-            }
- 
-            pvRef[0] = null; cvRef[0] = null;
-            mensajeDevolucion.setText(""); campoCantidad.clear();
- 
-            PrendaVendida pv = listaPrendasVendidas.stream()
-                .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombrePrenda().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
- 
-            ConjuntoVendido cv = null;
-            if (pv == null) {
-                cv = listaConjuntosVendidos.stream()
-                    .filter(x -> x.getIdVenta().equalsIgnoreCase(busqueda) || x.getNombreConjunto().equalsIgnoreCase(busqueda))
-                    .findFirst().orElse(null);
-            }
- 
-            if (pv == null && cv == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("No se encontro ninguna venta con ese dato");
-                panelResultado.setVisible(false); panelResultado.setManaged(false);
-                return;
-            }
- 
-            boolean dentroDelPlazo;
-            if (pv != null) {
-                pvRef[0] = pv;
-                dentroDelPlazo = !LocalDate.now().isAfter(pv.getFechaLimiteDevolucion());
-                labelNombre.setText("Prenda: " + pv.getNombrePrenda() + " Talla " + pv.getTalla());
-                labelFechaVenta.setText("Fecha de venta: " + pv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelLimite.setText("Limite de devolucion: " + pv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
-            } else {
-                cvRef[0] = cv;
-                dentroDelPlazo = !LocalDate.now().isAfter(cv.getFechaLimiteDevolucion());
-                labelNombre.setText("Conjunto: " + cv.getNombreConjunto());
-                labelFechaVenta.setText("Fecha de venta: " + cv.getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelLimite.setText("Limite de devolucion: " + cv.getFechaLimiteDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
-            }
- 
-            labelEstadoDev.setText(dentroDelPlazo
-                ? "Dentro del periodo de devolucion"
-                : "Periodo de devolucion vencido (se puede registrar igualmente)");
-            labelEstadoDev.setTextFill(Color.web(dentroDelPlazo ? EXITO : ADVERTENCIA));
- 
-            mensajeBusqueda.setTextFill(Color.web(EXITO));
-            mensajeBusqueda.setText("Venta encontrada");
-            panelResultado.setVisible(true); panelResultado.setManaged(true);
-        });
- 
-        btnConfirmar.setOnAction(e -> {
-            String cantStr = campoCantidad.getText().trim();
-            if (cantStr.isEmpty()) {
-                mensajeDevolucion.setTextFill(Color.web(ERROR));
-                mensajeDevolucion.setText("Ingresa la cantidad a devolver");
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Ingresa un folio o nombre para buscar");
                 return;
             }
             try {
-                int cantDevolver = Integer.parseInt(cantStr);
-                if (cantDevolver <= 0) {
-                    mensajeDevolucion.setTextFill(Color.web(ERROR));
-                    mensajeDevolucion.setText("La cantidad debe ser mayor a 0");
-                    return;
-                }
- 
-                if (pvRef[0] != null) {
-                    PrendaVendida pv = pvRef[0];
-                    if (cantDevolver > pv.getCantidad()) {
-                        mensajeDevolucion.setTextFill(Color.web(ERROR));
-                        mensajeDevolucion.setText("No puedes devolver mas de " + pv.getCantidad() + " unidades");
-                        return;
-                    }
- 
-                    Prenda prendaExistente = listaPrendas.stream()
-                        .filter(p -> p.getNombre().equalsIgnoreCase(pv.getNombrePrenda())
-                                  && p.getTalla().equalsIgnoreCase(pv.getTalla()))
-                        .findFirst().orElse(null);
- 
-                    if (prendaExistente != null) {
-                        try {
-                            prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
-                            prendaDAO.update(prendaExistente);
-
-                            int folioVenta = Integer.parseInt(pv.getIdVenta().replaceAll("[^0-9]", ""));
-                            DevolucionPrenda devolucion = new DevolucionPrenda(
-                                devolucionPrendaDAO.getNextId(),
-                                folioVenta,
-                                prendaExistente.getId(),
-                                LocalDate.now()
-                            );
-                            devolucionPrendaDAO.insert(devolucion);
-                            recargarDatos();
-                        } catch (SQLException ex) {
-                            mensajeDevolucion.setTextFill(Color.web(ERROR));
-                            mensajeDevolucion.setText("Error al procesar devolucion: " + ex.getMessage());
-                            return;
-                        }
-                    } else {
-                        String idNuevo = "DEV-" + contadorIdVenta++;
-                        listaPrendas.add(new Prenda(
-                            pv.getNombrePrenda(), idNuevo, pv.getTalla(),
-                            "Devuelto", cantDevolver,
-                            pv.getPrecioUnitario(), pv.getPrecioUnitario(),
-                            "??", "Prenda devuelta ID venta: " + pv.getIdVenta()
-                        ));
-                    }
- 
-                    boolean eliminarRegistro = (cantDevolver == pv.getCantidad());
-                    String idVentaOriginal = pv.getIdVenta();
-                    String nombreProd = pv.getNombrePrenda();
-                    String tallaProd  = pv.getTalla();
-                    String tipoVentaProd = pv.getTipoVenta();
-                    double precioUnitProd = pv.getPrecioUnitario();
- 
-                    if (eliminarRegistro) {
-                        listaPrendasVendidas.remove(pv);
-                        pvRef[0] = null;
-                        panelResultado.setVisible(false); panelResultado.setManaged(false);
-                        campoBusqueda.clear(); mensajeBusqueda.setText("");
-                    } else {
-                        pv.setCantidad(pv.getCantidad() - cantDevolver);
-                        labelCantVendida.setText("Cantidad vendida: " + pv.getCantidad() + "   |   Tipo: " + pv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", pv.getPrecioUnitario()));
-                    }
- 
-                    // Abrir formulario para capturar el motivo y registrar la devolucion
-                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, tallaProd,
-                        cantDevolver, tipoVentaProd, precioUnitProd, false);
-                    return;
- 
-                } else if (cvRef[0] != null) {
-                    ConjuntoVendido cv = cvRef[0];
-                    if (cantDevolver > cv.getCantidad()) {
-                        mensajeDevolucion.setTextFill(Color.web(ERROR));
-                        mensajeDevolucion.setText("No puedes devolver mas de " + cv.getCantidad() + " unidades");
-                        return;
-                    }
- 
-                    for (String nombrePrendaConj : cv.getNombresPrendas()) {
-                        String nombreBase    = nombrePrendaConj;
-                        String tallaExtraida = "";
-                        int idxParen = nombrePrendaConj.lastIndexOf("(Talla ");
-                        if (idxParen >= 0) {
-                            nombreBase    = nombrePrendaConj.substring(0, idxParen).trim();
-                            tallaExtraida = nombrePrendaConj.substring(idxParen + 7, nombrePrendaConj.lastIndexOf(")")).trim();
-                        }
-                        final String nBase = nombreBase;
-                        final String talla = tallaExtraida;
- 
-                        Prenda prendaExistente = listaPrendas.stream()
-                            .filter(p -> p.getNombre().equalsIgnoreCase(nBase)
-                                      && (talla.isEmpty() || p.getTalla().equalsIgnoreCase(talla)))
-                            .findFirst().orElse(null);
- 
-                        if (prendaExistente != null) {
-                            try {
-                                prendaExistente.setExistencia(prendaExistente.getExistencia() + cantDevolver);
-                                prendaDAO.update(prendaExistente);
-                            } catch (SQLException ex) {
-                                mensajeDevolucion.setTextFill(Color.web(ERROR));
-                                mensajeDevolucion.setText("Error al actualizar stock: " + ex.getMessage());
-                                return;
-                            }
-                        } else {
-                            String idNuevo = "DEV-" + contadorIdVenta++;
-                            listaPrendas.add(new Prenda(
-                                nBase, idNuevo, talla.isEmpty() ? "?" : talla,
-                                "Devuelto", cantDevolver, 0.0, 0.0, "??",
-                                "Prenda devuelta de conjunto ID venta: " + cv.getIdVenta()
-                            ));
-                        }
-                    }
-
-                    try {
-                        int folioVenta = Integer.parseInt(cv.getIdVenta().replaceAll("[^0-9]", ""));
-                        int idConjunto = listaConjuntos.stream()
-                            .filter(c -> c.getNombre().equalsIgnoreCase(cv.getNombreConjunto()))
-                            .map(Conjunto::getId)
-                            .findFirst()
-                            .orElse(0);
-                        if (idConjunto > 0) {
-                            DevolucionConjunto devolucion = new DevolucionConjunto(
-                                devolucionConjuntoDAO.getNextId(),
-                                folioVenta,
-                                idConjunto,
-                                LocalDate.now()
-                            );
-                            devolucionConjuntoDAO.insert(devolucion);
-                        }
-                        recargarDatos();
-                    } catch (SQLException ex) {
-                        mensajeDevolucion.setTextFill(Color.web(ERROR));
-                        mensajeDevolucion.setText("Error al registrar devolucion: " + ex.getMessage());
-                        return;
-                    }
- 
-                    boolean eliminarRegistro = (cantDevolver == cv.getCantidad());
-                    String idVentaOriginal = cv.getIdVenta();
-                    String nombreProd = cv.getNombreConjunto();
-                    String tipoVentaProd = cv.getTipoVenta();
-                    double precioUnitProd = cv.getPrecioUnitario();
- 
-                    if (eliminarRegistro) {
-                        listaConjuntosVendidos.remove(cv);
-                        cvRef[0] = null;
-                        panelResultado.setVisible(false); panelResultado.setManaged(false);
-                        campoBusqueda.clear(); mensajeBusqueda.setText("");
-                    } else {
-                        cv.setCantidad(cv.getCantidad() - cantDevolver);
-                        labelCantVendida.setText("Cantidad vendida: " + cv.getCantidad() + "   |   Tipo: " + cv.getTipoVenta() + "   |   Precio unit.: $" + String.format("%.2f", cv.getPrecioUnitario()));
-                    }
- 
-                    mostrarFormularioMotivoDevolucion(contenido, idVentaOriginal, nombreProd, "??",
-                        cantDevolver, tipoVentaProd, precioUnitProd, true);
-                    return;
-                }
- 
-            } catch (NumberFormatException ex) {
-                mensajeDevolucion.setTextFill(Color.web(ERROR));
-                mensajeDevolucion.setText("Ingresa una cantidad valida");
+                ObservableList<VentaResumen> resultados = ventaDAO.buscarVentasResumen(busqueda);
+                tabla.setItems(resultados);
+                mensajeEstado.setTextFill(resultados.isEmpty() ? Color.web(ADVERTENCIA) : Color.web(EXITO));
+                mensajeEstado.setText(resultados.isEmpty() ? "Sin resultados" : "Se encontraron " + resultados.size() + " resultado(s)");
+            } catch (SQLException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Error al buscar ventas: " + ex.getMessage());
             }
         });
- 
-        VBox form = new VBox(14, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado);
-        form.setAlignment(Pos.TOP_LEFT);
-        form.setMaxWidth(520);
-        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
- 
-        ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(false);
+
+        btnProcesar.setOnAction(e -> {
+            VentaResumen seleccion = tabla.getSelectionModel().getSelectedItem();
+            if (seleccion == null) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Selecciona un registro para devolver");
+                return;
+            }
+            if ("DEVUELTO".equalsIgnoreCase(seleccion.getEstado())) {
+                mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
+                mensajeEstado.setText("Ese registro ya fue devuelto");
+                return;
+            }
+            int cantidad;
+            try {
+                cantidad = Integer.parseInt(campoCantidad.getText().trim());
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Ingresa una cantidad valida");
+                return;
+            }
+
+            if ("PRENDA".equalsIgnoreCase(seleccion.getTipoItem())) {
+                mostrarFormularioDevolucion(contenido, seleccion.getFolioVenta(), seleccion.getIdItem());
+            } else {
+                procesarDevolucionConjunto(contenido, seleccion, cantidad);
+            }
+        });
+
+        HBox acciones = new HBox(10, btnBuscar, labelCantidad, campoCantidad, btnProcesar);
+        acciones.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vista = new VBox(14, titulo, subtitulo, campoBusqueda, acciones, mensajeEstado, tabla);
+        vista.setStyle("-fx-padding: 30;");
+
+        ScrollPane scroll = new ScrollPane(vista);
+        scroll.setFitToWidth(true);
         scroll.setFitToHeight(false);
         scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
- 
+
         StackPane wrapper = new StackPane(scroll);
+        wrapper.setStyle("-fx-background-color: " + FONDO + ";");
+        contenido.getChildren().add(wrapper);
+    }
+
+    private void mostrarFormularioDevolucion(StackPane contenido, int folioVenta, int idPrenda) {
+        contenido.getChildren().clear();
+
+        Label titulo = new Label("Procesar Devolucion de Prenda");
+        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label subtitulo = new Label("Confirma la cantidad a devolver. La fecha se registra automaticamente.");
+        subtitulo.setFont(Font.font("System", 12));
+        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
+
+        Label labelInfo = new Label("");
+        labelInfo.setFont(Font.font("System", 12));
+        labelInfo.setTextFill(Color.web(TEXTO));
+
+        TextField campoCantidad = crearTextField("Cantidad a devolver");
+        campoCantidad.setMaxWidth(220);
+
+        Label mensajeEstado = new Label("");
+        mensajeEstado.setFont(Font.font("System", 12));
+
+        final VentaResumen[] ventaRef = {null};
+        try {
+            DetalleVentaPrenda detalle = detallePrendaDAO.obtenerPorFolioYPrenda(folioVenta, idPrenda);
+            Venta venta = ventaDAO.getById(folioVenta);
+            Prenda prenda = prendaDAO.getById(idPrenda);
+            if (detalle == null || venta == null || prenda == null) {
+                mostrarError("No se pudo cargar la venta/prenda para devolucion");
+                mostrarDevoluciones(contenido);
+                return;
+            }
+            ventaRef[0] = new VentaResumen(
+                folioVenta,
+                venta.getFecha(),
+                "PRENDA",
+                idPrenda,
+                prenda.getNombre(),
+                prenda.getTalla(),
+                detalle.getCantidad(),
+                detalle.getTotal(),
+                "ACTIVO"
+            );
+            labelInfo.setText("Folio: " + folioVenta + " | Prenda: " + prenda.getNombre() + " (" + prenda.getTalla() + ") | Vendido: " + detalle.getCantidad());
+            campoCantidad.setText(String.valueOf(detalle.getCantidad()));
+        } catch (SQLException ex) {
+            mostrarError("Error al cargar datos de devolucion: " + ex.getMessage());
+            mostrarDevoluciones(contenido);
+            return;
+        }
+
+        Button btnProcesar = new Button("Confirmar Devolucion");
+        btnProcesar.setStyle("-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnProcesar.setOnAction(e -> {
+            int cantidad;
+            try {
+                cantidad = Integer.parseInt(campoCantidad.getText().trim());
+            } catch (NumberFormatException ex) {
+                mensajeEstado.setTextFill(Color.web(ERROR));
+                mensajeEstado.setText("Cantidad invalida");
+                return;
+            }
+            procesarDevolucionPrenda(contenido, ventaRef[0], cantidad);
+        });
+
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnCancelar.setOnAction(e -> mostrarDevoluciones(contenido));
+
+        VBox form = new VBox(12, titulo, subtitulo, labelInfo, campoCantidad, mensajeEstado, btnProcesar, btnCancelar);
+        form.setAlignment(Pos.TOP_LEFT);
+        form.setMaxWidth(560);
+        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+        StackPane wrapper = new StackPane(form);
         wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
         wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
     }
- 
-    // ?"??"? FORMULARIO CAPTURA DE MOTIVO (tras confirmar devolucion) ?"??"??"??"??"?
-    private void mostrarFormularioMotivoDevolucion(StackPane contenido, String idVentaOriginal,
-            String nombreProducto, String talla, int cantidad, String tipoVenta,
-            double precioUnitario, boolean esConjunto) {
-        contenido.getChildren().clear();
- 
-        Label titulo = new Label("Confirmar Devolucion");
-        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
-        titulo.setTextFill(Color.web(SECUNDARIO));
- 
-        Label subtitulo = new Label("La devolucion ya fue procesada en el inventario. Indica el motivo para completar el registro.");
-        subtitulo.setFont(Font.font("System", 12));
-        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
-        subtitulo.setWrapText(true);
- 
-        VBox tarjetaInfo = new VBox(8);
-        tarjetaInfo.setStyle("-fx-background-color: #F0FDF4; -fx-border-color: " + EXITO + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 16;");
- 
-        double total = cantidad * precioUnitario;
- 
-        tarjetaInfo.getChildren().addAll(
-            filaDetalle("ID venta original:", idVentaOriginal),
-            filaDetalle("Producto:", nombreProducto + (esConjunto ? " (Conjunto)" : "")),
-            filaDetalle("Talla:", talla),
-            filaDetalle("Cantidad devuelta:", String.valueOf(cantidad)),
-            filaDetalle("Tipo de venta:", tipoVenta),
-            filaDetalle("Precio unitario:", "$" + String.format("%.2f", precioUnitario)),
-            filaDetalle("Reembolso:", "$" + String.format("%.2f", total))
-        );
- 
-        Label labelMotivo = new Label("Motivo de la devolucion:");
-        labelMotivo.setFont(Font.font("System", 12));
-        labelMotivo.setTextFill(Color.web(TEXTO_SUAVE));
- 
-        TextField campoMotivo = crearTextField("Ej: Talla incorrecta, defecto de fabrica...");
-        campoMotivo.setMaxWidth(400);
- 
-        Label mensajeEstado = new Label("");
-        mensajeEstado.setFont(Font.font("System", 12));
- 
-        Button btnGuardar = new Button("Guardar Registro de Devolucion");
-        btnGuardar.setMaxWidth(320);
-        btnGuardar.setStyle(
-            "-fx-background-color: " + EXITO + "; -fx-text-fill: white; -fx-font-weight: bold;" +
-            "-fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
- 
-        btnGuardar.setOnAction(e -> {
-    String motivo = campoMotivo.getText().trim();
-    String idDevolucion = "DEVREG-" + contadorIdVenta++;
-    listaDevolucionesRegistradas.add(new DevolucionRegistrada(
-        idDevolucion, nombreProducto, talla, cantidad, tipoVenta, precioUnitario,
-        LocalDate.now(), motivo.isEmpty() ? "Sin motivo especificado" : motivo
-    ));
-    mostrarDevoluciones(contenido);
-});
- 
-        Button btnOmitir = new Button("Omitir y regresar sin guardar motivo");
-        btnOmitir.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
-        btnOmitir.setOnAction(e -> {
-            String idDevolucion = "DEVREG-" + contadorIdVenta++;
-            listaDevolucionesRegistradas.add(new DevolucionRegistrada(
-                idDevolucion, nombreProducto, talla, cantidad, tipoVenta, precioUnitario,
-                LocalDate.now(), "No especificado"
-            ));
+
+    private void procesarDevolucionPrenda(StackPane contenido, VentaResumen venta, int cantidad) {
+        Connection conn = Conexion.getConnection();
+        try {
+            boolean initialAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+
+            if (!ventaDAO.existeVenta(venta.getFolioVenta())) {
+                throw new SQLException("La venta no existe");
+            }
+
+            DetalleVentaPrenda detalle = detallePrendaDAO.obtenerPorFolioYPrenda(conn, venta.getFolioVenta(), venta.getIdItem());
+            if (detalle == null) {
+                throw new SQLException("La prenda no fue vendida en ese folio");
+            }
+            if (devolucionPrendaDAO.existeDevolucion(conn, venta.getFolioVenta(), venta.getIdItem())) {
+                throw new SQLException("Esta prenda ya fue devuelta");
+            }
+            if (cantidad <= 0 || cantidad > detalle.getCantidad()) {
+                throw new SQLException("Cantidad invalida. Maximo permitido: " + detalle.getCantidad());
+            }
+            if (cantidad != detalle.getCantidad()) {
+                throw new SQLException("La estructura actual permite solo devolucion total de la linea vendida (" + detalle.getCantidad() + ")");
+            }
+
+            devolucionPrendaDAO.insertar(conn, new DevolucionPrenda(venta.getFolioVenta(), venta.getIdItem(), LocalDate.now()));
+
+            Prenda prenda = prendaDAO.getById(venta.getIdItem());
+            if (prenda == null) {
+                throw new SQLException("No se encontro la prenda para actualizar stock");
+            }
+            prenda.setExistencia(prenda.getExistencia() + cantidad);
+            prendaDAO.update(prenda);
+
+            conn.commit();
+            conn.setAutoCommit(initialAutoCommit);
+            recargarDatos();
             mostrarDevoluciones(contenido);
-        });
- 
-        VBox form = new VBox(14, titulo, subtitulo, tarjetaInfo, labelMotivo, campoMotivo,
-                mensajeEstado, btnGuardar, btnOmitir);
-        form.setAlignment(Pos.TOP_LEFT);
-        form.setMaxWidth(520);
-        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
- 
-        ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(false);
-        scroll.setFitToHeight(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
- 
-        StackPane wrapper = new StackPane(scroll);
-        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
-        wrapper.setAlignment(Pos.CENTER);
-        contenido.getChildren().add(wrapper);
+        } catch (SQLException ex) {
+            try { conn.rollback(); } catch (SQLException ignored) {}
+            mostrarError("Error al procesar devolucion de prenda: " + ex.getMessage());
+            try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+        }
+    }
+
+    private void procesarDevolucionConjunto(StackPane contenido, VentaResumen venta, int cantidad) {
+        Connection conn = Conexion.getConnection();
+        try {
+            boolean initialAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+
+            if (!ventaDAO.existeVenta(venta.getFolioVenta())) {
+                throw new SQLException("La venta no existe");
+            }
+
+            DetalleVentaConjunto detalle = detalleConjuntoDAO.obtenerPorFolioYConjunto(conn, venta.getFolioVenta(), venta.getIdItem());
+            if (detalle == null) {
+                throw new SQLException("El conjunto no fue vendido en ese folio");
+            }
+            if (devolucionConjuntoDAO.existeDevolucion(conn, venta.getFolioVenta(), venta.getIdItem())) {
+                throw new SQLException("Este conjunto ya fue devuelto");
+            }
+            if (cantidad <= 0 || cantidad > detalle.getCantidad()) {
+                throw new SQLException("Cantidad invalida. Maximo permitido: " + detalle.getCantidad());
+            }
+            if (cantidad != detalle.getCantidad()) {
+                throw new SQLException("La estructura actual permite solo devolucion total de la linea vendida (" + detalle.getCantidad() + ")");
+            }
+
+            devolucionConjuntoDAO.insertar(conn, new DevolucionConjunto(venta.getFolioVenta(), venta.getIdItem(), LocalDate.now()));
+
+            List<PrendaConjunto> prendasConjunto = prendaConjuntoDAO.getByConjunto(venta.getIdItem());
+            for (PrendaConjunto pc : prendasConjunto) {
+                Prenda prenda = prendaDAO.getById(pc.getIdPrenda());
+                if (prenda != null) {
+                    prenda.setExistencia(prenda.getExistencia() + cantidad);
+                    prendaDAO.update(prenda);
+                }
+            }
+
+            conn.commit();
+            conn.setAutoCommit(initialAutoCommit);
+            recargarDatos();
+            mostrarDevoluciones(contenido);
+        } catch (SQLException ex) {
+            try { conn.rollback(); } catch (SQLException ignored) {}
+            mostrarError("Error al procesar devolucion de conjunto: " + ex.getMessage());
+            try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+        }
     }
  
  
 
-    // ?"??"? M?"DULO USUARIOS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    // ----------- M?"DULO USUARIOS ------------------
     private void mostrarModuloUsuarios(StackPane contenido) {
         contenido.getChildren().clear();
 
@@ -4064,9 +4006,7 @@ private String calcularColorAlertaEncargado() {
 
     public static void main(String[] args) { launch(); }
 
-    // ?"??"? REGISTRO DE DEVOLUCIONES ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
-    private ObservableList<DevolucionRegistrada> listaDevolucionesRegistradas = FXCollections.observableArrayList();
-
+    // REGISTRO DE DEVOLUCIONES
     private void mostrarRegistroDevoluciones(StackPane contenido, boolean esAdmin) {
         contenido.getChildren().clear();
 
@@ -4074,330 +4014,82 @@ private String calcularColorAlertaEncargado() {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        TableView<DevolucionRegistrada> tabla = new TableView<>();
-        tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
-        tabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        tabla.setPlaceholder(new Label("No hay devoluciones registradas"));
-        tabla.setMinHeight(200);
-        tabla.setRowFactory(tv -> {
-            TableRow<DevolucionRegistrada> row = new TableRow<>();
-            row.setPrefHeight(48);
-            return row;
-        });
+        TabPane tabs = new TabPane();
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        TableColumn<DevolucionRegistrada, String> colId       = new TableColumn<>("ID Dev.");
-        TableColumn<DevolucionRegistrada, String> colProducto = new TableColumn<>("Producto");
-        TableColumn<DevolucionRegistrada, String> colTalla    = new TableColumn<>("Talla");
-        TableColumn<DevolucionRegistrada, String> colCantidad = new TableColumn<>("Cant.");
-        TableColumn<DevolucionRegistrada, String> colTipo     = new TableColumn<>("Tipo");
-        TableColumn<DevolucionRegistrada, String> colPrecio   = new TableColumn<>("Precio Unit.");
-        TableColumn<DevolucionRegistrada, String> colTotal    = new TableColumn<>("Total Dev.");
-        TableColumn<DevolucionRegistrada, String> colFecha    = new TableColumn<>("Fecha Dev.");
-        TableColumn<DevolucionRegistrada, String> colMotivo   = new TableColumn<>("Motivo");
+        TableView<DevolucionVista> tablaPrendas = new TableView<>();
+        tablaPrendas.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tablaPrendas.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tablaPrendas.setPlaceholder(new Label("Sin devoluciones de prendas"));
 
-        colId.setPrefWidth(100);
-        colProducto.setPrefWidth(160);
-        colTalla.setPrefWidth(70);
-        colCantidad.setPrefWidth(60);
-        colTipo.setPrefWidth(90);
-        colPrecio.setPrefWidth(100);
-        colTotal.setPrefWidth(100);
-        colFecha.setPrefWidth(100);
-        colMotivo.setPrefWidth(320);
+        TableColumn<DevolucionVista, String> colFolioP = new TableColumn<>("Folio");
+        TableColumn<DevolucionVista, String> colNombreP = new TableColumn<>("Prenda");
+        TableColumn<DevolucionVista, String> colTallaP = new TableColumn<>("Talla");
+        TableColumn<DevolucionVista, String> colFechaVentaP = new TableColumn<>("Fecha Venta");
+        TableColumn<DevolucionVista, String> colFechaDevP = new TableColumn<>("Fecha Devolucion");
 
-        colId.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getIdDevolucion()));
-        colProducto.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombreProducto()));
-        colTalla.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTalla()));
-        colCantidad.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getCantidad())));
-        colTipo.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getTipoVenta()));
-        colPrecio.setCellValueFactory(d   -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getPrecioUnitario())));
-        colTotal.setCellValueFactory(d    -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getTotal())));
-        colFecha.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
-        colMotivo.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getMotivo()));
+        colFolioP.setPrefWidth(90);
+        colNombreP.setPrefWidth(220);
+        colTallaP.setPrefWidth(90);
+        colFechaVentaP.setPrefWidth(120);
+        colFechaDevP.setPrefWidth(140);
 
-        // Celda con wrap-text para que el motivo se lea completo sin cortarse
-        colMotivo.setCellFactory(col -> new TableCell<DevolucionRegistrada, String>() {
-            private final Text text = new Text();
-            {
-                text.wrappingWidthProperty().bind(colMotivo.widthProperty().subtract(10));
-                setGraphic(text);
-                setPrefHeight(Region.USE_COMPUTED_SIZE);
-            }
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    text.setText(null);
-                } else {
-                    text.setText(item);
-                }
-            }
-        });
+        colFolioP.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getFolioVenta())));
+        colNombreP.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombrePrenda()));
+        colTallaP.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTalla()));
+        colFechaVentaP.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        colFechaDevP.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
 
-        tabla.getColumns().addAll(colId, colProducto, colTalla, colCantidad, colTipo, colPrecio, colTotal, colFecha, colMotivo);
-        tabla.setItems(listaDevolucionesRegistradas);
+        tablaPrendas.getColumns().addAll(colFolioP, colNombreP, colTallaP, colFechaVentaP, colFechaDevP);
 
-        ScrollPane scrollTabla = new ScrollPane(tabla);
-        scrollTabla.setFitToHeight(true);
-        scrollTabla.setFitToWidth(false);
-        scrollTabla.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollTabla.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollTabla.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
-        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
+        TableView<DevolucionConjuntoVista> tablaConjuntos = new TableView<>();
+        tablaConjuntos.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
+        tablaConjuntos.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tablaConjuntos.setPlaceholder(new Label("Sin devoluciones de conjuntos"));
 
-        VBox vista = new VBox(16, titulo, scrollTabla);
-        vista.setStyle("-fx-padding: 30;");
-        VBox.setVgrow(scrollTabla, Priority.ALWAYS);
-        VBox.setVgrow(vista, Priority.ALWAYS);
+        TableColumn<DevolucionConjuntoVista, String> colFolioC = new TableColumn<>("Folio");
+        TableColumn<DevolucionConjuntoVista, String> colNombreC = new TableColumn<>("Conjunto");
+        TableColumn<DevolucionConjuntoVista, String> colFechaVentaC = new TableColumn<>("Fecha Venta");
+        TableColumn<DevolucionConjuntoVista, String> colFechaDevC = new TableColumn<>("Fecha Devolucion");
 
-        if (esAdmin) {
-            Button btnNuevo = new Button("+ Registrar Devolucion");
-            Button btnEditar = new Button("Editar Registro");
-            btnNuevo.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
-            btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
-            btnNuevo.setOnAction(e  -> mostrarFormularioNuevaDevolucion(contenido));
-            btnEditar.setOnAction(e -> mostrarFormularioEditarDevolucion(contenido));
-            HBox botones = new HBox(12, btnNuevo, btnEditar);
-            vista.getChildren().add(botones);
+        colFolioC.setPrefWidth(90);
+        colNombreC.setPrefWidth(260);
+        colFechaVentaC.setPrefWidth(120);
+        colFechaDevC.setPrefWidth(140);
+
+        colFolioC.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getFolioVenta())));
+        colNombreC.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombreConjunto()));
+        colFechaVentaC.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        colFechaDevC.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+
+        tablaConjuntos.getColumns().addAll(colFolioC, colNombreC, colFechaVentaC, colFechaDevC);
+
+        try {
+            tablaPrendas.setItems(devolucionPrendaDAO.obtenerTodasConDetalles());
+            tablaConjuntos.setItems(devolucionConjuntoDAO.obtenerTodasConDetalles());
+        } catch (SQLException ex) {
+            mostrarError("Error al cargar devoluciones: " + ex.getMessage());
         }
+
+        Tab tabPrendas = new Tab("Prendas", tablaPrendas);
+        Tab tabConjuntos = new Tab("Conjuntos", tablaConjuntos);
+        tabs.getTabs().addAll(tabPrendas, tabConjuntos);
+
+        Button btnRefrescar = new Button("Refrescar");
+        btnRefrescar.setStyle(estiloBtnPrincipal());
+        btnRefrescar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, esAdmin));
+
+        VBox vista = new VBox(14, titulo, tabs, btnRefrescar);
+        vista.setStyle("-fx-padding: 30;");
+        VBox.setVgrow(tabs, Priority.ALWAYS);
 
         ScrollPane scroll = new ScrollPane(vista);
         scroll.setFitToWidth(true);
         scroll.setFitToHeight(false);
         scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
-        VBox.setVgrow(scroll, Priority.ALWAYS);
 
         StackPane wrapper = new StackPane(scroll);
         wrapper.setStyle("-fx-background-color: " + FONDO + ";");
-        contenido.getChildren().add(wrapper);
-    }
-
-    private void mostrarFormularioNuevaDevolucion(StackPane contenido) {
-        contenido.getChildren().clear();
-
-        Label titulo    = new Label("Registrar Devolucion");
-        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
-        titulo.setTextFill(Color.web(SECUNDARIO));
-
-        Label subtitulo = new Label("Completa los campos para registrar la devolucion");
-        subtitulo.setFont(Font.font("System", 12));
-        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
-
-        TextField campoId         = crearTextField("ID de devolucion");
-        TextField campoProducto   = crearTextField("Nombre del producto");
-        TextField campoTalla      = crearTextField("Talla");
-        TextField campoCantidad   = crearTextField("Cantidad");
-        TextField campoPrecioUnit = crearTextField("Precio unitario");
-        TextField campoMotivo     = crearTextField("Motivo de la devolucion");
-
-        Label labelTipo = new Label("Tipo de venta original:");
-        labelTipo.setTextFill(Color.web(TEXTO_SUAVE));
-        labelTipo.setFont(Font.font("System", 12));
-
-        ComboBox<String> selectorTipo = new ComboBox<>();
-        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
-        selectorTipo.setValue("Menudeo");
-        selectorTipo.setMaxWidth(320);
-        selectorTipo.setStyle(estiloInput());
-
-        Label labelFecha = new Label("Fecha de devolucion (dd/MM/yyyy):");
-        labelFecha.setTextFill(Color.web(TEXTO_SUAVE));
-        labelFecha.setFont(Font.font("System", 12));
-
-        TextField campoFecha = crearTextField("dd/MM/yyyy  (vacio = hoy)");
-
-        Label mensajeEstado = new Label("");
-        mensajeEstado.setFont(Font.font("System", 12));
-
-        Button btnGuardar = new Button("Guardar Devolucion");
-        btnGuardar.setMaxWidth(320);
-        btnGuardar.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
-
-        Button btnCancelar = new Button("Regresar a lista");
-        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
-        btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
-
-        btnGuardar.setOnAction(e -> {
-            String id        = campoId.getText().trim();
-            String producto  = campoProducto.getText().trim();
-            String talla     = campoTalla.getText().trim();
-            String cantStr   = campoCantidad.getText().trim();
-            String precioStr = campoPrecioUnit.getText().trim();
-            String motivo    = campoMotivo.getText().trim();
-            String tipo      = selectorTipo.getValue();
-            String fechaStr  = campoFecha.getText().trim();
-
-            if (id.isEmpty() || producto.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("ID, producto, cantidad y precio son obligatorios");
-                return;
-            }
-            boolean yaExiste = listaDevolucionesRegistradas.stream().anyMatch(d -> d.getIdDevolucion().equals(id));
-            if (yaExiste) {
-                mensajeEstado.setTextFill(Color.web(ADVERTENCIA));
-                mensajeEstado.setText("Ya existe una devolucion con ese ID");
-                return;
-            }
-            try {
-                int cantidad      = Integer.parseInt(cantStr);
-                double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fecha   = fechaStr.isEmpty() ? LocalDate.now() : LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                listaDevolucionesRegistradas.add(new DevolucionRegistrada(id, producto, talla, cantidad, tipo, precioUnit, fecha, motivo));
-                mostrarRegistroDevoluciones(contenido, true);
-            } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("Verifica que los datos sean validos");
-            }
-        });
-
-        VBox form = new VBox(12, titulo, subtitulo, campoId, campoProducto, campoTalla,
-                campoCantidad, campoPrecioUnit, labelTipo, selectorTipo,
-                labelFecha, campoFecha, campoMotivo, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.TOP_LEFT);
-        form.setMaxWidth(440);
-        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
-
-        ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(false);
-        scroll.setFitToHeight(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
-
-        StackPane wrapper = new StackPane(scroll);
-        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
-        wrapper.setAlignment(Pos.CENTER);
-        contenido.getChildren().add(wrapper);
-    }
-
-    private void mostrarFormularioEditarDevolucion(StackPane contenido) {
-        contenido.getChildren().clear();
-
-        Label titulo    = new Label("Editar Registro de Devolucion");
-        titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
-        titulo.setTextFill(Color.web(SECUNDARIO));
-
-        Label subtitulo = new Label("Busca por ID de devolucion o nombre del producto");
-        subtitulo.setFont(Font.font("System", 12));
-        subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
-
-        TextField campoBusqueda = crearTextField("ID de devolucion o nombre del producto");
-        Button btnBuscar = new Button("Buscar");
-        btnBuscar.setStyle(estiloBtnPrincipal());
-
-        Label mensajeBusqueda = new Label("");
-        mensajeBusqueda.setFont(Font.font("System", 12));
-
-        VBox panelEdicion = new VBox(10);
-        panelEdicion.setVisible(false);
-        panelEdicion.setManaged(false);
-
-        TextField campoProducto   = crearTextField("Nombre del producto");
-        TextField campoTalla      = crearTextField("Talla");
-        TextField campoCantidad   = crearTextField("Cantidad");
-        TextField campoPrecioUnit = crearTextField("Precio unitario");
-        TextField campoFecha      = crearTextField("Fecha devolucion dd/MM/yyyy");
-        TextField campoMotivo     = crearTextField("Motivo");
-
-        Label labelTipo = new Label("Tipo de venta original:");
-        labelTipo.setTextFill(Color.web(TEXTO_SUAVE));
-        labelTipo.setFont(Font.font("System", 12));
-
-        ComboBox<String> selectorTipo = new ComboBox<>();
-        selectorTipo.getItems().addAll("Menudeo", "Mayoreo");
-        selectorTipo.setValue("Menudeo");
-        selectorTipo.setMaxWidth(320);
-        selectorTipo.setStyle(estiloInput());
-
-        Label mensajeEstado = new Label("");
-        mensajeEstado.setFont(Font.font("System", 12));
-
-        Button btnGuardar = new Button("Guardar Cambios");
-        btnGuardar.setMaxWidth(320);
-        btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
-
-        panelEdicion.getChildren().addAll(campoProducto, campoTalla, campoCantidad, campoPrecioUnit,
-                labelTipo, selectorTipo, campoFecha, campoMotivo, mensajeEstado, btnGuardar);
-
-        final DevolucionRegistrada[] devRef = {null};
-
-        btnBuscar.setOnAction(e -> {
-            String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("Ingresa un ID o nombre");
-                return;
-            }
-            DevolucionRegistrada dev = listaDevolucionesRegistradas.stream()
-                .filter(d -> d.getIdDevolucion().equalsIgnoreCase(busqueda) || d.getNombreProducto().equalsIgnoreCase(busqueda))
-                .findFirst().orElse(null);
-            if (dev == null) {
-                mensajeBusqueda.setTextFill(Color.web(ERROR));
-                mensajeBusqueda.setText("No se encontro el registro");
-                panelEdicion.setVisible(false); panelEdicion.setManaged(false);
-            } else {
-                devRef[0] = dev;
-                mensajeBusqueda.setTextFill(Color.web(EXITO));
-                mensajeBusqueda.setText("Registro encontrado");
-                campoProducto.setText(dev.getNombreProducto());
-                campoTalla.setText(dev.getTalla());
-                campoCantidad.setText(String.valueOf(dev.getCantidad()));
-                campoPrecioUnit.setText(String.valueOf(dev.getPrecioUnitario()));
-                selectorTipo.setValue(dev.getTipoVenta());
-                campoFecha.setText(dev.getFechaDevolucion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                campoMotivo.setText(dev.getMotivo());
-                mensajeEstado.setText("");
-                panelEdicion.setVisible(true); panelEdicion.setManaged(true);
-            }
-        });
-
-        btnGuardar.setOnAction(e -> {
-            if (devRef[0] == null) return;
-            String producto  = campoProducto.getText().trim();
-            String talla     = campoTalla.getText().trim();
-            String cantStr   = campoCantidad.getText().trim();
-            String precioStr = campoPrecioUnit.getText().trim();
-            String fechaStr  = campoFecha.getText().trim();
-            String motivo    = campoMotivo.getText().trim();
-            String tipo      = selectorTipo.getValue();
-
-            if (producto.isEmpty() || cantStr.isEmpty() || precioStr.isEmpty() || fechaStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("Todos los campos son obligatorios");
-                return;
-            }
-            try {
-                int cantidad      = Integer.parseInt(cantStr);
-                double precioUnit = Double.parseDouble(precioStr);
-                LocalDate fecha   = LocalDate.parse(fechaStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                DevolucionRegistrada dev = devRef[0];
-                dev.setNombreProducto(producto); dev.setTalla(talla);
-                dev.setCantidad(cantidad); dev.setPrecioUnitario(precioUnit);
-                dev.setTipoVenta(tipo); dev.setFechaDevolucion(fecha);
-                dev.setMotivo(motivo);
-                mensajeEstado.setTextFill(Color.web(EXITO));
-                mensajeEstado.setText("Registro actualizado correctamente");
-            } catch (Exception ex) {
-                mensajeEstado.setTextFill(Color.web(ERROR));
-                mensajeEstado.setText("Verifica que los datos sean validos");
-            }
-        });
-
-        Button btnCancelar = new Button("Regresar a lista");
-        btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
-        btnCancelar.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
-
-        VBox form = new VBox(12, titulo, subtitulo, campoBusqueda, btnBuscar, mensajeBusqueda, panelEdicion, btnCancelar);
-        form.setAlignment(Pos.TOP_LEFT);
-        form.setMaxWidth(460);
-        form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
-
-        ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(false);
-        scroll.setFitToHeight(false);
-        scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
-
-        StackPane wrapper = new StackPane(scroll);
-        wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
-        wrapper.setAlignment(Pos.CENTER);
         contenido.getChildren().add(wrapper);
     }
 }

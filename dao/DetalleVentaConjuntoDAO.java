@@ -45,6 +45,29 @@ public class DetalleVentaConjuntoDAO {
         return lista;
     }
 
+    public DetalleVentaConjunto obtenerPorFolioYConjunto(int folioVenta, int idConjunto) throws SQLException {
+        return obtenerPorFolioYConjunto(getConnection(), folioVenta, idConjunto);
+    }
+
+    public DetalleVentaConjunto obtenerPorFolioYConjunto(Connection conn, int folioVenta, int idConjunto) throws SQLException {
+        String sql = "SELECT folioVenta, idConjunto, cantidad, total FROM detalleventaconjunto WHERE folioVenta = ? AND idConjunto = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, folioVenta);
+            pstmt.setInt(2, idConjunto);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new DetalleVentaConjunto(
+                        rs.getInt("folioVenta"),
+                        rs.getInt("idConjunto"),
+                        rs.getInt("cantidad"),
+                        rs.getDouble("total")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
     public List<DetalleVentaConjunto> getAll() throws SQLException {
         List<DetalleVentaConjunto> lista = new ArrayList<>();
         String sql = "SELECT * FROM detalleventaconjunto";

@@ -45,6 +45,29 @@ public class DetalleVentaPrendaDAO {
         return lista;
     }
 
+    public DetalleVentaPrenda obtenerPorFolioYPrenda(int folio, int idPrenda) throws SQLException {
+        return obtenerPorFolioYPrenda(getConnection(), folio, idPrenda);
+    }
+
+    public DetalleVentaPrenda obtenerPorFolioYPrenda(Connection conn, int folio, int idPrenda) throws SQLException {
+        String sql = "SELECT folio, idPrenda, cantidad, total FROM detalleventaprenda WHERE folio = ? AND idPrenda = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, folio);
+            pstmt.setInt(2, idPrenda);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new DetalleVentaPrenda(
+                        rs.getInt("folio"),
+                        rs.getInt("idPrenda"),
+                        rs.getInt("cantidad"),
+                        rs.getDouble("total")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
     public List<DetalleVentaPrenda> getAll() throws SQLException {
         List<DetalleVentaPrenda> lista = new ArrayList<>();
         String sql = "SELECT * FROM detalleventaprenda";
