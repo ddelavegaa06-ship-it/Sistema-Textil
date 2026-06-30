@@ -1,103 +1,115 @@
 package dao;
 
-import java.sql.* ;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import database.Conexion;
-import model.DevolucionConjunto;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import model.DevolucionVista;
 import model.DevolucionPrenda;
 
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 public class DevolucionPrendaDAO {
+
     private Connection getConnection() {
         return Conexion.getConnection();
     }
 
-    public boolean insert(DevolucionPrenda devolucion){
-        String sql = "INSERT INTO devolucionPrenda(id, folioVenta, idPrenda) VALUES(?,?,?)";
-        try(PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
-            ps.setInt(1, devolucion.getId());
-            ps.setInt(2, devolucion.getFolioVenta());
-            ps.setInt(3, devolucion.getIdPrenda());
-            int affectedRows = ps.executeUpdate();
-            if(affectedRows > 0){
-                return true;
+    public void insertar(DevolucionPrenda devolucion) throws SQLException {
+        insertar(getConnection(), devolucion);
+    }
+
+    public void insertar(Connection conn, DevolucionPrenda devolucion) throws SQLException {
+        String sql = "INSERT INTO devolucionprenda (folioVenta, idPrenda, fecha) VALUES (?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, devolucion.getFolioVenta());
+            pstmt.setInt(2, devolucion.getIdPrenda());
+            LocalDate fecha = devolucion.getFecha() != null ? devolucion.getFecha() : LocalDate.now();
+            pstmt.setDate(3, Date.valueOf(fecha));
+            pstmt.executeUpdate();
+        }
+    }
+
+    public boolean existeDevolucion(int folioVenta, int idPrenda) throws SQLException {
+        return existeDevolucion(getConnection(), folioVenta, idPrenda);
+    }
+
+    public boolean existeDevolucion(Connection conn, int folioVenta, int idPrenda) throws SQLException {
+        String sql = "SELECT 1 FROM devolucionprenda WHERE folioVenta = ? AND idPrenda = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, folioVenta);
+            pstmt.setInt(2, idPrenda);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
             }
-        }catch(SQLException e){
-            e.printStackTrace();
         }
-        return false;
     }
 
-    public boolean update(DevolucionPrenda devolucion){
-        String sql = "UPDATE devolucionPrenda SET idPrenda = ?, fecha = ? WHERE folioVenta = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
-            ps.setInt(1, devolucion.getIdPrenda());
-            ps.setDate(2, java.sql.Date.valueOf(devolucion.getFecha()));
-            ps.setInt(3, devolucion.getFolioVenta());
-            return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean delete(int id){
-        String sql = "DELETE FROM devolucionPrenda WHERE id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Optional<DevolucionPrenda> buscarPorId(int id){
-        String sql = "SELECT * FROM devolucionPrenda where folioVenta = ? ";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setInt(1,id);
-            ResultSet rs = ps.executeQuery();
-
-            if(rs.next()){
-                DevolucionPrenda devolucion = new DevolucionPrenda(
-                    rs.getInt("id"),
+    public ObservableList<DevolucionVista> obtenerTodasConDetalles() throws SQLException {
+        ObservableList<DevolucionVista> lista = FXCollections.observableArrayList();
+        String sql = """
+            SELECT dp.folioVenta, p.nombre, p.talla, dp.fecha AS fechaDevolucion, v.fecha AS fechaVenta
+            FROM devolucionprenda dp
+            JOIN venta v ON v.folio = dp.folioVenta
+            JOIN prenda p ON p.id = dp.idPrenda
+            ORDER BY dp.fecha DESC, dp.folioVenta DESC
+            """;
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new DevolucionVista(
                     rs.getInt("folioVenta"),
-                    rs.getInt("idPrenda"),
-                    rs.getDate("fecha").toLocalDate()
-                );
-                return Optional.of(devolucion);
+                    rs.getString("nombre"),
+                    rs.getString("talla"),
+                    rs.getDate("fechaDevolucion").toLocalDate(),
+                    rs.getDate("fechaVenta").toLocalDate()
+                ));
             }
-        }catch(SQLException e){
-            e.printStackTrace();
         }
-        return Optional.empty();
+        return lista;
     }
 
-
-    public List<DevolucionPrenda> encontrarTodo(){
-        List<DevolucionPrenda> devoluciones = new ArrayList<>();
-        String sql = "SELECT * FROM devolucionPrenda";
-
-        try(Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery(sql)){
-
-                while(rs.next()){
-                    DevolucionPrenda devolucion = new DevolucionPrenda(
-                        rs.getInt("id"),
+    public List<DevolucionPrenda> obtenerPorFolioVenta(int folio) throws SQLException {
+        List<DevolucionPrenda> lista = new ArrayList<>();
+        String sql = "SELECT folioVenta, idPrenda, fecha FROM devolucionprenda WHERE folioVenta = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, folio);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new DevolucionPrenda(
                         rs.getInt("folioVenta"),
                         rs.getInt("idPrenda"),
-                        rs.getDate("fecha").toLocalDate()
-                    );
-                    devoluciones.add(devolucion);
+                        rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null
+                    ));
                 }
-        }catch(SQLException e){
-            e.printStackTrace();
+            }
         }
-        return devoluciones;
+        return lista;
+    }
+
+    public List<DevolucionPrenda> getAll() throws SQLException {
+        List<DevolucionPrenda> lista = new ArrayList<>();
+        String sql = "SELECT folioVenta, idPrenda, fecha FROM devolucionprenda";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new DevolucionPrenda(
+                    rs.getInt("folioVenta"),
+                    rs.getInt("idPrenda"),
+                    rs.getDate("fecha") != null ? rs.getDate("fecha").toLocalDate() : null
+                ));
+            }
+        }
+        return lista;
+    }
+
+    public boolean insert(DevolucionPrenda devolucion) throws SQLException {
+        insertar(devolucion);
+        return true;
     }
 }

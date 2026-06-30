@@ -31,4 +31,7 @@ public class Ubicacion {
     public void setIdPadre(int nIdPadre){
         idPadre = nIdPadre;
     }
+    public void setTipo(String nTipo){
+        tipo = nTipo;
+    }
 }

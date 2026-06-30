@@ -17,10 +17,32 @@ public class Insumo {
     private double talla;
     private String material;
     private String tipoInsumo;
-    private int idUbicacion;
+    private Integer idUbicacion;
+    private int minimoExistencia = 10;
 
-    public Insumo(String id, String numeroPartida, double existencia, String tipoExistencia, String descripcion, String nombre, String color, double medida, double ancho, String composicion, String tipo, int no, String tamanio, double talla, String material, String tipoInsumo, int idUbicacion){
-        this.id = id; 
+    public Insumo() {}
+    
+    public Insumo(String id, String numeroPartida, double existencia, String tipoExistencia,
+                  String descripcion, String nombre, String color, double medidaStr,
+                  double ancho, String composicion, String tipo, int no,
+                  String tamanio, double tallaStr, String material, String tipoInsumo,int idUbicacion) {
+        this.id = String.valueOf(id);
+        this.numeroPartida = numeroPartida;
+        this.existencia = existencia;
+        this.tipoExistencia = tipoExistencia;
+        this.descripcion = descripcion;
+        this.nombre = nombre;
+        this.color = color;
+        this.medida = medidaStr;
+        this.ancho = ancho;
+        this.composicion = composicion;
+        this.tipo = tipo;
+        this.no = no;
+        this.tamanio = tamanio;
+        this.talla = tallaStr;
+        this.material = material;
+        this.tipoInsumo = tipoInsumo;
+        this.idUbicacion = 1;
         this.numeroPartida = numeroPartida;
         this.existencia = existencia;
         this.tipoExistencia = tipoExistencia;
@@ -38,82 +60,147 @@ public class Insumo {
         this.tipoInsumo = tipoInsumo;
         this.idUbicacion = idUbicacion;
     }
-    public String getId(){
+
+    public String getId() {
         return id;
-    }  
-    public String getNumeroPartida(){
-        return numeroPartida;
-    }   
-    public double getExistencia(){
-        return existencia;
-    }   
-    public void setExistencia(double nExistencia){
-        existencia = nExistencia;
     }
 
-    public String getTipoExistencia(){
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getNumeroPartida() {
+        return numeroPartida;
+    }
+
+    public void setNumeroPartida(String numeroPartida) {
+        this.numeroPartida = numeroPartida;
+    }
+
+    public double getExistencia() {
+        return existencia;
+    }
+
+    public void setExistencia(double existencia) {
+        this.existencia = existencia;
+    }
+
+    public String getTipoExistencia() {
         return tipoExistencia;
-    }  
-    public String getDescripcion(){
+    }
+
+    public void setTipoExistencia(String tipoExistencia) {
+        this.tipoExistencia = tipoExistencia;
+    }
+
+    public String getDescripcion() {
         return descripcion;
     }
-    public void setDescripcion(String nDescripcion){
-        descripcion = nDescripcion;
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
-    public String getNombre(){
+
+    public String getNombre() {
         return nombre;
     }
-    public void setNombre(String nNombre){
-        nombre = nNombre;
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
-    public String getColor(){
+
+    public String getColor() {
         return color;
     }
-    public void setColor(String nColor){
-        color = nColor;
+
+    public void setColor(String color) {
+        this.color = color;
     }
-    public double getMedida(){
+
+    public double getMedida() {
         return medida;
     }
-    public void setMedida(double nMedida){
-        medida = nMedida;
+
+    public void setMedida(double medida) {
+        this.medida = medida;
     }
-    public double getAncho(){
+
+    public double getAncho() {
         return ancho;
     }
-    public String getComposicion(){
+
+    public void setAncho(double ancho) {
+        this.ancho = ancho;
+    }
+
+    public String getComposicion() {
         return composicion;
     }
-    public void setComposicion(String nComposicion){
-        composicion = nComposicion;
+
+    public void setComposicion(String composicion) {
+        this.composicion = composicion;
     }
-    public String getTipo(){
+
+    public String getTipo() {
         return tipo;
     }
-    public int getNo(){
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public int getNo() {
         return no;
     }
-    public String getTamanio(){
+
+    public void setNo(int no) {
+        this.no = no;
+    }
+
+    public String getTamanio() {
         return tamanio;
     }
-    public double getTalla(){
+
+    public void setTamanio(String tamanio) {
+        this.tamanio = tamanio;
+    }
+
+    public double getTalla() {
         return talla;
     }
-    public String getMaterial(){
+
+    public void setTalla(double talla) {
+        this.talla = talla;
+    }
+
+    public String getMaterial() {
         return material;
     }
-    public String getTipoInsumo(){
+
+    public void setMaterial(String material) {
+        this.material = material;
+    }
+
+    public String getTipoInsumo() {
         return tipoInsumo;
     }
-    public void setTipoInsumo(String nTipoInsumo){
-        tipoInsumo = nTipoInsumo;
+
+    public void setTipoInsumo(String tipoInsumo) {
+        this.tipoInsumo = tipoInsumo;
     }
-    public int getIdUbicacion(){
+
+    public Integer getIdUbicacion() {
         return idUbicacion;
     }
-    public void setIdUbicacion(int nIdUbicacion){
-        idUbicacion = nIdUbicacion;
+    public void setIdUbicacion(Integer idUbicacion) {
+        this.idUbicacion = idUbicacion;
     }
-    
 
+public void setMinimoExistencia(int minimoExistencia) {
+        this.minimoExistencia = minimoExistencia;
+    }
+
+    public int getMinimoExistencia() {
+        return minimoExistencia;
+    }
 }

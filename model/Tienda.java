@@ -30,4 +30,7 @@ public class Tienda {
     public void setIdPadre(int nIdPadre){
         idPadre = nIdPadre;
     }
+    public void setTipo(String nTipo){
+        tipo = nTipo;
+    }
 }

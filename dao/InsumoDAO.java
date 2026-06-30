@@ -1,156 +1,123 @@
 package dao;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import database.Conexion;
 import model.Insumo;
 
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class InsumoDAO {
-     private Connection getConnection() {
+
+    private Connection getConnection() {
         return Conexion.getConnection();
     }
-    public boolean insert(Insumo insumo){
-        String sql = "INSERT INTO insumo(numeroPartida, existencia, tipoExistencia,descripcion,nombre,color,medida,ancho,composicion, tipo, no., tamanio, talla, material,tipoInsumo,idUbicacion) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        try(PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
-            ps.setString(1,insumo.getNumeroPartida());
-            ps.setDouble(2, insumo.getExistencia());
-            ps.setString(3, insumo.getTipoExistencia());
-            ps.setString(4, insumo.getDescripcion());
-            ps.setString(5, insumo.getNombre());
-            ps.setString(6, insumo.getColor());
-            ps.setDouble(7, insumo.getMedida());
-            ps.setDouble(8, insumo.getAncho());
-            ps.setString(9, insumo.getComposicion());
-            ps.setString(10, insumo.getTipo());
-            ps.setInt(11, insumo.getNo());
-            ps.setString(12, insumo.getTamanio());
-            ps.setDouble(13, insumo.getTalla());
-            ps.setString(14, insumo.getMaterial());
-            ps.setString(15, insumo.getTipoInsumo());
-            ps.setInt(16, insumo.getIdUbicacion());
 
-            int affectedRows = ps.executeUpdate();
-            if(affectedRows > 0){
-                return true;
-            }
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean update(Insumo insumo){
-        String sql = "UPDATE insumo SET numeroPartida = ?, existencia = ?, tipoExistencia = ?, descripcion = ?, nombre = ?, color = ?, medida = ?, ancho = ?, composicion = ?, tipo = ?, no = ?, tamanio = ?, talla = ?, material = ?, tipoInsumo = ?, idUbicacion = ? WHERE id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
-            ps.setString(1, insumo.getNumeroPartida());
-            ps.setDouble(2, insumo.getExistencia());
-            ps.setString(3, insumo.getTipoExistencia());
-            ps.setString(4, insumo.getDescripcion());
-            ps.setString(5, insumo.getNombre());
-            ps.setString(6, insumo.getColor());
-            ps.setDouble(7, insumo.getMedida());
-            ps.setDouble(8, insumo.getAncho());
-            ps.setString(9, insumo.getComposicion());
-            ps.setString(10, insumo.getTipo());
-            ps.setInt(11, insumo.getNo());
-            ps.setString(12, insumo.getTamanio());
-            ps.setDouble(13, insumo.getTalla());
-            ps.setString(14, insumo.getMaterial());
-            ps.setString(15, insumo.getTipoInsumo());
-            ps.setInt(16, insumo.getIdUbicacion());
-            ps.setString(17, insumo.getId());
-
-            return ps.executeUpdate() > 0;
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean delete(String id){
-        String sql = "DELETE FROM insumo WHERE id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setString(1, id);
-            return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Optional<Insumo> buscarPorId(String id){
-        String sql = "SELECT * FROM insumo where id = ?";
-
-        try(PreparedStatement ps = getConnection().prepareStatement(sql)){
-            ps.setString(1,id);
-            ResultSet rs = ps.executeQuery();
-
-            if(rs.next()){
-                Insumo insumo = new Insumo(
-                    rs.getString("id"),
-                    rs.getString("numeroPartida"),
-                    rs.getDouble("existencia"),
-                    rs.getString("tipoExistencia"),
-                    rs.getString("descripcion"),
-                    rs.getString("nombre"),
-                    rs.getString("color"),
-                    rs.getDouble("medida"),
-                    rs.getDouble("ancho"),
-                    rs.getString("composicion"),
-                    rs.getString("tipo"),
-                    rs.getInt("no"),
-                    rs.getString("tamanio"),
-                    rs.getDouble("talla"),
-                    rs.getString("material"),
-                    rs.getString("tipoInsumo"),
-                    rs.getInt("idUbicacion")
-                );
-                return Optional.of(insumo);
-            }
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    public List<Insumo> encontrarTodo(){
-        List<Insumo> insumos = new ArrayList<>();
+    public List<Insumo> getAll() throws SQLException {
+        List<Insumo> lista = new ArrayList<>();
         String sql = "SELECT * FROM insumo";
-
-        try(Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery(sql)){
-
-                while(rs.next()){
-                    Insumo insumo = new Insumo(
-                        rs.getString("id"),
-                        rs.getString("numeroPartida"),
-                        rs.getDouble("existencia"),
-                        rs.getString("tipoExistencia"),
-                        rs.getString("descripcion"),
-                        rs.getString("nombre"),
-                        rs.getString("color"),
-                        rs.getDouble("medida"),
-                        rs.getDouble("ancho"),
-                        rs.getString("composicion"),
-                        rs.getString("tipo"),
-                        rs.getInt("no"),
-                        rs.getString("tamanio"),
-                        rs.getDouble("talla"),
-                        rs.getString("material"),
-                        rs.getString("tipoInsumo"),
-                        rs.getInt("idUbicacion")
-                    );
-                    insumos.add(insumo);
-                }
-        }catch(SQLException e){
-            e.printStackTrace();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                lista.add(mapResultSet(rs));
+            }
         }
-        return insumos;
+        return lista;
     }
 
+    public Insumo getById(String id) throws SQLException {
+        String sql = "SELECT * FROM insumo WHERE id = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    public boolean insert(Insumo insumo) throws SQLException {
+        String sql = "INSERT INTO insumo (id, numeroPartida, existencia, tipoExistencia, descripcion, nombre, color, medida, ancho, composicion, tipo, `no.`, tamanio, talla, material, tipoInsumo, idUbicacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, insumo.getId());
+            pstmt.setString(2, insumo.getNumeroPartida());
+            pstmt.setDouble(3, insumo.getExistencia());
+            pstmt.setString(4, insumo.getTipoExistencia());
+            pstmt.setString(5, insumo.getDescripcion());
+            pstmt.setString(6, insumo.getNombre());
+            pstmt.setString(7, insumo.getColor());
+            pstmt.setDouble(8, insumo.getMedida());
+            pstmt.setDouble(9, insumo.getAncho());
+            pstmt.setString(10, insumo.getComposicion());
+            pstmt.setString(11, insumo.getTipo());
+            pstmt.setInt(12, insumo.getNo());
+            pstmt.setString(13, insumo.getTamanio());
+            pstmt.setDouble(14, insumo.getTalla());
+            pstmt.setString(15, insumo.getMaterial());
+            pstmt.setString(16, insumo.getTipoInsumo());
+            pstmt.setInt(17, insumo.getIdUbicacion());
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean update(Insumo insumo) throws SQLException {
+        String sql = "UPDATE insumo SET numeroPartida = ?, existencia = ?, tipoExistencia = ?, descripcion = ?, nombre = ?, color = ?, medida = ?, ancho = ?, composicion = ?, tipo = ?, `no.` = ?, tamanio = ?, talla = ?, material = ?, tipoInsumo = ?, idUbicacion = ? WHERE id = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, insumo.getNumeroPartida());
+            pstmt.setDouble(2, insumo.getExistencia());
+            pstmt.setString(3, insumo.getTipoExistencia());
+            pstmt.setString(4, insumo.getDescripcion());
+            pstmt.setString(5, insumo.getNombre());
+            pstmt.setString(6, insumo.getColor());
+            pstmt.setDouble(7, insumo.getMedida());
+            pstmt.setDouble(8, insumo.getAncho());
+            pstmt.setString(9, insumo.getComposicion());
+            pstmt.setString(10, insumo.getTipo());
+            pstmt.setInt(11, insumo.getNo());
+            pstmt.setString(12, insumo.getTamanio());
+            pstmt.setDouble(13, insumo.getTalla());
+            pstmt.setString(14, insumo.getMaterial());
+            pstmt.setString(15, insumo.getTipoInsumo());
+            pstmt.setInt(16, insumo.getIdUbicacion());
+            pstmt.setString(17, insumo.getId());
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(String id) throws SQLException {
+        String sql = "DELETE FROM insumo WHERE id = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, id);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    private Insumo mapResultSet(ResultSet rs) throws SQLException {
+        return new Insumo(
+            rs.getString("id"),
+            rs.getString("numeroPartida"),
+            rs.getDouble("existencia"),
+            rs.getString("tipoExistencia"),
+            rs.getString("descripcion"),
+            rs.getString("nombre"),
+            rs.getString("color"),
+            rs.getDouble("medida"),
+            rs.getDouble("ancho"),
+            rs.getString("composicion"),
+            rs.getString("tipo"),
+            rs.getInt("no."),
+            rs.getString("tamanio"),
+            rs.getDouble("talla"),
+            rs.getString("material"),
+            rs.getString("tipoInsumo"),
+            rs.getInt("idUbicacion")
+        );
+    }
 }
