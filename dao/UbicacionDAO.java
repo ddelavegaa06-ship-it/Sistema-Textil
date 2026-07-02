@@ -18,7 +18,8 @@ public class UbicacionDAO {
         try(PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
             ps.setString(1,ubicacion.getTipo());
             ps.setString(2, ubicacion.getNombre());
-            ps.setInt(3, ubicacion.getIdPadre());
+            if (ubicacion.getIdPadre() != 0) ps.setInt(3, ubicacion.getIdPadre());
+            else ps.setNull(3, java.sql.Types.INTEGER);
 
             int affectedRows = ps.executeUpdate();
             if(affectedRows > 0){
@@ -36,7 +37,8 @@ public class UbicacionDAO {
         try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
             ps.setString(1, ubicacion.getTipo());
             ps.setString(2, ubicacion.getNombre());
-            ps.setInt(3, ubicacion.getIdPadre());
+            if (ubicacion.getIdPadre() != 0) ps.setInt(3, ubicacion.getIdPadre());
+            else ps.setNull(3, java.sql.Types.INTEGER);
             ps.setInt(4, ubicacion.getId());
             return ps.executeUpdate() > 0; 
         }catch(SQLException e){

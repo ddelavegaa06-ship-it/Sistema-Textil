@@ -41,7 +41,7 @@ public class InsumoDAO {
     }
 
     public boolean insert(Insumo insumo) throws SQLException {
-        String sql = "INSERT INTO insumo (id, numeroPartida, existencia, tipoExistencia, descripcion, nombre, color, medida, ancho, composicion, tipo, `no.`, tamanio, talla, material, tipoInsumo, idUbicacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO insumo (id, numeroPartida, existencia, tipoExistencia, descripcion, nombre, color, medida, ancho, composicion, tipo, `no.`, tamanio, talla, material, tipoInsumo, idUbicacion, minimo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, insumo.getId());
@@ -61,12 +61,14 @@ public class InsumoDAO {
             pstmt.setString(15, insumo.getMaterial());
             pstmt.setString(16, insumo.getTipoInsumo());
             pstmt.setInt(17, insumo.getIdUbicacion());
+            if (insumo.getMinimoExistencia() != null) pstmt.setDouble(18, insumo.getMinimoExistencia());
+            else pstmt.setNull(18, java.sql.Types.DOUBLE);
             return pstmt.executeUpdate() > 0;
         }
     }
 
     public boolean update(Insumo insumo) throws SQLException {
-        String sql = "UPDATE insumo SET numeroPartida = ?, existencia = ?, tipoExistencia = ?, descripcion = ?, nombre = ?, color = ?, medida = ?, ancho = ?, composicion = ?, tipo = ?, `no.` = ?, tamanio = ?, talla = ?, material = ?, tipoInsumo = ?, idUbicacion = ? WHERE id = ?";
+        String sql = "UPDATE insumo SET numeroPartida = ?, existencia = ?, tipoExistencia = ?, descripcion = ?, nombre = ?, color = ?, medida = ?, ancho = ?, composicion = ?, tipo = ?, `no.` = ?, tamanio = ?, talla = ?, material = ?, tipoInsumo = ?, idUbicacion = ?, minimo = ? WHERE id = ?";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, insumo.getNumeroPartida());
@@ -85,7 +87,9 @@ public class InsumoDAO {
             pstmt.setString(14, insumo.getMaterial());
             pstmt.setString(15, insumo.getTipoInsumo());
             pstmt.setInt(16, insumo.getIdUbicacion());
-            pstmt.setString(17, insumo.getId());
+            if (insumo.getMinimoExistencia() != null) pstmt.setDouble(17, insumo.getMinimoExistencia());
+            else pstmt.setNull(17, java.sql.Types.DOUBLE);
+            pstmt.setString(18, insumo.getId());
             return pstmt.executeUpdate() > 0;
         }
     }
@@ -100,7 +104,7 @@ public class InsumoDAO {
     }
 
     private Insumo mapResultSet(ResultSet rs) throws SQLException {
-        return new Insumo(
+        Insumo i = new Insumo(
             rs.getString("id"),
             rs.getString("numeroPartida"),
             rs.getDouble("existencia"),
@@ -119,5 +123,7 @@ public class InsumoDAO {
             rs.getString("tipoInsumo"),
             rs.getInt("idUbicacion")
         );
+        i.setMinimoExistencia(rs.getObject("minimo") != null ? rs.getDouble("minimo") : null);
+        return i;
     }
 }

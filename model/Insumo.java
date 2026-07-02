@@ -18,7 +18,7 @@ public class Insumo {
     private String material;
     private String tipoInsumo;
     private Integer idUbicacion;
-    private int minimoExistencia = 10;
+    private Double minimoExistencia;
 
     public Insumo() {}
     
@@ -196,11 +196,11 @@ public class Insumo {
         this.idUbicacion = idUbicacion;
     }
 
-public void setMinimoExistencia(int minimoExistencia) {
+public void setMinimoExistencia(Double minimoExistencia) {
         this.minimoExistencia = minimoExistencia;
     }
 
-    public int getMinimoExistencia() {
+    public Double getMinimoExistencia() {
         return minimoExistencia;
     }
 }

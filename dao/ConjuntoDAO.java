@@ -41,25 +41,29 @@ public class ConjuntoDAO {
     }
 
     public boolean insert(Conjunto conjunto) throws SQLException {
-        String sql = "INSERT INTO conjunto (id, nombre, piezas, precio) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO conjunto (id, nombre, piezas, precio, minimo) VALUES (?, ?, ?, ?, ?)";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, conjunto.getId());
             pstmt.setString(2, conjunto.getNombre());
             pstmt.setInt(3, conjunto.getPiezas());
             pstmt.setDouble(4, conjunto.getPrecio());
+            if (conjunto.getMinimoExistencia() != null) pstmt.setDouble(5, conjunto.getMinimoExistencia());
+            else pstmt.setNull(5, java.sql.Types.DOUBLE);
             return pstmt.executeUpdate() > 0;
         }
     }
 
     public boolean update(Conjunto conjunto) throws SQLException {
-        String sql = "UPDATE conjunto SET nombre = ?, piezas = ?, precio = ? WHERE id = ?";
+        String sql = "UPDATE conjunto SET nombre = ?, piezas = ?, precio = ?, minimo = ? WHERE id = ?";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, conjunto.getNombre());
             pstmt.setInt(2, conjunto.getPiezas());
             pstmt.setDouble(3, conjunto.getPrecio());
-            pstmt.setInt(4, conjunto.getId());
+            if (conjunto.getMinimoExistencia() != null) pstmt.setDouble(4, conjunto.getMinimoExistencia());
+            else pstmt.setNull(4, java.sql.Types.DOUBLE);
+            pstmt.setInt(5, conjunto.getId());
             return pstmt.executeUpdate() > 0;
         }
     }
@@ -86,11 +90,13 @@ public class ConjuntoDAO {
     }
 
     private Conjunto mapResultSet(ResultSet rs) throws SQLException {
-        return new Conjunto(
+        Conjunto c = new Conjunto(
             rs.getInt("id"),
             rs.getString("nombre"),
             rs.getInt("piezas"),
             rs.getDouble("precio")
         );
+        c.setMinimoExistencia(rs.getObject("minimo") != null ? rs.getDouble("minimo") : null);
+        return c;
     }
 }

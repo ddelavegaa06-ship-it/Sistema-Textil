@@ -18,7 +18,8 @@ public class TiendaDAO {
         try(PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
             ps.setString(1,tienda.getTipo());
             ps.setString(2, tienda.getNombre());
-            ps.setInt(3, tienda.getIdPadre());
+            if (tienda.getIdPadre() != 0) ps.setInt(3, tienda.getIdPadre());
+            else ps.setNull(3, java.sql.Types.INTEGER);
 
             int affectedRows = ps.executeUpdate();
             if(affectedRows > 0){
@@ -36,7 +37,8 @@ public class TiendaDAO {
         try(PreparedStatement ps = getConnection().prepareStatement(sql) ){
             ps.setString(1, tienda.getTipo());
             ps.setString(2, tienda.getNombre());
-            ps.setInt(3, tienda.getIdPadre());
+            if (tienda.getIdPadre() != 0) ps.setInt(3, tienda.getIdPadre());
+            else ps.setNull(3, java.sql.Types.INTEGER);
             ps.setInt(4, tienda.getId());
             return ps.executeUpdate() > 0; 
         }catch(SQLException e){

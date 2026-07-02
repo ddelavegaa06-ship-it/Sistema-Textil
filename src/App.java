@@ -1,4 +1,4 @@
-﻿import javafx.application.Application;
+import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -521,20 +521,22 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Prenda, String> colPTipo     = new TableColumn<>("Tipo");
 
     colPNivel.setCellValueFactory(d -> {
+        Integer min = d.getValue().getMinimoExistencia();
+        if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = d.getValue().getExistencia();
-        int min = d.getValue().getMinimoExistencia();
-        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+        return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Critico" : "\ud83d\udfe1 Bajo");
     });
     colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
     colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
     colPExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
-    colPMinimo.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+    colPMinimo.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
     colPTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoPrenda()));
 
     tablaPrendas.getColumns().addAll(colPNivel, colPNombre, colPTalla, colPExist, colPMinimo, colPTipo);
 
     ObservableList<Prenda> prendasAlerta = FXCollections.observableArrayList(
         listaPrendas.stream()
+            .filter(p -> p.getMinimoExistencia() != null && p.getMinimoExistencia() > 0)
             .filter(p -> p.getExistencia() <= p.getMinimoExistencia() * 2)
             .sorted((a, b) -> Integer.compare(a.getExistencia(), b.getExistencia()))
             .toList()
@@ -562,19 +564,21 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     TableColumn<Conjunto, String> colCPiezas = new TableColumn<>("Piezas");
 
     colCNivel.setCellValueFactory(d -> {
+        Double min = d.getValue().getMinimoExistencia();
+        if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = calcularExistenciaConjunto(d.getValue());
-        int min = d.getValue().getMinimoExistencia();
-        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+        return new SimpleStringProperty(ex <= min ? "🔴 Critico" : "🟡 Bajo");
     });
     colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
     colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
-    colCMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+    colCMinimo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
     colCPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
 
     tablaConjuntos.getColumns().addAll(colCNivel, colCNombre, colCExist, colCMinimo, colCPiezas);
 
     ObservableList<Conjunto> conjuntosAlerta = FXCollections.observableArrayList(
         listaConjuntos.stream()
+            .filter(c -> c.getMinimoExistencia() != null && c.getMinimoExistencia() > 0)
             .filter(c -> calcularExistenciaConjunto(c) <= c.getMinimoExistencia() * 2)
             .sorted((a, b) -> Integer.compare(calcularExistenciaConjunto(a), calcularExistenciaConjunto(b)))
             .toList()
@@ -604,20 +608,22 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         TableColumn<Insumo, String> colMTipo     = new TableColumn<>("Tipo Insumo");
 
         colMNivel.setCellValueFactory(d -> {
+            Double min = d.getValue().getMinimoExistencia();
+            if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
             double ex = d.getValue().getExistencia();
-            double min = d.getValue().getMinimoExistencia();
-            return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+            return new SimpleStringProperty(ex <= min ? "🔴 Critico" : "🟡 Bajo");
         });
         colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colMExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
-        colMMinimo.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+        colMMinimo.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
         colMTipo.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
 
         tablaMP.getColumns().addAll(colMNivel, colMNombre, colMPartida, colMExist, colMMinimo, colMTipo);
 
         ObservableList<Insumo> mpAlerta = FXCollections.observableArrayList(
             listaMateriaPrima.stream()
+                .filter(mp -> mp.getMinimoExistencia() != null && mp.getMinimoExistencia() > 0)
                 .filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2)
                 .sorted((a, b) -> Double.compare(a.getExistencia(), b.getExistencia()))
                 .toList()
@@ -636,10 +642,19 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
     // Resumen
     long totalAlertas = prendasAlerta.size() + conjuntosAlerta.size()
-        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2).count() : 0);
-    long criticas = prendasAlerta.stream().filter(p -> p.getExistencia() <= p.getMinimoExistencia()).count()
-        + conjuntosAlerta.stream().filter(c -> calcularExistenciaConjunto(c) <= c.getMinimoExistencia()).count()
-        + (esAdmin ? listaMateriaPrima.stream().filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia()).count() : 0);
+        + (esAdmin ? listaMateriaPrima.stream()
+            .filter(mp -> mp.getMinimoExistencia() != null && mp.getMinimoExistencia() > 0)
+            .filter(mp -> mp.getExistencia() <= mp.getMinimoExistencia() * 2)
+            .count() : 0);
+    long criticas = prendasAlerta.stream()
+        .filter(p -> p.getMinimoExistencia() != null && p.getExistencia() <= p.getMinimoExistencia())
+        .count()
+        + conjuntosAlerta.stream()
+            .filter(c -> c.getMinimoExistencia() != null && calcularExistenciaConjunto(c) <= c.getMinimoExistencia())
+            .count()
+        + (esAdmin ? listaMateriaPrima.stream()
+            .filter(mp -> mp.getMinimoExistencia() != null && mp.getExistencia() <= mp.getMinimoExistencia())
+            .count() : 0);
 
     Label resumen = new Label(
         totalAlertas == 0
@@ -1006,7 +1021,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colMayor.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMayoreo()));
         colMenud.setCellValueFactory(d  -> new SimpleStringProperty("$" + d.getValue().getPrecioMenudeo()));
         colTienda.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdTienda())));
-        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
 
         tabla.getColumns().addAll(colId, colNombre, colTalla, colExist, colMinimo, colMayor, colMenud, colTienda);
         tabla.setItems(listaPrendas);
@@ -1073,10 +1088,23 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
 
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
-            Prenda p = listaPrendas.stream()
-                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(x.getId()).equals(busqueda))
-                .findFirst().orElse(null);
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un codigo de barras, nombre o ID"); return; }
+            Prenda p = null;
+            try {
+                p = prendaDAO.getByCodigoBarras(busqueda);
+                if (p == null) {
+                    p = listaPrendas.stream()
+                        .filter(x -> x.getNombre().equalsIgnoreCase(busqueda))
+                        .findFirst().orElse(null);
+                }
+                if (p == null) {
+                    try { p = prendaDAO.getById(Integer.parseInt(busqueda)); } catch (NumberFormatException ignored) {}
+                }
+            } catch (SQLException sqlEx) {
+                mensajeBusqueda.setTextFill(Color.web(ERROR));
+                mensajeBusqueda.setText("Error al buscar: " + sqlEx.getMessage());
+                return;
+            }
             if (p == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro la prenda");
                 tarjeta.setVisible(false); tarjeta.setManaged(false);
@@ -1156,7 +1184,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colPiezas.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getIdPrendas().size())));
         colExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
         colPrecio.setCellValueFactory(d -> new SimpleStringProperty("$" + String.format("%.2f", calcularPrecioConjunto(d.getValue()))));
-        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+        colMinimo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
 
         tabla.getColumns().addAll(colId, colNombre, colPiezas, colExist, colMinimo, colPrecio);
         tabla.setItems(listaConjuntos);
@@ -1679,7 +1707,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         colPartida.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colNombre.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getNombre()));
         colExist.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
-        colMinimo.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getMinimoExistencia())));
+        colMinimo.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
         colTipoExist.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoExistencia() != null && !d.getValue().getTipoExistencia().isEmpty() ? d.getValue().getTipoExistencia() : "??"));
         colDescripcion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getDescripcion() != null ? d.getValue().getDescripcion() : "??"));
         colColor.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "??"));
@@ -1897,15 +1925,15 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             String ubicacion    = campoUbicacion.getText().trim();
 
             String minimoStr    = campoMinimo.getText().trim();
-            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre, existencia y minimo son obligatorios"); return;
+            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre y existencia son obligatorios"); return;
             }
             boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida() != null && mp.getNumeroPartida().equalsIgnoreCase(partida));
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese numero de partida"); return; }
 
             try {
                 double existencia = Double.parseDouble(existStr);
-                int minimo = Integer.parseInt(minimoStr);
+                Double minimo = minimoStr.isEmpty() ? null : Double.parseDouble(minimoStr);
                 double ancho = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
                 int no = noStr.isEmpty() ? 0 : Integer.parseInt(noStr);
                 double medidaD = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
@@ -2128,7 +2156,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
                 campoNombre.setText(encontrada.getNombre());
                 campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
-                campoMinimo.setText(String.valueOf(encontrada.getMinimoExistencia()));
+                campoMinimo.setText(encontrada.getMinimoExistencia() != null ? String.valueOf(encontrada.getMinimoExistencia()) : "");
                 campoTipoExist.setText(encontrada.getTipoExistencia() != null ? encontrada.getTipoExistencia() : "");
                 campoDescripcion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
                 campoColor.setText(encontrada.getColor() != null ? encontrada.getColor() : "");
@@ -2165,12 +2193,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             double medidaDouble = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
             double TallaDouble = talla.isEmpty() ? 0.0 : Double.parseDouble(talla);
 
-            if (nombre.isEmpty() || existStr.isEmpty() || minimoStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre, existencia y minimo son obligatorios"); return;
+            if (nombre.isEmpty() || existStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre y existencia son obligatorios"); return;
             }
             try {
                 double existencia  = existStr.isEmpty() ? 0.0 : Double.parseDouble(existStr);
-                int minimo      = Integer.parseInt(minimoStr);
+                Double minimo = minimoStr.isEmpty() ? null : Double.parseDouble(minimoStr);
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
                 double ancho    = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
                 int no      = noStr.isEmpty()    ? 0 : Integer.parseInt(noStr);
@@ -2642,7 +2670,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                     }
                     ids.add(idLimpio);
                 }
-                int minimo = campoMinimo.getText().trim().isEmpty() ? 3 : Integer.parseInt(campoMinimo.getText().trim());
+                Double minimo = campoMinimo.getText().trim().isEmpty() ? null : Double.parseDouble(campoMinimo.getText().trim());
                 Conjunto nuevoConj = new Conjunto(idConjunto, nombre, piezas, 0.0);
                 nuevoConj.setDescripcion(descripcion);
                 nuevoConj.setMinimoExistencia(minimo);
@@ -2730,7 +2758,7 @@ panelEdicion.getChildren().addAll(campoNombre, campoDescripcion, campoPiezas, ca
                 conjuntoEncontrado[0] = c;
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Conjunto encontrado");
 campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion());
-                campoPiezas.setText(String.valueOf(c.getPiezas())); campoMinimo.setText(String.valueOf(c.getMinimoExistencia())); campoIdPrendas.setText(String.join(",", c.getIdPrendas()));
+                campoPiezas.setText(String.valueOf(c.getPiezas())); campoMinimo.setText(c.getMinimoExistencia() != null ? String.valueOf(c.getMinimoExistencia()) : ""); campoIdPrendas.setText(String.join(",", c.getIdPrendas()));
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
             }
         });
@@ -2754,7 +2782,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                     }
                     ids.add(idLimpio);
                 }
-                int minimo = campoMinimo.getText().trim().isEmpty() ? 3 : Integer.parseInt(campoMinimo.getText().trim());
+                Double minimo = campoMinimo.getText().trim().isEmpty() ? null : Double.parseDouble(campoMinimo.getText().trim());
                 conjuntoEncontrado[0].setNombre(nombre); conjuntoEncontrado[0].setDescripcion(descripcion);
                 conjuntoEncontrado[0].setPiezas(piezas); conjuntoEncontrado[0].setIdPrendas(ids);
                 conjuntoEncontrado[0].setMinimoExistencia(minimo);
@@ -2861,7 +2889,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             }
             try {
                 int existencia  = Integer.parseInt(campoExistencia.getText().trim());
-                int minimo      = campoMinimo.getText().trim().isEmpty() ? 5 : Integer.parseInt(campoMinimo.getText().trim());
+                Integer minimo = campoMinimo.getText().trim().isEmpty() ? null : Integer.parseInt(campoMinimo.getText().trim());
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
 
@@ -3063,7 +3091,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Prenda encontrada");
                 campoNombre.setText(encontrada.getNombre()); campoPMayoreo.setText(String.valueOf(encontrada.getPrecioMayoreo()));
                 campoPMenudeo.setText(String.valueOf(encontrada.getPrecioMenudeo())); campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
-                campoMinimo.setText(String.valueOf(encontrada.getMinimoExistencia()));               
+                campoMinimo.setText(encontrada.getMinimoExistencia() != null ? String.valueOf(encontrada.getMinimoExistencia()) : "");               
                 campoTipoPrenda.setText(encontrada.getTipoPrenda()); campoDescripcion.setText(encontrada.getDescripcion());
                 campoIdTienda.setText(String.valueOf(encontrada.getIdTienda())); selectorTalla.setValue(encontrada.getTalla());
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
@@ -3082,7 +3110,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             }
             try {
                 int existencia  = Integer.parseInt(campoExistencia.getText().trim());
-                int minimo      = campoMinimo.getText().trim().isEmpty() ? 5 : Integer.parseInt(campoMinimo.getText().trim());
+                Integer minimo = campoMinimo.getText().trim().isEmpty() ? null : Integer.parseInt(campoMinimo.getText().trim());
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
@@ -3213,9 +3241,22 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             prendaSeleccionada[0] = null; conjuntoSeleccionado[0] = null;
 
             if (selectorTipoBusqueda.getValue().equals("Prendas")) {
-                Prenda encontrada = listaPrendas.stream()
-                    .filter(p -> p.getNombre().equalsIgnoreCase(busqueda) || p.getCodigoBarras().equalsIgnoreCase(busqueda))
-                    .findFirst().orElse(null);
+                Prenda encontrada = null;
+                try {
+                    encontrada = prendaDAO.getByCodigoBarras(busqueda);
+                    if (encontrada == null) {
+                        encontrada = listaPrendas.stream()
+                            .filter(p -> p.getNombre().equalsIgnoreCase(busqueda))
+                            .findFirst().orElse(null);
+                    }
+                    if (encontrada == null) {
+                        try { encontrada = prendaDAO.getById(Integer.parseInt(busqueda)); } catch (NumberFormatException ignored) {}
+                    }
+                } catch (SQLException sqlEx) {
+                    mensajeBusqueda.setTextFill(Color.web(ERROR));
+                    mensajeBusqueda.setText("Error al buscar: " + sqlEx.getMessage());
+                    return;
+                }
                 if (encontrada == null) {
                     mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Producto no encontrado");
                     panelResultado.setVisible(false); panelResultado.setManaged(false);
@@ -3933,17 +3974,23 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
 private String calcularColorAlerta() {
     boolean hayCritica = false, hayBaja = false;
     for (Prenda p : listaPrendas) {
-        if (p.getExistencia() <= p.getMinimoExistencia())           hayCritica = true;
-        else if (p.getExistencia() <= p.getMinimoExistencia() * 2)  hayBaja = true;
+        if (p.getMinimoExistencia() != null && p.getMinimoExistencia() > 0) {
+            if (p.getExistencia() <= p.getMinimoExistencia())          hayCritica = true;
+            else if (p.getExistencia() <= p.getMinimoExistencia() * 2) hayBaja = true;
+        }
     }
     for (Conjunto c : listaConjuntos) {
         int ex = calcularExistenciaConjunto(c);
-        if (ex <= c.getMinimoExistencia())           hayCritica = true;
-        else if (ex <= c.getMinimoExistencia() * 2)  hayBaja = true;
+        if (c.getMinimoExistencia() != null && c.getMinimoExistencia() > 0) {
+            if (ex <= c.getMinimoExistencia())          hayCritica = true;
+            else if (ex <= c.getMinimoExistencia() * 2) hayBaja = true;
+        }
     }
     for (Insumo mp : listaMateriaPrima) {
-        if (mp.getExistencia() <= mp.getMinimoExistencia())           hayCritica = true;
-        else if (mp.getExistencia() <= mp.getMinimoExistencia() * 2)  hayBaja = true;
+        if (mp.getMinimoExistencia() != null && mp.getMinimoExistencia() > 0) {
+            if (mp.getExistencia() <= mp.getMinimoExistencia())          hayCritica = true;
+            else if (mp.getExistencia() <= mp.getMinimoExistencia() * 2) hayBaja = true;
+        }
     }
     if (hayCritica) return ERROR;
     if (hayBaja)    return ADVERTENCIA;
@@ -3953,13 +4000,17 @@ private String calcularColorAlerta() {
 private String calcularColorAlertaEncargado() {
     boolean hayCritica = false, hayBaja = false;
     for (Prenda p : listaPrendas) {
-        if (p.getExistencia() <= p.getMinimoExistencia())           hayCritica = true;
-        else if (p.getExistencia() <= p.getMinimoExistencia() * 2)  hayBaja = true;
+        if (p.getMinimoExistencia() != null && p.getMinimoExistencia() > 0) {
+            if (p.getExistencia() <= p.getMinimoExistencia())          hayCritica = true;
+            else if (p.getExistencia() <= p.getMinimoExistencia() * 2) hayBaja = true;
+        }
     }
     for (Conjunto c : listaConjuntos) {
         int ex = calcularExistenciaConjunto(c);
-        if (ex <= c.getMinimoExistencia())           hayCritica = true;
-        else if (ex <= c.getMinimoExistencia() * 2)  hayBaja = true;
+        if (c.getMinimoExistencia() != null && c.getMinimoExistencia() > 0) {
+            if (ex <= c.getMinimoExistencia())          hayCritica = true;
+            else if (ex <= c.getMinimoExistencia() * 2) hayBaja = true;
+        }
     }
     if (hayCritica) return ERROR;
     if (hayBaja)    return ADVERTENCIA;
@@ -4175,7 +4226,7 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
         int id      = Integer.parseInt(campoId.getText().trim());
         String tipo    = campoTipo.getText().trim();
         String nombre  = campoNombre.getText().trim();
-        String idPadre = campoIdPadre.getText().trim();
+        int idPadre = campoIdPadre.getText().trim().isEmpty() ? 0 : Integer.parseInt(campoIdPadre.getText().trim());
 
         if (tipo.isEmpty() || nombre.isEmpty()) {
             mensajeEstado.setTextFill(Color.web(ERROR));
@@ -4185,11 +4236,14 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
         if (!esEdicion) {
             boolean yaExiste = listaTiendas.stream().anyMatch(t -> t.getId() == id);
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una tienda con ese ID"); return; }
-            listaTiendas.add(new Tienda(id, tipo, nombre, idPadre.isEmpty() ? 0 : Integer.parseInt(idPadre)));
+            tiendaDAO.insert(new Tienda(id, tipo, nombre, idPadre));
+            recargarDatos();
         } else {
             tiendaEditar.setTipo(tipo);
             tiendaEditar.setNombre(nombre);
-            tiendaEditar.setIdPadre(idPadre.isEmpty() ? 0 : Integer.parseInt(idPadre));
+            tiendaEditar.setIdPadre(idPadre);
+            tiendaDAO.update(tiendaEditar);
+            recargarDatos();
         }
         mostrarModuloTiendasUbicaciones(contenido, esAdmin);
     });
@@ -4277,11 +4331,14 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
         if (!esEdicion) {
             boolean yaExiste = listaUbicaciones.stream().anyMatch(u -> u.getId() == id);
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una ubicación con ese ID"); return; }
-            listaUbicaciones.add(new Ubicacion(id, tipo, nombre, idPadre));
+            ubicacionDAO.insert(new Ubicacion(id, tipo, nombre, idPadre != null ? idPadre : 0));
+            recargarDatos();
         } else {
             ubicacionEditar.setTipo(tipo);
             ubicacionEditar.setNombre(nombre);
-            ubicacionEditar.setIdPadre(idPadre);
+            ubicacionEditar.setIdPadre(idPadre != null ? idPadre : 0);
+            ubicacionDAO.update(ubicacionEditar);
+            recargarDatos();
         }
         mostrarModuloTiendasUbicaciones(contenido, true);
     });

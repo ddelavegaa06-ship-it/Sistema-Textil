@@ -7,7 +7,7 @@ public class Conjunto {
     private double precio;
     private String descripcion = "";
     private java.util.List<String> idPrendas = new java.util.ArrayList<>();
-    private int minimoExistencia = 3;
+    private Double minimoExistencia;
 
     public Conjunto(int id, String nombre, int piezas, double precio){
         this.id = id;
@@ -49,6 +49,6 @@ public class Conjunto {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public java.util.List<String> getIdPrendas() { return idPrendas; }
     public void setIdPrendas(java.util.List<String> idPrendas) { this.idPrendas = idPrendas; }
-    public int getMinimoExistencia() { return minimoExistencia; }
-    public void setMinimoExistencia(int minimoExistencia) { this.minimoExistencia = minimoExistencia; }
+    public Double getMinimoExistencia() { return minimoExistencia; }
+    public void setMinimoExistencia(Double minimoExistencia) { this.minimoExistencia = minimoExistencia; }
 }

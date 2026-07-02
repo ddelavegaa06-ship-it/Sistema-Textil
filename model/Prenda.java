@@ -9,7 +9,7 @@ public class Prenda {
     private double precioMenudeo;
     private Integer idTienda;
     private String codigoBarras;
-    private int minimoExistencia = 5;
+    private Integer minimoExistencia;
 
     public Prenda() {}
 
@@ -117,11 +117,11 @@ public class Prenda {
         this.codigoBarras = codigoBarras;
     }
 
-    public int getMinimoExistencia() {
+    public Integer getMinimoExistencia() {
         return minimoExistencia;
     }
 
-    public void setMinimoExistencia(int minimoExistencia) {
+    public void setMinimoExistencia(Integer minimoExistencia) {
         this.minimoExistencia = minimoExistencia;
     }
 

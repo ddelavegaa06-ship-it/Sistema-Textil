@@ -41,7 +41,7 @@ public class PrendaDAO {
     }
 
     public int insert(Prenda p) throws SQLException {
-        String sql = "INSERT INTO prenda (nombre, talla, existencia, precioMayoreo, precioMenudeo, idTienda, codigoBarras) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO prenda (nombre, talla, existencia, precioMayoreo, precioMenudeo, idTienda, codigoBarras, minimo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, p.getNombre());
@@ -52,6 +52,8 @@ public class PrendaDAO {
             if (p.getIdTienda() > 0) pstmt.setInt(6, p.getIdTienda());
             else pstmt.setNull(6, Types.INTEGER);
             pstmt.setString(7, p.getCodigoBarras());
+            if (p.getMinimoExistencia() != null) pstmt.setInt(8, p.getMinimoExistencia());
+            else pstmt.setNull(8, Types.INTEGER);
             int affected = pstmt.executeUpdate();
             if (affected > 0) {
                 try (ResultSet rs = pstmt.getGeneratedKeys()) {
@@ -65,7 +67,7 @@ public class PrendaDAO {
     }
 
     public boolean update(Prenda p) throws SQLException {
-        String sql = "UPDATE prenda SET nombre = ?, talla = ?, existencia = ?, precioMayoreo = ?, precioMenudeo = ?, idTienda = ?, codigoBarras = ? WHERE id = ?";
+        String sql = "UPDATE prenda SET nombre = ?, talla = ?, existencia = ?, precioMayoreo = ?, precioMenudeo = ?, idTienda = ?, codigoBarras = ?, minimo = ? WHERE id = ?";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, p.getNombre());
@@ -76,7 +78,9 @@ public class PrendaDAO {
             if (p.getIdTienda() > 0) pstmt.setInt(6, p.getIdTienda());
             else pstmt.setNull(6, Types.INTEGER);
             pstmt.setString(7, p.getCodigoBarras());
-            pstmt.setInt(8, p.getId());
+            if (p.getMinimoExistencia() != null) pstmt.setInt(8, p.getMinimoExistencia());
+            else pstmt.setNull(8, Types.INTEGER);
+            pstmt.setInt(9, p.getId());
             return pstmt.executeUpdate() > 0;
         }
     }
@@ -88,6 +92,20 @@ public class PrendaDAO {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         }
+    }
+
+    public Prenda getByCodigoBarras(String codigoBarras) throws SQLException {
+        String sql = "SELECT * FROM prenda WHERE codigoBarras = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, codigoBarras);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        }
+        return null;
     }
 
     public List<Prenda> getByNombre(String nombre) throws SQLException {
@@ -116,6 +134,7 @@ public class PrendaDAO {
             rs.getObject("idTienda") != null ? rs.getInt("idTienda") : null,
             rs.getString("codigoBarras")
         );
+        p.setMinimoExistencia(rs.getObject("minimo") != null ? rs.getInt("minimo") : null);
         return p;
     }
 }
