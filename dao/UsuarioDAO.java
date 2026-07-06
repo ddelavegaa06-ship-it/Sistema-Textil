@@ -63,4 +63,12 @@ public class UsuarioDAO {
             return pstmt.executeUpdate() > 0;
         }
     }
+    public boolean delete (int id) throws SQLException {
+        String sql = "DELETE FROM usuarios WHERE id = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
 }

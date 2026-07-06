@@ -76,8 +76,9 @@ public class App extends Application {
 
 
     private static final int DIAS_DEVOLUCION = 30;
-
-    private PrendaDAO prendaDAO = new PrendaDAO();
+    private java.util.Deque<Runnable> historialNavegacion = new java.util.ArrayDeque<>();
+    private javafx.beans.property.SimpleBooleanProperty hayHistorial = 
+    new javafx.beans.property.SimpleBooleanProperty(false);    private PrendaDAO prendaDAO = new PrendaDAO();
     private InsumoDAO insumoDAO = new InsumoDAO();
     private ConjuntoDAO conjuntoDAO = new ConjuntoDAO();
     private UsuarioDAO usuarioDAO = new UsuarioDAO();
@@ -163,7 +164,8 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         this.stage = stage;
         stage.setTitle("Sistema Textil");
         recargarDatos();
-        mostrarLogin();
+        mostrarBienvenida();
+        historialNavegacion.clear();
         stage.show();
     }
 
@@ -258,8 +260,139 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
             .findFirst().orElse(null);
     }
 
+    //----------------------- BIENVENIDA ---------------------------
+    private void mostrarBienvenida() {
+        // Panel izquierdo — decorativo con gradiente oscuro
+        limpiarHistorial();
+        VBox panelIzquierdo = new VBox();
+        panelIzquierdo.setPrefWidth(420);
+        panelIzquierdo.setAlignment(Pos.CENTER);
+        panelIzquierdo.setStyle("-fx-background-color: " + SECUNDARIO + ";");
+
+        // Círculos decorativos de fondo
+        javafx.scene.shape.Circle circulo1 = new javafx.scene.shape.Circle(180);
+        circulo1.setFill(Color.web(PRINCIPAL, 0.08));
+        circulo1.setTranslateY(-80);
+        circulo1.setTranslateX(-60);
+
+        javafx.scene.shape.Circle circulo2 = new javafx.scene.shape.Circle(120);
+        circulo2.setFill(Color.web(PRINCIPAL, 0.12));
+        circulo2.setTranslateY(100);
+        circulo2.setTranslateX(80);
+
+        javafx.scene.shape.Circle circulo3 = new javafx.scene.shape.Circle(60);
+        circulo3.setFill(Color.web(PRINCIPAL_ALT, 0.15));
+        circulo3.setTranslateY(-20);
+        circulo3.setTranslateX(120);
+
+        // Ícono central — letra T estilizada
+        Label icono = new Label("T");
+        icono.setFont(Font.font("System", FontWeight.BOLD, 72));
+        icono.setTextFill(Color.WHITE);
+        icono.setStyle(
+            "-fx-background-color: " + PRINCIPAL + "; -fx-background-radius: 24;" +
+            "-fx-padding: 10 28 10 28;");
+
+        Label nombreSistema = new Label("Sistema Textil");
+        nombreSistema.setFont(Font.font("System", FontWeight.BOLD, 28));
+        nombreSistema.setTextFill(Color.WHITE);
+        nombreSistema.setStyle("-fx-padding: 20 0 6 0;");
+
+        Label versionLabel = new Label("v1.0  —  Gestión Integral");
+        versionLabel.setFont(Font.font("System", 13));
+        versionLabel.setTextFill(Color.web("#64748B"));
+
+        // Línea decorativa
+        Region linea = new Region();
+        linea.setPrefHeight(3);
+        linea.setPrefWidth(60);
+        linea.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-background-radius: 2;");
+
+        VBox contenidoIzq = new VBox(12, icono, nombreSistema, linea, versionLabel);
+        contenidoIzq.setAlignment(Pos.CENTER);
+        contenidoIzq.setStyle("-fx-padding: 40;");
+
+        StackPane stackIzq = new StackPane(circulo1, circulo2, circulo3, contenidoIzq);
+        panelIzquierdo.getChildren().add(stackIzq);
+        VBox.setVgrow(stackIzq, Priority.ALWAYS);
+
+        // Panel derecho — bienvenida
+        VBox panelDerecho = new VBox();
+        panelDerecho.setAlignment(Pos.CENTER);
+        panelDerecho.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 60 50 60 50;");
+        HBox.setHgrow(panelDerecho, Priority.ALWAYS);
+
+        Label saludo = new Label("Bienvenido");
+        saludo.setFont(Font.font("System", FontWeight.BOLD, 36));
+        saludo.setTextFill(Color.web(SECUNDARIO));
+
+        Label descripcion = new Label("Plataforma de inventario y punto de venta\npara la industria textil.");
+        descripcion.setFont(Font.font("System", 14));
+        descripcion.setTextFill(Color.web(TEXTO_SUAVE));
+        descripcion.setStyle("-fx-text-alignment: center; -fx-padding: 10 0 30 0;");
+        descripcion.setWrapText(true);
+
+        // Tres tarjetas de características
+        HBox tarjetas = new HBox(12,
+            crearTarjetaBienvenida("📦", "Inventario", "Control de prendas,\nconjuntos y materias primas"),
+            crearTarjetaBienvenida("🧾", "Ventas", "Punto de venta,\nrecibos y devoluciones"),
+            crearTarjetaBienvenida("📊", "Reportes", "Alertas de stock\ny seguimiento de usuarios")
+        );
+        tarjetas.setAlignment(Pos.CENTER);
+        tarjetas.setStyle("-fx-padding: 0 0 36 0;");
+
+        Button btnEntrar = new Button("Entrar al sistema  →");
+        btnEntrar.setStyle(
+            "-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 15px; -fx-padding: 14 36; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnEntrar.setOnMouseEntered(e -> btnEntrar.setStyle(
+            "-fx-background-color: " + PRINCIPAL_ALT + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 15px; -fx-padding: 14 36; -fx-background-radius: 8; -fx-cursor: hand;"));
+        btnEntrar.setOnMouseExited(e -> btnEntrar.setStyle(
+            "-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 15px; -fx-padding: 14 36; -fx-background-radius: 8; -fx-cursor: hand;"));
+        btnEntrar.setOnAction(e -> mostrarLogin());
+
+        Label pie = new Label("© 2026 Sistema Textil  —  Todos los derechos reservados");
+        pie.setFont(Font.font("System", 11));
+        pie.setTextFill(Color.web("#CBD5E1"));
+        pie.setStyle("-fx-padding: 30 0 0 0;");
+
+        panelDerecho.getChildren().addAll(saludo, descripcion, tarjetas, btnEntrar, pie);
+
+        HBox root = new HBox(panelIzquierdo, panelDerecho);
+        HBox.setHgrow(panelDerecho, Priority.ALWAYS);
+        stage.setScene(new Scene(root, 960, 580));
+    }
+
+    private VBox crearTarjetaBienvenida(String emoji, String titulo, String descripcion) {
+        Label lEmoji = new Label(emoji);
+        lEmoji.setFont(Font.font("System", 26));
+
+        Label lTitulo = new Label(titulo);
+        lTitulo.setFont(Font.font("System", FontWeight.BOLD, 13));
+        lTitulo.setTextFill(Color.web(SECUNDARIO));
+
+        Label lDesc = new Label(descripcion);
+        lDesc.setFont(Font.font("System", 11));
+        lDesc.setTextFill(Color.web(TEXTO_SUAVE));
+        lDesc.setWrapText(true);
+        lDesc.setStyle("-fx-text-alignment: center;");
+
+        VBox tarjeta = new VBox(8, lEmoji, lTitulo, lDesc);
+        tarjeta.setAlignment(Pos.TOP_CENTER);
+        tarjeta.setPrefWidth(150);
+        tarjeta.setStyle(
+            "-fx-background-color: " + PANEL + "; -fx-padding: 18 14; -fx-background-radius: 10;" +
+            "-fx-border-color: #E5E7EB; -fx-border-radius: 10;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 10, 0, 0, 2);");
+        return tarjeta;
+    }
+
+
     // ----------------------- LOGIN ---------------------------
     private void mostrarLogin() {
+        historialNavegacion.clear();
         VBox panelIzquierdo = new VBox();
         panelIzquierdo.setPrefWidth(260);
         panelIzquierdo.setStyle("-fx-background-color: " + SECUNDARIO + ";");
@@ -340,6 +473,10 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         VBox.setVgrow(form, Priority.ALWAYS);
 
         HBox root = new HBox(panelIzquierdo, form);
+        Button btnRegresar = new Button("← Volver");
+        btnRegresar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+        btnRegresar.setOnAction(e -> mostrarBienvenida());
+        form.getChildren().add(btnRegresar);
         HBox.setHgrow(form, Priority.ALWAYS);
         root.setStyle("-fx-background-color: " + PANEL + ";");
         stage.setScene(new Scene(root, 700, 460));
@@ -350,6 +487,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     private void mostrarMenuEncargado()     { mostrarMenu("Encargado", false); }
 
     private void mostrarMenu(String rol, boolean esAdmin) {
+    limpiarHistorial(); 
     String colorSidebar = esAdmin ? SECUNDARIO     : SECUNDARIO_ALT;
     String colorLogo    = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
     String colorHover   = esAdmin ? PRINCIPAL      : PRINCIPAL_ALT;
@@ -384,10 +522,10 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         sidebar.getChildren().addAll(btnMP, btnPr, btnCj);
         Button btnMxP = crearBotonMenuColor("Materiales por Prenda", colorHover);
         sidebar.getChildren().add(btnMxP);
-        btnMxP.setOnAction(e -> mostrarMaterialesPorPrenda(contenido));
-        btnMP.setOnAction(e -> mostrarModuloMateriaPrima(contenido, true));
-        btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, true));
-        btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, true));
+        btnMxP.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarMaterialesPorPrenda(contenido); });
+        btnMP.setOnAction(e  -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloMateriaPrima(contenido, true); });
+        btnPr.setOnAction(e  -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloPrendas(contenido, true); });
+        btnCj.setOnAction(e  -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloConjuntos(contenido, true); });
 
         sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
         Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
@@ -396,29 +534,28 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         Button btnDev    = crearBotonMenuColor("Devoluciones", colorHover);
         Button btnRegDev = crearBotonMenuColor("Registro de Devoluciones", colorHover);
         sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev, btnRegDev);
-        btnPV.setOnAction(e     -> mostrarPuntoDeVenta(contenido));
-        btnPVd.setOnAction(e    -> mostrarModuloPrendasVendidas(contenido, true));
-        btnCVd.setOnAction(e    -> mostrarModuloConjuntosVendidos(contenido, true));
-        btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
-        btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, true));
+       btnPV.setOnAction(e     -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarPuntoDeVenta(contenido); });
+        btnPVd.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloPrendasVendidas(contenido, true); });
+        btnCVd.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloConjuntosVendidos(contenido, true); });
+        btnDev.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarDevoluciones(contenido); });
+        btnRegDev.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarRegistroDevoluciones(contenido, true); });
 
         sidebar.getChildren().add(crearSeccionMenu("ADMINISTRACION"));
         Button btnUs  = crearBotonMenuColor("Usuarios", colorHover);
         Button btnAl  = crearBotonMenuColor("Alertas de Stock", colorHover);
         sidebar.getChildren().addAll(btnUs, btnAl);
-        btnUs.setOnAction(e -> mostrarModuloUsuarios(contenido));
-        btnAl.setOnAction(e -> mostrarAlertasStock(contenido, true));
+       btnUs.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloUsuarios(contenido); });
+        btnAl.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarAlertasStock(contenido, true); });
         Button btnTU  = crearBotonMenuColor("Tiendas y Ubicaciones", colorHover);
         sidebar.getChildren().add(btnTU);
-        btnTU.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, true));
-
+        btnTU.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloTiendasUbicaciones(contenido, true); });
     } else {
         sidebar.getChildren().add(crearSeccionMenu("INVENTARIO"));
         Button btnPr = crearBotonMenuColor("Prendas Fabricadas", colorHover);
         Button btnCj = crearBotonMenuColor("Conjuntos", colorHover);
         sidebar.getChildren().addAll(btnPr, btnCj);
-        btnPr.setOnAction(e -> mostrarModuloPrendas(contenido, false));
-        btnCj.setOnAction(e -> mostrarModuloConjuntos(contenido, false));
+        btnPr.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloPrendas(contenido, false); });
+        btnCj.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloConjuntos(contenido, false); });
 
         sidebar.getChildren().add(crearSeccionMenu("VENTAS"));
         Button btnPV  = crearBotonMenuColor("Punto de Venta", colorHover);
@@ -427,21 +564,19 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         Button btnDev    = crearBotonMenuColor("Devoluciones", colorHover);
         Button btnRegDev = crearBotonMenuColor("Registro de Devoluciones", colorHover);
         sidebar.getChildren().addAll(btnPV, btnPVd, btnCVd, btnDev, btnRegDev);
-        btnPV.setOnAction(e     -> mostrarPuntoDeVenta(contenido));
-        btnPVd.setOnAction(e    -> mostrarModuloPrendasVendidas(contenido, false));
-        btnCVd.setOnAction(e    -> mostrarModuloConjuntosVendidos(contenido, false));
-        btnDev.setOnAction(e    -> mostrarDevoluciones(contenido));
-        btnRegDev.setOnAction(e -> mostrarRegistroDevoluciones(contenido, false));
-
+        btnPV.setOnAction(e     -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarPuntoDeVenta(contenido); });
+        btnPVd.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloPrendasVendidas(contenido, false); });
+        btnCVd.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloConjuntosVendidos(contenido, false); });
+        btnDev.setOnAction(e    -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarDevoluciones(contenido); });
+        btnRegDev.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarRegistroDevoluciones(contenido, false); });
         // Encargado tambien tiene alertas pero solo de prendas y conjuntos
         sidebar.getChildren().add(crearSeccionMenu("AVISOS"));
         Button btnAl = crearBotonMenuColor("Alertas de Stock", colorHover);
         sidebar.getChildren().add(btnAl);
-        btnAl.setOnAction(e -> mostrarAlertasStock(contenido, false));
+       btnAl.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarAlertasStock(contenido, false); });
         Button btnTU2 = crearBotonMenuColor("Tiendas", colorHover);
         sidebar.getChildren().add(btnTU2);
-        btnTU2.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, false));
-    }
+        btnTU2.setOnAction(e -> { pushHistorial(() -> mostrarContenidoVacioEnMenu(contenido)); mostrarModuloTiendasUbicaciones(contenido, false); });  }
 
     Region spacer = new Region();
     VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -463,15 +598,20 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     sidebarScroll.setMaxWidth(230);
     sidebarScroll.setStyle("-fx-background-color: " + colorSidebar + "; -fx-border-color: transparent;");
 
-    HBox cuerpo = new HBox(sidebarScroll, contenido);
-    HBox.setHgrow(contenido, Priority.ALWAYS);
-    VBox.setVgrow(cuerpo, Priority.ALWAYS);
+HBox barraAtras = crearBarraAtras();
+        VBox areaContenido = new VBox(barraAtras, contenido);
+        VBox.setVgrow(contenido, Priority.ALWAYS);
+        HBox.setHgrow(areaContenido, Priority.ALWAYS);
 
-    BorderPane root = new BorderPane();
-    root.setCenter(cuerpo);
-    root.setStyle("-fx-background-color: " + FONDO + ";");
-    stage.setScene(new Scene(root, 960, 620));
-}
+        HBox cuerpo = new HBox(sidebarScroll, areaContenido);
+        HBox.setHgrow(areaContenido, Priority.ALWAYS);
+        VBox.setVgrow(cuerpo, Priority.ALWAYS);
+
+        BorderPane root = new BorderPane();
+        root.setCenter(cuerpo);
+        root.setStyle("-fx-background-color: " + FONDO + ";");
+        stage.setScene(new Scene(root, 960, 620));
+    }
 
     // ---------------MODULO ALERTAS DE STOCK -----------------------------
 
@@ -1045,9 +1185,12 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnExist.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
 
-            btnAnadir.setOnAction(e -> mostrarFormularioNuevaPrenda(contenido));
-            btnExist.setOnAction(e  -> mostrarFormularioAnadirExistente(contenido));
-            btnEditar.setOnAction(e -> mostrarFormularioEditarPrenda(contenido));
+            btnAnadir.setOnAction(e -> {
+            pushHistorial(() -> mostrarModuloPrendas(contenido, true));
+            mostrarFormularioNuevaPrenda(contenido);
+       });
+        btnExist.setOnAction(e  -> { pushHistorial(() -> mostrarModuloPrendas(contenido, true)); mostrarFormularioAnadirExistente(contenido); });
+        btnEditar.setOnAction(e -> { pushHistorial(() -> mostrarModuloPrendas(contenido, true)); mostrarFormularioEditarPrenda(contenido); });
 
             HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle);
             botones.setStyle("-fx-padding: 0 0 4 0;");
@@ -3176,14 +3319,69 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         labelTipoBusqueda.setFont(Font.font("System", 12));
         labelTipoBusqueda.setTextFill(Color.web(TEXTO_SUAVE));
         ComboBox<String> selectorTipoBusqueda = new ComboBox<>();
-        selectorTipoBusqueda.getItems().addAll("Prendas", "Conjuntos");
-        selectorTipoBusqueda.setValue("Prendas");
+        selectorTipoBusqueda.getItems().addAll("Todos", "Prendas", "Conjuntos");
+        selectorTipoBusqueda.setValue("Todos");
         selectorTipoBusqueda.setStyle(estiloInput());
         selectorTipoBusqueda.setMaxWidth(Double.MAX_VALUE);
 
         TextField campoBusqueda = new TextField();
         campoBusqueda.setPromptText("Nombre o ID");
         campoBusqueda.setStyle(estiloInput());
+
+        // --------- Lista de autocompletado (no toca BD, solo filtra en memoria) ---------
+ListView<String> listaSugerencias = new ListView<>();
+listaSugerencias.setPrefHeight(130);
+listaSugerencias.setMaxHeight(130);
+listaSugerencias.setStyle("-fx-font-size: 12px; -fx-border-color: " + NARANJA + "; -fx-border-width: 1;");
+listaSugerencias.setVisible(false);
+listaSugerencias.setManaged(false);
+
+campoBusqueda.textProperty().addListener((obs, oldVal, newVal) -> {
+    String texto = newVal == null ? "" : newVal.trim().toLowerCase();
+    if (texto.isEmpty()) {
+        listaSugerencias.setVisible(false);
+        listaSugerencias.setManaged(false);
+        return;
+    }
+
+    List<String> coincidencias = new ArrayList<>();
+    String tipoSel = selectorTipoBusqueda.getValue();
+
+    if ("Prendas".equals(tipoSel) || "Todos".equals(tipoSel)) {
+        for (Prenda p : listaPrendas) {
+            if (p.getNombre().toLowerCase().contains(texto)) {
+                coincidencias.add("[Prenda] " + p.getNombre() + " (Talla " + p.getTalla() + ")");
+            }
+        }
+    }
+    if ("Conjuntos".equals(tipoSel) || "Todos".equals(tipoSel)) {
+        for (Conjunto c : listaConjuntos) {
+            if (c.getNombre().toLowerCase().contains(texto)) {
+                coincidencias.add("[Conjunto] " + c.getNombre());
+            }
+        }
+    }
+
+    listaSugerencias.setItems(FXCollections.observableArrayList(coincidencias));
+    boolean haySugerencias = !coincidencias.isEmpty();
+    listaSugerencias.setVisible(haySugerencias);
+    listaSugerencias.setManaged(haySugerencias);
+});
+
+listaSugerencias.setOnMouseClicked(e -> {
+    String seleccion = listaSugerencias.getSelectionModel().getSelectedItem();
+    if (seleccion == null) return;
+
+    boolean esPrenda = seleccion.startsWith("[Prenda]");
+    String nombreLimpio = seleccion.replaceFirst("^\\[(Prenda|Conjunto)\\]\\s*", "");
+    int idxTalla = nombreLimpio.indexOf(" (Talla");
+    if (idxTalla > 0) nombreLimpio = nombreLimpio.substring(0, idxTalla);
+
+    campoBusqueda.setText(nombreLimpio);
+    selectorTipoBusqueda.setValue(esPrenda ? "Prendas" : "Conjuntos");
+    listaSugerencias.setVisible(false);
+    listaSugerencias.setManaged(false);
+});
 
         Label mensajeBusqueda = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
@@ -3236,11 +3434,16 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         btnBuscar.setStyle("-fx-background-color: " + CAFE + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
 
         btnBuscar.setOnAction(e -> {
-            String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
-            prendaSeleccionada[0] = null; conjuntoSeleccionado[0] = null;
+    String busqueda = campoBusqueda.getText().trim();
+    if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o ID"); return; }
+    prendaSeleccionada[0] = null; conjuntoSeleccionado[0] = null;
+    listaSugerencias.setVisible(false); listaSugerencias.setManaged(false);
 
-            if (selectorTipoBusqueda.getValue().equals("Prendas")) {
+    boolean esConjunto = listaConjuntos.stream().anyMatch(c -> c.getNombre().equalsIgnoreCase(busqueda) || String.valueOf(c.getId()).equals(busqueda));
+    boolean buscarComoPrenda = selectorTipoBusqueda.getValue().equals("Prendas")
+        || (selectorTipoBusqueda.getValue().equals("Todos") && !esConjunto);
+
+    if (buscarComoPrenda) {
                 Prenda encontrada = null;
                 try {
                     encontrada = prendaDAO.getByCodigoBarras(busqueda);
@@ -3330,8 +3533,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             } catch (NumberFormatException ex) { mensajeAdd.setTextFill(Color.web(ERROR)); mensajeAdd.setText("Ingresa una cantidad valida"); }
         });
 
-        ScrollPane scrollBusqueda = new ScrollPane(new VBox(10, tituloBusqueda, labelTipoBusqueda, selectorTipoBusqueda, campoBusqueda, btnBuscar, mensajeBusqueda, panelResultado));
-        scrollBusqueda.setFitToWidth(true);
+        ScrollPane scrollBusqueda = new ScrollPane(new VBox(10, tituloBusqueda, labelTipoBusqueda, selectorTipoBusqueda, campoBusqueda, listaSugerencias, btnBuscar, mensajeBusqueda, panelResultado));        scrollBusqueda.setFitToWidth(true);
         scrollBusqueda.setStyle("-fx-background-color: " + PANEL + "; -fx-background: " + PANEL + "; -fx-border-color: #E5E7EB; -fx-border-radius: 8;");
 
         VBox panelBusqueda = new VBox(scrollBusqueda);
@@ -3849,37 +4051,77 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
  
  
 
-    // ----------- M?"DULO USUARIOS ------------------
+    // ----------- MÓDULO USUARIOS ------------------
     private void mostrarModuloUsuarios(StackPane contenido) {
         contenido.getChildren().clear();
-
-        Label titulo = new Label("Gestion de Usuarios");
+        Label titulo = new Label("Gestión de Usuarios");
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
-
         TableView<Usuario> tabla = new TableView<>();
         tabla.setStyle("-fx-background-color: " + PANEL + "; -fx-border-color: #E5E7EB;");
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabla.setPlaceholder(new Label("No hay usuarios registrados"));
         tabla.setMinHeight(200);
-
         TableColumn<Usuario, String> colNombre  = new TableColumn<>("Nombre");
         TableColumn<Usuario, String> colUsuario = new TableColumn<>("Usuario");
+        TableColumn<Usuario, String> colPass    = new TableColumn<>("Contraseña");
         TableColumn<Usuario, String> colRol     = new TableColumn<>("Rol");
-
         colNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colUsuario.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getUsuario()));
+        colPass.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getPassword()));
         colRol.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getRol()));
-
-        tabla.getColumns().addAll(colNombre, colUsuario, colRol);
+        tabla.getColumns().addAll(colNombre, colUsuario, colPass, colRol);
         tabla.setItems(listaUsuarios);
         VBox.setVgrow(tabla, Priority.ALWAYS);
-
-        Button btnNuevo = new Button("+ Nuevo Usuario");
+        Label mensajeEliminar = new Label("");
+        mensajeEliminar.setFont(Font.font("System", 12));
+        Button btnNuevo    = new Button("+ Nuevo Usuario");
+        Button btnEliminar = new Button("✕ Eliminar Usuario");
         btnNuevo.setStyle(estiloBtnPrincipal());
+        btnEliminar.setStyle(
+            "-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold;" +
+            "-fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
         btnNuevo.setOnAction(e -> mostrarFormularioCrearUsuario(contenido));
-
-        VBox vista = new VBox(16, titulo, tabla, btnNuevo);
+        btnEliminar.setOnAction(e -> {
+            Usuario seleccionado = tabla.getSelectionModel().getSelectedItem();
+            if (seleccionado == null) {
+                mensajeEliminar.setTextFill(Color.web(ADVERTENCIA));
+                mensajeEliminar.setText("Selecciona un usuario de la tabla primero");
+                return;
+            }
+            if (seleccionado.getUsuario().equals("admin")) {
+                mensajeEliminar.setTextFill(Color.web(ERROR));
+                mensajeEliminar.setText("No se puede eliminar el administrador principal");
+                return;
+            }
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmar eliminación");
+            confirmacion.setHeaderText("¿Eliminar usuario?");
+            confirmacion.setContentText(
+                "¿Estás seguro de que deseas eliminar al usuario \""
+                + seleccionado.getUsuario() + "\" (" + seleccionado.getNombre() + ")?\n"
+                + "Esta acción no se puede deshacer.");
+            confirmacion.showAndWait().ifPresent(respuesta -> {
+                if (respuesta == ButtonType.OK) {
+                    //  acá va el código para eliminar el usuario de la base de datos
+                    listaUsuarios.remove(seleccionado);
+                    try {
+                        if (usuarioDAO.delete(seleccionado.getId())) {
+                            mensajeEliminar.setTextFill(Color.web(EXITO));
+                            mensajeEliminar.setText("Usuario '" + seleccionado.getUsuario() + "' eliminado correctamente");
+                        } else {
+                            mensajeEliminar.setTextFill(Color.web(ERROR));
+                            mensajeEliminar.setText("Error al eliminar el usuario '" + seleccionado.getUsuario() + "'");
+                        }
+                    } catch (SQLException ex) {
+                        mensajeEliminar.setTextFill(Color.web(ERROR));
+                        mensajeEliminar.setText("Error al eliminar el usuario '" + seleccionado.getUsuario() + "': " + ex.getMessage());
+                    }
+                }
+            });
+        });
+        HBox botones = new HBox(12, btnNuevo, btnEliminar);
+        VBox vista = new VBox(16, titulo, tabla, botones, mensajeEliminar);
         vista.setStyle("-fx-padding: 30;");
         VBox.setVgrow(tabla, Priority.ALWAYS);
         VBox.setVgrow(vista, Priority.ALWAYS);
@@ -3961,7 +4203,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
-    // ?"??"? HELPERS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
+    //  HELPERS 
     private Label crearSeccionMenu(String texto) {
         Label label = new Label(texto);
         label.setFont(Font.font("System", FontWeight.BOLD, 10));
@@ -3969,6 +4211,63 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         label.setStyle("-fx-padding: 16 16 4 16;");
         label.setMaxWidth(Double.MAX_VALUE);
         return label;
+    }
+
+    private void mostrarContenidoVacioEnMenu(StackPane contenido) {
+        contenido.getChildren().clear();
+        Label placeholder = new Label("Selecciona un módulo del menú");
+        placeholder.setTextFill(Color.web("#D1D5DB"));
+        placeholder.setFont(Font.font("System", 16));
+        contenido.getChildren().add(placeholder);
+        limpiarHistorial();
+    }
+
+
+
+    private void pushHistorial(Runnable anterior) {
+        historialNavegacion.push(anterior);
+        hayHistorial.set(true);
+    }
+
+    private void regresarAtras() {
+        if (!historialNavegacion.isEmpty()) {
+            historialNavegacion.pop().run();
+            hayHistorial.set(!historialNavegacion.isEmpty());
+        }
+    }
+
+    private void limpiarHistorial() {
+        historialNavegacion.clear();
+        hayHistorial.set(false);
+    }
+
+private HBox crearBarraAtras() {
+        Button btnAtras = new Button("← Atrás");
+        btnAtras.setStyle(
+            "-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + ";" +
+            "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+            "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;");
+        btnAtras.setOnMouseEntered(e -> {
+            if (!historialNavegacion.isEmpty()) btnAtras.setStyle(
+                "-fx-background-color: #F1F5F9; -fx-text-fill: " + SECUNDARIO + ";" +
+                "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+                "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;");
+        });
+        btnAtras.setOnMouseExited(e -> btnAtras.setStyle(
+            "-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + ";" +
+            "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+            "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;"));
+        btnAtras.setOnAction(e -> regresarAtras());
+        btnAtras.disableProperty().bind(hayHistorial.not());
+
+        HBox barra = new HBox(btnAtras);
+        barra.setStyle(
+            "-fx-background-color: " + PANEL + "; -fx-padding: 8 16;" +
+            "-fx-border-color: #E5E7EB; -fx-border-width: 0 0 1 0;");
+        barra.setAlignment(Pos.CENTER_LEFT);
+        barra.visibleProperty().bind(hayHistorial);
+        barra.managedProperty().bind(hayHistorial);
+        return barra;
     }
 
 private String calcularColorAlerta() {
@@ -4020,11 +4319,41 @@ private String calcularColorAlertaEncargado() {
     private StackPane crearContenidoVacio() {
         StackPane contenido = new StackPane();
         contenido.setStyle("-fx-background-color: " + FONDO + ";");
-        Label placeholder = new Label("Selecciona un modulo del menu");
+        Label placeholder = new Label("Selecciona un módulo del menú");
         placeholder.setTextFill(Color.web("#D1D5DB"));
         placeholder.setFont(Font.font("System", 16));
         contenido.getChildren().add(placeholder);
         return contenido;
+    }
+
+    private BorderPane crearLayoutConBtnAtras(StackPane contenido) {
+        Button btnAtras = new Button("← Atrás");
+        btnAtras.setStyle(
+            "-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + ";" +
+            "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+            "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;");
+        btnAtras.setOnMouseEntered(e -> btnAtras.setStyle(
+            "-fx-background-color: #F1F5F9; -fx-text-fill: " + SECUNDARIO + ";" +
+            "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+            "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;"));
+        btnAtras.setOnMouseExited(e -> btnAtras.setStyle(
+            "-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + ";" +
+            "-fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 6 14;" +
+            "-fx-border-color: #D1D5DB; -fx-border-radius: 6; -fx-background-radius: 6;"));
+        btnAtras.setOnAction(e -> regresarAtras());
+
+        HBox barraAtras = new HBox(btnAtras);
+        barraAtras.setStyle(
+            "-fx-background-color: " + PANEL + "; -fx-padding: 8 16;" +
+            "-fx-border-color: #E5E7EB; -fx-border-width: 0 0 1 0;");
+        barraAtras.setAlignment(Pos.CENTER_LEFT);
+
+        
+
+        BorderPane layout = new BorderPane();
+        layout.setTop(barraAtras);
+        layout.setCenter(contenido);
+        return layout;
     }
 
     private TextField crearTextField(String placeholder) {
