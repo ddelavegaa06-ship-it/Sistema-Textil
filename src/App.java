@@ -162,7 +162,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
-        stage.setTitle("Sistema Textil");
+        stage.setTitle("Punto Olayma");
         recargarDatos();
         mostrarBienvenida();
         historialNavegacion.clear();
@@ -293,7 +293,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
             "-fx-background-color: " + PRINCIPAL + "; -fx-background-radius: 24;" +
             "-fx-padding: 10 28 10 28;");
 
-        Label nombreSistema = new Label("Sistema Textil");
+        Label nombreSistema = new Label("Punto Olayma");
         nombreSistema.setFont(Font.font("System", FontWeight.BOLD, 28));
         nombreSistema.setTextFill(Color.WHITE);
         nombreSistema.setStyle("-fx-padding: 20 0 6 0;");
@@ -353,7 +353,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
             "-fx-font-size: 15px; -fx-padding: 14 36; -fx-background-radius: 8; -fx-cursor: hand;"));
         btnEntrar.setOnAction(e -> mostrarLogin());
 
-        Label pie = new Label("© 2026 Sistema Textil  —  Todos los derechos reservados");
+        Label pie = new Label("© 2026 Punto Olayma  —  Todos los derechos reservados");
         pie.setFont(Font.font("System", 11));
         pie.setTextFill(Color.web("#CBD5E1"));
         pie.setStyle("-fx-padding: 30 0 0 0;");
@@ -398,7 +398,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         panelIzquierdo.setStyle("-fx-background-color: " + SECUNDARIO + ";");
         panelIzquierdo.setAlignment(Pos.CENTER);
 
-        Label marcaNombre = new Label("Sistema\nTextil");
+        Label marcaNombre = new Label("Punto\nOlayma");
         marcaNombre.setFont(Font.font("System", FontWeight.BOLD, 32));
         marcaNombre.setTextFill(Color.WHITE);
         marcaNombre.setStyle("-fx-padding: 0 0 12 0;");
@@ -496,7 +496,7 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
     sidebar.setPrefWidth(230);
     sidebar.setStyle("-fx-background-color: " + colorSidebar + "; -fx-padding: 0;");
 
-    Label logoLabel = new Label("Sistema Textil");
+    Label logoLabel = new Label("Punto Olayma");
     logoLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
     logoLabel.setTextFill(Color.WHITE);
     logoLabel.setStyle("-fx-background-color: " + colorLogo + "; -fx-padding: 20 16 20 16; -fx-max-width: infinity;");
@@ -1192,9 +1192,32 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         btnExist.setOnAction(e  -> { pushHistorial(() -> mostrarModuloPrendas(contenido, true)); mostrarFormularioAnadirExistente(contenido); });
         btnEditar.setOnAction(e -> { pushHistorial(() -> mostrarModuloPrendas(contenido, true)); mostrarFormularioEditarPrenda(contenido); });
 
-            HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle);
+        Button btnEliminarPrenda = new Button("✕ Eliminar Prenda");
+            btnEliminarPrenda.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEliminarPrenda.setOnAction(e -> {
+                Prenda sel = tabla.getSelectionModel().getSelectedItem();
+                if (sel == null) { mostrarError("Selecciona una prenda de la tabla primero"); return; }
+                Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+                conf.setTitle("Eliminar prenda");
+                conf.setHeaderText("¿Eliminar \"" + sel.getNombre() + "\" talla " + sel.getTalla() + "?");
+                conf.setContentText("Esta acción no se puede deshacer.");
+                conf.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK) {
+                        // TODO: acá va el código para eliminar de la base de datos
+                        try{
+                            prendaDAO.delete(sel.getId());
+                            listaPrendas.remove(sel);
+                        }
+                        catch (SQLException ex) {
+                            mostrarError("Error al eliminar prenda: " + ex.getMessage());
+                        }
+                    }
+                });
+            });
+            HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle, btnEliminarPrenda);
             botones.setStyle("-fx-padding: 0 0 4 0;");
-            vista.getChildren().add(botones);
+            vista.getChildren().add(botones);   
+
         } else {
             HBox botones = new HBox(12, btnDetalle);
             botones.setStyle("-fx-padding: 0 0 4 0;");
@@ -1349,7 +1372,30 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjunto(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarConjunto(contenido));
-            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
+            Button btnEliminarConj = new Button("✕ Eliminar Conjunto");
+            btnEliminarConj.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEliminarConj.setOnAction(e -> {
+                Conjunto sel = tabla.getSelectionModel().getSelectedItem();
+                if (sel == null) { mostrarError("Selecciona un conjunto de la tabla primero"); return; }
+                Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+                conf.setTitle("Eliminar conjunto");
+                conf.setHeaderText("¿Eliminar conjunto \"" + sel.getNombre() + "\"?");
+                conf.setContentText("Esta acción no se puede deshacer.");
+                conf.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK) {
+                    
+                        // TODO: acá va el código para eliminar de la base de datos
+                        try{
+                            conjuntoDAO.delete(sel.getId());
+                            listaConjuntos.remove(sel);
+                            
+                        } catch (SQLException ex) {
+                            mostrarError("Error al eliminar conjunto: " + ex.getMessage());
+                        }
+                    }
+                });
+            });
+            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle, btnEliminarConj);
             vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
@@ -1509,7 +1555,23 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevaPrendaVendida(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarPrendaVendida(contenido));
-            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
+            Button btnEliminarPV = new Button("✕ Eliminar Registro");
+            btnEliminarPV.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEliminarPV.setOnAction(e -> {
+                PrendaVendida sel = tabla.getSelectionModel().getSelectedItem();
+                if (sel == null) { mostrarError("Selecciona un registro de la tabla primero"); return; }
+                Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+                conf.setTitle("Eliminar registro");
+                conf.setHeaderText("¿Eliminar venta \"" + sel.getIdVenta() + "\"?");
+                conf.setContentText("Esta acción no se puede deshacer.");
+                conf.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK) {
+                        // TODO: acá va el código para eliminar de la base de datos
+                        tabla.getItems().remove(sel);
+                    }
+                });
+            });
+            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle, btnEliminarPV);
             vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
@@ -1908,7 +1970,28 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnExist.setOnAction(e  -> mostrarFormularioAnadirExistenteMP(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarMateriaPrima(contenido));
 
-            HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle);
+            Button btnEliminarMP = new Button("✕ Eliminar Insumo");
+            btnEliminarMP.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEliminarMP.setOnAction(e -> {
+                Insumo sel = tabla.getSelectionModel().getSelectedItem();
+                if (sel == null) { mostrarError("Selecciona un insumo de la tabla primero"); return; }
+                Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+                conf.setTitle("Eliminar insumo");
+                conf.setHeaderText("¿Eliminar \"" + sel.getNombre() + "\"?");
+                conf.setContentText("Esta acción no se puede deshacer.");
+                conf.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK) {
+                        // TODO: acá va el código para eliminar de la base de datos
+                        try {
+                            insumoDAO.delete(sel.getId());
+                            listaMateriaPrima.remove(sel);
+                        } catch (SQLException ex) {
+                            mostrarError("Error al eliminar insumo: " + ex.getMessage());
+                        }
+                    }
+                });
+            });
+            HBox botones = new HBox(12, btnAnadir, btnExist, btnEditar, btnDetalle, btnEliminarMP);
             vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
@@ -2449,7 +2532,23 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             btnEditar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
             btnAnadir.setOnAction(e -> mostrarFormularioNuevoConjuntoVendido(contenido));
             btnEditar.setOnAction(e -> mostrarFormularioEditarConjuntoVendido(contenido));
-            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle);
+            Button btnEliminarCV = new Button("✕ Eliminar Registro");
+            btnEliminarCV.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+            btnEliminarCV.setOnAction(e -> {
+                ConjuntoVendido sel = tabla.getSelectionModel().getSelectedItem();
+                if (sel == null) { mostrarError("Selecciona un registro de la tabla primero"); return; }
+                Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+                conf.setTitle("Eliminar registro");
+                conf.setHeaderText("¿Eliminar venta \"" + sel.getIdVenta() + "\"?");
+                conf.setContentText("Esta acción no se puede deshacer.");
+                conf.showAndWait().ifPresent(r -> {
+                    if (r == ButtonType.OK) {
+                        // TODO: acá va el código para eliminar de la base de datos
+                        tabla.getItems().remove(sel);
+                    }
+                });
+            });
+            HBox botones = new HBox(12, btnAnadir, btnEditar, btnDetalle, btnEliminarCV);
             vista.getChildren().add(botones);
         } else {
             HBox botones = new HBox(12, btnDetalle);
@@ -3002,7 +3101,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         labelTalla.setFont(Font.font("System", 12));
 
         ComboBox<String> selectorTalla = new ComboBox<>();
-        selectorTalla.getItems().addAll("Ch", "M", "G", "XL", "XXL");
+        selectorTalla.getItems().addAll("2", "4", "6", "8", "10", "12", "14", "16", "18", "20", 
+    "22", "24", "26", "28", "30", "32", "34", "36", "38", "40", 
+    "42", "44", "46", "48", "50", "52", "54", "56", "58", "60", 
+    "XS", "S", "M", "L", "XL", "XXL");
         selectorTalla.setValue("M");
         selectorTalla.setMaxWidth(320);
         selectorTalla.setStyle(estiloInput());
@@ -3203,7 +3305,10 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         labelTalla.setFont(Font.font("System", 12));
 
         ComboBox<String> selectorTalla = new ComboBox<>();
-        selectorTalla.getItems().addAll("Ch", "M", "G", "XL", "XXL");
+        selectorTalla.getItems().addAll("2", "4", "6", "8", "10", "12", "14", "16", "18", "20", 
+    "22", "24", "26", "28", "30", "32", "34", "36", "38", "40", 
+    "42", "44", "46", "48", "50", "52", "54", "56", "58", "60", 
+    "XS", "S", "M", "L", "XL", "XXL");
         selectorTalla.setMaxWidth(320);
         selectorTalla.setStyle(estiloInput());
 
@@ -3662,7 +3767,7 @@ listaSugerencias.setOnMouseClicked(e -> {
         double total = carrito.stream().mapToDouble(ItemVenta::getSubtotal).sum();
         String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
 
-        Label tituloRecibo    = new Label("Sistema Textil");
+        Label tituloRecibo    = new Label("Punto Olayma");
         tituloRecibo.setFont(Font.font("System", FontWeight.BOLD, 20));
         tituloRecibo.setTextFill(Color.web(CAFE));
 
@@ -4105,18 +4210,8 @@ listaSugerencias.setOnMouseClicked(e -> {
                 if (respuesta == ButtonType.OK) {
                     //  acá va el código para eliminar el usuario de la base de datos
                     listaUsuarios.remove(seleccionado);
-                    try {
-                        if (usuarioDAO.delete(seleccionado.getId())) {
-                            mensajeEliminar.setTextFill(Color.web(EXITO));
-                            mensajeEliminar.setText("Usuario '" + seleccionado.getUsuario() + "' eliminado correctamente");
-                        } else {
-                            mensajeEliminar.setTextFill(Color.web(ERROR));
-                            mensajeEliminar.setText("Error al eliminar el usuario '" + seleccionado.getUsuario() + "'");
-                        }
-                    } catch (SQLException ex) {
-                        mensajeEliminar.setTextFill(Color.web(ERROR));
-                        mensajeEliminar.setText("Error al eliminar el usuario '" + seleccionado.getUsuario() + "': " + ex.getMessage());
-                    }
+                    mensajeEliminar.setTextFill(Color.web(EXITO));
+                    mensajeEliminar.setText("Usuario '" + seleccionado.getUsuario() + "' eliminado correctamente");
                 }
             });
         });
@@ -4552,7 +4647,8 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
     btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, esAdmin));
 
     btnGuardar.setOnAction(e -> {
-        int id      = Integer.parseInt(campoId.getText().trim());
+        String idText = campoId.getText().trim();
+        int id      = idText.isEmpty() ? 0 : Integer.parseInt(idText);
         String tipo    = campoTipo.getText().trim();
         String nombre  = campoNombre.getText().trim();
         int idPadre = campoIdPadre.getText().trim().isEmpty() ? 0 : Integer.parseInt(campoIdPadre.getText().trim());
@@ -4645,12 +4741,13 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
     btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, true));
 
     btnGuardar.setOnAction(e -> {
-        int id     = Integer.parseInt(campoId.getText().trim());
+        String idText = campoId.getText().trim();
+        int id     = idText.isEmpty() ? 0 : Integer.parseInt(idText);
         String tipo   = campoTipo.getText().trim();
         String nombre = campoNombre.getText().trim();
         String selTienda = selectorTienda.getValue();
-        Integer idPadre = (selTienda == null || selTienda.equals("— Ninguna —"))
-            ? null : Integer.parseInt(selTienda.split(" — ")[0].trim());
+        int idPadre = (selTienda == null || selTienda.equals("— Ninguna —"))
+            ? 0 : Integer.parseInt(selTienda.split(" — ")[0].trim());
 
         if (tipo.isEmpty() || nombre.isEmpty()) {
             mensajeEstado.setTextFill(Color.web(ERROR));
@@ -4660,12 +4757,12 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
         if (!esEdicion) {
             boolean yaExiste = listaUbicaciones.stream().anyMatch(u -> u.getId() == id);
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una ubicación con ese ID"); return; }
-            ubicacionDAO.insert(new Ubicacion(id, tipo, nombre, idPadre != null ? idPadre : 0));
+            ubicacionDAO.insert(new Ubicacion(id, tipo, nombre, idPadre));
             recargarDatos();
         } else {
             ubicacionEditar.setTipo(tipo);
             ubicacionEditar.setNombre(nombre);
-            ubicacionEditar.setIdPadre(idPadre != null ? idPadre : 0);
+            ubicacionEditar.setIdPadre(idPadre);
             ubicacionDAO.update(ubicacionEditar);
             recargarDatos();
         }
