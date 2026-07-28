@@ -1567,7 +1567,13 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 conf.showAndWait().ifPresent(r -> {
                     if (r == ButtonType.OK) {
                         // TODO: acá va el código para eliminar de la base de datos
-                        tabla.getItems().remove(sel);
+                        try{
+                            ventaDAO.deleteVenta(Integer.parseInt(sel.getIdVenta()));
+                            tabla.getItems().remove(sel);
+                        }catch(SQLException ex){
+                            mostrarError("Error al eliminar registro: " + ex.getMessage());
+                        }
+                        
                     }
                 });
             });
@@ -2543,7 +2549,14 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
                 conf.setContentText("Esta acción no se puede deshacer.");
                 conf.showAndWait().ifPresent(r -> {
                     if (r == ButtonType.OK) {
+
                         // TODO: acá va el código para eliminar de la base de datos
+                        try {
+                           ventaDAO.deleteVenta(Integer.parseInt(sel.getIdVenta()));
+                        } catch (SQLException ex) {
+                            mostrarError("Error al eliminar registro: " + ex.getMessage());
+                            return;
+                        }
                         tabla.getItems().remove(sel);
                     }
                 });
@@ -4209,9 +4222,16 @@ listaSugerencias.setOnMouseClicked(e -> {
             confirmacion.showAndWait().ifPresent(respuesta -> {
                 if (respuesta == ButtonType.OK) {
                     //  acá va el código para eliminar el usuario de la base de datos
-                    listaUsuarios.remove(seleccionado);
-                    mensajeEliminar.setTextFill(Color.web(EXITO));
-                    mensajeEliminar.setText("Usuario '" + seleccionado.getUsuario() + "' eliminado correctamente");
+                    try{
+                        
+                        usuarioDAO.delete(seleccionado.getId());
+                        listaUsuarios.remove(seleccionado);
+                        mensajeEliminar.setTextFill(Color.web(EXITO));
+                        mensajeEliminar.setText("Usuario eliminado correctamente");
+                    } catch (SQLException ex) {
+                        mensajeEliminar.setTextFill(Color.web(ERROR));
+                        mensajeEliminar.setText("Error al eliminar usuario: " + ex.getMessage());
+                    }
                 }
             });
         });
