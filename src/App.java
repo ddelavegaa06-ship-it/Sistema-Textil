@@ -56,6 +56,8 @@ public class App extends Application {
 
     private Stage stage;
     private String rolActual;
+    private Scene scenePrincipal;
+
 
     private static final String FONDO          = "#F5F7FA";
     private static final String PANEL          = "#FFFFFF";
@@ -165,7 +167,9 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         stage.setTitle("Punto Olayma");
         recargarDatos();
         mostrarBienvenida();
+        stage.setMaximized(true);
         historialNavegacion.clear();
+        stage.setMaximized(true);
         stage.show();
     }
 
@@ -362,7 +366,8 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
 
         HBox root = new HBox(panelIzquierdo, panelDerecho);
         HBox.setHgrow(panelDerecho, Priority.ALWAYS);
-        stage.setScene(new Scene(root, 960, 580));
+        cambiarEscena(root);
+        stage.setMaximized(true);
     }
 
     private VBox crearTarjetaBienvenida(String emoji, String titulo, String descripcion) {
@@ -479,7 +484,8 @@ private Double obtenerCantidadMaterial(String idPrenda, String idMateriaPrima) {
         form.getChildren().add(btnRegresar);
         HBox.setHgrow(form, Priority.ALWAYS);
         root.setStyle("-fx-background-color: " + PANEL + ";");
-        stage.setScene(new Scene(root, 700, 460));
+        cambiarEscena(root);
+stage.setMaximized(true);
     }
 
     // ?"??"? MEN?sS ?"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"??"?
@@ -610,7 +616,8 @@ HBox barraAtras = crearBarraAtras();
         BorderPane root = new BorderPane();
         root.setCenter(cuerpo);
         root.setStyle("-fx-background-color: " + FONDO + ";");
-        stage.setScene(new Scene(root, 960, 620));
+        cambiarEscena(root);
+        stage.setMaximized(true);
     }
 
     // ---------------MODULO ALERTAS DE STOCK -----------------------------
@@ -623,9 +630,9 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
-    Label leyendaRojo     = new Label("Critico: en o por debajo del minimo");
-    Label leyendaAmarillo = new Label("Bajo: hasta el doble del minimo");
-    Label leyendaVerde    = new Label("Normal: por encima del umbral bajo");
+    Label leyendaRojo     = new Label("Crítico: En o por debajo del mínimo");
+Label leyendaAmarillo = new Label("Bajo: Hasta el doble del mínimo");
+Label leyendaVerde    = new Label("Normal: Por encima del umbral bajo");
     leyendaRojo.setTextFill(Color.web(ERROR));
     leyendaAmarillo.setTextFill(Color.web(ADVERTENCIA));
     leyendaVerde.setTextFill(Color.web(EXITO));
@@ -664,8 +671,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         Integer min = d.getValue().getMinimoExistencia();
         if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = d.getValue().getExistencia();
-        return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Critico" : "\ud83d\udfe1 Bajo");
-    });
+return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Crítico" : "\ud83d\udfe1 Bajo");    });
     colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
     colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
     colPExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
@@ -707,7 +713,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         Double min = d.getValue().getMinimoExistencia();
         if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = calcularExistenciaConjunto(d.getValue());
-        return new SimpleStringProperty(ex <= min ? "🔴 Critico" : "🟡 Bajo");
+        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
     });
     colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
     colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
@@ -751,8 +757,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
             Double min = d.getValue().getMinimoExistencia();
             if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
             double ex = d.getValue().getExistencia();
-            return new SimpleStringProperty(ex <= min ? "🔴 Critico" : "🟡 Bajo");
-        });
+            return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");        });
         colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colMExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
@@ -835,7 +840,7 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label nota = new Label("Nota: la cantidad de tela esta dada en metros. Las demas cantidades son por pieza/unidad.");
+        Label nota = new Label("Nota: la cantidad de tela esta dada en metros. Las demás cantidades son por pieza/unidad.");
         nota.setFont(Font.font("System", FontWeight.BOLD, 12));
         nota.setTextFill(Color.web(NARANJA));
         nota.setWrapText(true);
@@ -888,10 +893,16 @@ private void mostrarAlertasStock(StackPane contenido, boolean esAdmin) {
         VBox.setVgrow(scrollTabla, Priority.ALWAYS);
 
         Button btnAnadir = new Button("+ Dar de Alta Material por Prenda");
-        btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
-        btnAnadir.setOnAction(e -> mostrarFormularioAltaMaterialPorPrenda(contenido));
+btnAnadir.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+btnAnadir.setOnAction(e -> mostrarFormularioAltaMaterialPorPrenda(contenido));
 
-        VBox vista = new VBox(16, titulo, nota, scrollTabla, btnAnadir);
+Button btnEliminarMaterial = new Button("✕ Eliminar Material de Prenda");
+btnEliminarMaterial.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;");
+btnEliminarMaterial.setOnAction(e -> mostrarFormularioEliminarMaterialPorPrenda(contenido));
+
+HBox botonesMaterial = new HBox(12, btnAnadir, btnEliminarMaterial);
+
+VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         vista.setStyle("-fx-padding: 30;");
         VBox.setVgrow(scrollTabla, Priority.ALWAYS);
         VBox.setVgrow(vista, Priority.ALWAYS);
@@ -3193,6 +3204,140 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         contenido.getChildren().add(wrapper);
     }
 
+
+// ---------------FORMULARIO ELIMINAR MATERIAL POR PRENDA -----------------------------
+private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
+    contenido.getChildren().clear();
+
+    Label titulo = new Label("Eliminar Material de Prenda");
+    titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
+    titulo.setTextFill(Color.web(SECUNDARIO));
+
+    Label nota = new Label("Selecciona la prenda y despues el material que deseas quitar de esa prenda.");
+    nota.setFont(Font.font("System", 12));
+    nota.setTextFill(Color.web(TEXTO_SUAVE));
+    nota.setWrapText(true);
+
+    Label labelPrenda = new Label("Prenda:");
+    labelPrenda.setFont(Font.font("System", 12));
+    labelPrenda.setTextFill(Color.web(TEXTO_SUAVE));
+
+    ComboBox<Prenda> selectorPrenda = new ComboBox<>();
+    selectorPrenda.setItems(listaPrendas);
+    selectorPrenda.setMaxWidth(360);
+    selectorPrenda.setStyle(estiloInput());
+    selectorPrenda.setConverter(new javafx.util.StringConverter<Prenda>() {
+        @Override public String toString(Prenda p) { return p == null ? "" : p.getNombre() + " (" + p.getTalla() + ") ID " + p.getId(); }
+        @Override public Prenda fromString(String s) { return null; }
+    });
+
+    Label labelMaterial = new Label("Material asignado a esa prenda:");
+    labelMaterial.setFont(Font.font("System", 12));
+    labelMaterial.setTextFill(Color.web(TEXTO_SUAVE));
+    labelMaterial.setVisible(false);
+    labelMaterial.setManaged(false);
+
+    ComboBox<Insumo> selectorMaterial = new ComboBox<>();
+    selectorMaterial.setMaxWidth(360);
+    selectorMaterial.setStyle(estiloInput());
+    selectorMaterial.setVisible(false);
+    selectorMaterial.setManaged(false);
+    selectorMaterial.setConverter(new javafx.util.StringConverter<Insumo>() {
+        @Override public String toString(Insumo mp) { return mp == null ? "" : mp.getNombre() + " (" + mp.getTipoInsumo() + ") ID " + mp.getNumeroPartida(); }
+        @Override public Insumo fromString(String s) { return null; }
+    });
+
+    Label mensajeEstado = new Label("");
+    mensajeEstado.setFont(Font.font("System", 12));
+
+    Button btnEliminar = new Button("Eliminar Material");
+    btnEliminar.setMaxWidth(360);
+    btnEliminar.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
+    btnEliminar.setVisible(false);
+    btnEliminar.setManaged(false);
+
+    selectorPrenda.setOnAction(e -> {
+        Prenda prendaSel = selectorPrenda.getValue();
+        boolean haySeleccion = prendaSel != null;
+        labelMaterial.setVisible(haySeleccion);   labelMaterial.setManaged(haySeleccion);
+        selectorMaterial.setVisible(haySeleccion); selectorMaterial.setManaged(haySeleccion);
+        btnEliminar.setVisible(false); btnEliminar.setManaged(false);
+        selectorMaterial.setValue(null);
+        mensajeEstado.setText("");
+
+        if (haySeleccion) {
+            String idPrendaStr = String.valueOf(prendaSel.getId());
+            ObservableList<Insumo> materialesDeEstaPrenda = FXCollections.observableArrayList(
+                listaMateriaPrima.stream()
+                    .filter(mp -> listaMaterialesPorPrenda.stream()
+                        .anyMatch(mpp -> mpp.getIdPrenda().equals(idPrendaStr)
+                            && mpp.getIdMateriaPrima().equals(String.valueOf(mp.getId()))))
+                    .toList()
+            );
+            selectorMaterial.setItems(materialesDeEstaPrenda);
+        }
+    });
+
+    selectorMaterial.setOnAction(e -> {
+        boolean hayMaterial = selectorMaterial.getValue() != null;
+        btnEliminar.setVisible(hayMaterial);
+        btnEliminar.setManaged(hayMaterial);
+    });
+
+    btnEliminar.setOnAction(e -> {
+        Prenda prendaSel = selectorPrenda.getValue();
+        Insumo materialSel = selectorMaterial.getValue();
+        if (prendaSel == null || materialSel == null) {
+            mensajeEstado.setTextFill(Color.web(ERROR));
+            mensajeEstado.setText("Selecciona prenda y material");
+            return;
+        }
+
+        Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+        conf.setTitle("Eliminar material");
+        conf.setHeaderText("¿Quitar \"" + materialSel.getNombre() + "\" de \"" + prendaSel.getNombre() + " (" + prendaSel.getTalla() + ")\"?");
+        conf.setContentText("Esta acción no se puede deshacer.");
+        conf.showAndWait().ifPresent(r -> {
+            if (r == ButtonType.OK) {
+                try {
+
+                    insumoPrendaDAO.deleteByInsumoYPrenda(materialSel.getId(), prendaSel.getId());
+                    recargarMaterialesPorPrendaDesdeBD();
+                    mensajeEstado.setTextFill(Color.web(EXITO));
+                    mensajeEstado.setText("Material eliminado correctamente");
+                    mostrarMaterialesPorPrenda(contenido);
+                } catch (SQLException ex) {
+                    mensajeEstado.setTextFill(Color.web(ERROR));
+                    mensajeEstado.setText("Error al eliminar: " + ex.getMessage());
+                }
+            }
+        });
+    });
+
+    Button btnCancelar = new Button("Regresar sin eliminar");
+    btnCancelar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+    btnCancelar.setOnAction(e -> mostrarMaterialesPorPrenda(contenido));
+
+    VBox form = new VBox(12, titulo, nota,
+        labelPrenda, selectorPrenda,
+        labelMaterial, selectorMaterial,
+        mensajeEstado, btnEliminar, btnCancelar);
+    form.setAlignment(Pos.TOP_LEFT);
+    form.setMaxWidth(460);
+    form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
+
+    ScrollPane scroll = new ScrollPane(form);
+    scroll.setFitToWidth(false);
+    scroll.setFitToHeight(false);
+    scroll.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+    StackPane wrapper = new StackPane(scroll);
+    wrapper.setStyle("-fx-background-color: " + FONDO + "; -fx-padding: 30;");
+    wrapper.setAlignment(Pos.CENTER);
+    contenido.getChildren().add(wrapper);
+}
+
+    
     // ------------------- FORMULARIO AÑADIR A EXISTENTE ----------------------------
     private void mostrarFormularioAnadirExistente(StackPane contenido) {
         contenido.getChildren().clear();
@@ -4319,6 +4464,17 @@ listaSugerencias.setOnMouseClicked(e -> {
     }
 
     //  HELPERS 
+
+
+private void cambiarEscena(javafx.scene.Parent root) {
+    if (scenePrincipal == null) {
+        scenePrincipal = new Scene(root);
+        stage.setScene(scenePrincipal);
+    } else {
+        scenePrincipal.setRoot(root);
+    }
+}
+
     private Label crearSeccionMenu(String texto) {
         Label label = new Label(texto);
         label.setFont(Font.font("System", FontWeight.BOLD, 10));
@@ -4508,7 +4664,7 @@ private String calcularColorAlertaEncargado() {
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
-        alert.setHeaderText("Operaci?n no completada");
+        alert.setHeaderText("Operacion no completada");
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
@@ -4892,8 +5048,3 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
         contenido.getChildren().add(wrapper);
     }
 }
-
-
-
-
-

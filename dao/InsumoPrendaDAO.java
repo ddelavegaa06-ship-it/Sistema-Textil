@@ -123,4 +123,15 @@ public class InsumoPrendaDAO {
             rs.getDouble("cantidadInsumo")
         );
     }
+
+    public boolean deleteByInsumoYPrenda(String idInsumo, int idPrenda) throws SQLException {
+    String sql = "DELETE FROM insumoprenda WHERE idInsumo = ? AND idPrenda = ?";
+    Connection conn = getConnection();
+    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, idInsumo);
+        pstmt.setInt(2, idPrenda);
+        return pstmt.executeUpdate() > 0;
+    }
+}
+
 }
