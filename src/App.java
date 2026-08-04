@@ -510,12 +510,18 @@ stage.setMaximized(true);
 
     // Puntito de alerta con color dinamico
     String colorAlerta = esAdmin ? calcularColorAlerta() : calcularColorAlertaEncargado();
-    Label rolLabel = new Label("? " + rol.toUpperCase());
-    rolLabel.setFont(Font.font("System", 11));
-    rolLabel.setTextFill(Color.web(colorAlerta));
-    rolLabel.setStyle("-fx-padding: 12 16 8 16;");
+    javafx.scene.shape.Circle puntoAlerta = new javafx.scene.shape.Circle(5);
+    puntoAlerta.setFill(Color.web(colorAlerta));
 
-    sidebar.getChildren().addAll(logoLabel, rolLabel);
+    Label rolLabel = new Label(rol.toUpperCase());
+    rolLabel.setFont(Font.font("System", 11));
+    rolLabel.setTextFill(Color.web("#94A3B8"));
+
+    HBox filaRol = new HBox(6, puntoAlerta, rolLabel);
+    filaRol.setAlignment(Pos.CENTER_LEFT);
+    filaRol.setStyle("-fx-padding: 12 16 8 16;");
+
+    sidebar.getChildren().addAll(logoLabel, filaRol);
 
     StackPane contenido = crearContenidoVacio();
     VBox.setVgrow(contenido, Priority.ALWAYS);
