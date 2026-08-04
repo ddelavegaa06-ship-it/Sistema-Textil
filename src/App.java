@@ -4053,13 +4053,20 @@ listaSugerencias.setOnMouseClicked(e -> {
 
         colFolio.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getFolioVenta())));
         colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaVenta().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
-        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoItem()));
+colTipo.setCellValueFactory(d -> {
+    String tipo = d.getValue().getTipoItem();
+    String texto = "PRENDA".equalsIgnoreCase(tipo) ? "Prenda" : "Conjunto";
+    return new SimpleStringProperty(texto);
+});        
         colProducto.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombreItem()));
         colTalla.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTalla() == null || d.getValue().getTalla().isEmpty() ? "-" : d.getValue().getTalla()));
         colCantidad.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getCantidadVendida())));
         colTotal.setCellValueFactory(d -> new SimpleStringProperty("$" + String.format("%.2f", d.getValue().getTotal())));
-        colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado()));
-
+colEstado.setCellValueFactory(d -> {
+    String estado = d.getValue().getEstado();
+    String texto = "DEVUELTO".equalsIgnoreCase(estado) ? "Devuelto" : "Activo";
+    return new SimpleStringProperty(texto);
+});
         tabla.getColumns().addAll(colFolio, colFecha, colTipo, colProducto, colTalla, colCantidad, colTotal, colEstado);
 
         Label labelCantidad = new Label("Cantidad a devolver:");
@@ -4332,7 +4339,12 @@ listaSugerencias.setOnMouseClicked(e -> {
         colNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colUsuario.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getUsuario()));
         colPass.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getPassword()));
-        colRol.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getRol()));
+colRol.setCellValueFactory(d -> {
+    String rol = d.getValue().getRol();
+    String capitalizado = (rol == null || rol.isEmpty()) ? rol
+        : rol.substring(0, 1).toUpperCase() + rol.substring(1);
+    return new SimpleStringProperty(capitalizado);
+});        
         tabla.getColumns().addAll(colNombre, colUsuario, colPass, colRol);
         tabla.setItems(listaUsuarios);
         VBox.setVgrow(tabla, Priority.ALWAYS);
@@ -4413,9 +4425,15 @@ listaSugerencias.setOnMouseClicked(e -> {
         labelRol.setTextFill(Color.web(TEXTO_SUAVE)); labelRol.setFont(Font.font("System", 12));
 
         ComboBox<String> selectorRol = new ComboBox<>();
-        selectorRol.getItems().addAll("administrador", "encargado");
-        selectorRol.setValue("encargado"); selectorRol.setMaxWidth(320); selectorRol.setStyle(estiloInput());
-
+selectorRol.getItems().addAll("administrador", "encargado");
+selectorRol.setValue("encargado"); selectorRol.setMaxWidth(320); selectorRol.setStyle(estiloInput());
+selectorRol.setConverter(new javafx.util.StringConverter<String>() {
+    @Override public String toString(String rol) {
+        if (rol == null) return "";
+        return rol.substring(0, 1).toUpperCase() + rol.substring(1);
+    }
+    @Override public String fromString(String texto) { return texto; }
+});
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
 
