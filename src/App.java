@@ -3124,8 +3124,18 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         TextField campoMinimo      = crearTextField("Minimo de existencia  (ej: 5)");
         TextField campoPMayoreo    = crearTextField("Precio mayoreo");
         TextField campoPMenudeo    = crearTextField("Precio menudeo");
-        TextField campoIdTienda    = crearTextField("ID Tienda (pendiente)");
+Label labelTienda = new Label("Tienda:");
+        labelTienda.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTienda.setFont(Font.font("System", 12));
 
+        ComboBox<Tienda> selectorTienda = new ComboBox<>();
+        selectorTienda.setItems(listaTiendas);
+        selectorTienda.setMaxWidth(320);
+        selectorTienda.setStyle(estiloInput());
+        selectorTienda.setConverter(new javafx.util.StringConverter<Tienda>() {
+            @Override public String toString(Tienda t) { return t == null ? "" : t.getNombre(); }
+            @Override public Tienda fromString(String s) { return null; }
+        });
         Label labelTalla = new Label("Talla:");
         labelTalla.setTextFill(Color.web(TEXTO_SUAVE));
         labelTalla.setFont(Font.font("System", 12));
@@ -3153,7 +3163,6 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
         btnGuardar.setOnAction(e -> {
             String nombre      = campoNombre.getText().trim();
             String talla       = selectorTalla.getValue();
-            String idTienda    = campoIdTienda.getText().trim();
 
             if (nombre.isEmpty() || campoExistencia.getText().isEmpty()
                     || campoPMayoreo.getText().isEmpty() || campoPMenudeo.getText().isEmpty()) {
@@ -3168,13 +3177,7 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
                 double pMayoreo = Double.parseDouble(campoPMayoreo.getText().trim());
                 double pMenudeo = Double.parseDouble(campoPMenudeo.getText().trim());
 
-                Integer idTiendaInt = null;
-                if (!idTienda.isBlank()) {
-                    String soloDigitos = idTienda.replaceAll("[^0-9]", "");
-                    if (!soloDigitos.isBlank()) {
-                        idTiendaInt = Integer.parseInt(soloDigitos);
-                    }
-                }
+                Integer idTiendaInt = selectorTienda.getValue() != null ? selectorTienda.getValue().getId() : null;
 
                 String codigoBarras = campoCodigoBarras.getText().trim();
                 Prenda nuevaPrenda = new Prenda(nombre, talla, existencia, pMayoreo, pMenudeo, idTiendaInt, codigoBarras);
@@ -3193,10 +3196,9 @@ campoNombre.setText(c.getNombre()); campoDescripcion.setText(c.getDescripcion())
             }
         });
 
-        VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoCodigoBarras, campoTipoPrenda,
+       VBox form = new VBox(10, titulo, subtitulo, campoNombre, campoCodigoBarras, campoTipoPrenda,
                 campoDescripcion, labelTalla, selectorTalla, campoExistencia, campoMinimo , 
-                campoPMayoreo, campoPMenudeo, campoIdTienda, mensajeEstado, btnGuardar, btnCancelar);
-        form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
+                campoPMayoreo, campoPMenudeo, labelTienda, selectorTienda, mensajeEstado, btnGuardar, btnCancelar);       form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
         ScrollPane scroll = new ScrollPane(form);
@@ -3462,7 +3464,18 @@ private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
         TextField campoMinimo      = crearTextField("Minimo de existencia");
         TextField campoTipoPrenda  = crearTextField("Tipo de prenda");
         TextField campoDescripcion = crearTextField("Descripcion");
-        TextField campoIdTienda    = crearTextField("ID Tienda");
+        Label labelTienda = new Label("Tienda:");
+        labelTienda.setTextFill(Color.web(TEXTO_SUAVE));
+        labelTienda.setFont(Font.font("System", 12));
+
+        ComboBox<Tienda> selectorTienda = new ComboBox<>();
+        selectorTienda.setItems(listaTiendas);
+        selectorTienda.setMaxWidth(320);
+        selectorTienda.setStyle(estiloInput());
+        selectorTienda.setConverter(new javafx.util.StringConverter<Tienda>() {
+            @Override public String toString(Tienda t) { return t == null ? "" : t.getNombre(); }
+            @Override public Tienda fromString(String s) { return null; }
+        });
 
         Label labelTalla = new Label("Talla:");
         labelTalla.setTextFill(Color.web(TEXTO_SUAVE));
@@ -3484,7 +3497,7 @@ private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
         panelEdicion.getChildren().addAll(campoNombre, campoPMayoreo, campoPMenudeo, campoExistencia,
-                campoMinimo, campoTipoPrenda, campoDescripcion, campoIdTienda, labelTalla, selectorTalla, mensajeEstado, btnGuardar);
+                campoMinimo, campoTipoPrenda, campoDescripcion, labelTienda, selectorTienda, labelTalla, selectorTalla, mensajeEstado, btnGuardar);
         final Prenda[] prendaEncontrada = {null};
 
         Button btnBuscar = new Button("Buscar");
@@ -3505,7 +3518,11 @@ private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
                 campoPMenudeo.setText(String.valueOf(encontrada.getPrecioMenudeo())); campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
                 campoMinimo.setText(encontrada.getMinimoExistencia() != null ? String.valueOf(encontrada.getMinimoExistencia()) : "");               
                 campoTipoPrenda.setText(encontrada.getTipoPrenda()); campoDescripcion.setText(encontrada.getDescripcion());
-                campoIdTienda.setText(String.valueOf(encontrada.getIdTienda())); selectorTalla.setValue(encontrada.getTalla());
+                Tienda tiendaActual = listaTiendas.stream()
+                    .filter(t -> encontrada.getIdTienda() != null && t.getId() == encontrada.getIdTienda())
+                    .findFirst().orElse(null);
+                selectorTienda.setValue(tiendaActual);
+                selectorTalla.setValue(encontrada.getTalla());
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
             }
         });
@@ -3515,7 +3532,6 @@ private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
             String nombre      = campoNombre.getText().trim();
             String tipoPrenda  = campoTipoPrenda.getText().trim();
             String descripcion = campoDescripcion.getText().trim();
-            String idTienda    = campoIdTienda.getText().trim();
             String talla       = selectorTalla.getValue();
             if (nombre.isEmpty() || campoExistencia.getText().isEmpty() || campoPMayoreo.getText().isEmpty() || campoPMenudeo.getText().isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Todos los campos son obligatorios"); return;
@@ -3533,12 +3549,9 @@ private void mostrarFormularioEliminarMaterialPorPrenda(StackPane contenido) {
                     verificarConjuntos();
                     mostrarModuloPrendas(contenido, true);
                 } else {
-                    p.setNombre(nombre);
+                  p.setNombre(nombre);
                     p.setTalla(talla);
-                    if (idTienda != null && !idTienda.isBlank()) {
-                        String soloDigitos = idTienda.replaceAll("[^0-9]", "");
-                        p.setIdTienda(soloDigitos.isBlank() ? null : Integer.parseInt(soloDigitos));
-                    }
+                    p.setIdTienda(selectorTienda.getValue() != null ? selectorTienda.getValue().getId() : null);
                     p.setExistencia(existencia);
                     p.setPrecioMayoreo(pMayoreo);
                     p.setPrecioMenudeo(pMenudeo);
@@ -4741,16 +4754,25 @@ private void mostrarModuloTiendasUbicaciones(StackPane contenido, boolean esAdmi
     tablaTiendas.getColumns().addAll(colTId, colTTipo, colTNombre, colTIdPadre);
 
     HBox botonesTiendas = new HBox(10);
-    Button btnNuevaTienda  = new Button("+ Nueva Tienda");
-    Button btnEditarTienda = new Button("✎ Editar Tienda");
-    btnNuevaTienda.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
-    btnEditarTienda.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
-    btnNuevaTienda.setOnAction(e  -> mostrarFormularioTienda(contenido, null, esAdmin));
-    btnEditarTienda.setOnAction(e -> {
-        Tienda sel = tablaTiendas.getSelectionModel().getSelectedItem();
-        if (sel != null) mostrarFormularioTienda(contenido, sel, esAdmin);
+Button btnNuevaTienda  = new Button("+ Nueva Tienda");
+Button btnEditarTienda = new Button("✎ Editar Tienda");
+btnNuevaTienda.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+btnEditarTienda.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+btnNuevaTienda.setOnAction(e  -> mostrarFormularioTienda(contenido, null, esAdmin));
+btnEditarTienda.setOnAction(e -> {
+    Tienda sel = tablaTiendas.getSelectionModel().getSelectedItem();
+    if (sel != null) mostrarFormularioTienda(contenido, sel, esAdmin);
+});
+botonesTiendas.getChildren().addAll(btnNuevaTienda, btnEditarTienda);
+
+if (esAdmin) {
+    Button btnEliminarTienda = new Button("✕ Eliminar Tienda");
+    btnEliminarTienda.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+    btnEliminarTienda.setOnAction(e -> {
+        // TODO: acá va el código para eliminar la tienda de la base de datos
     });
-    botonesTiendas.getChildren().addAll(btnNuevaTienda, btnEditarTienda);
+    botonesTiendas.getChildren().add(btnEliminarTienda);
+}
 
     VBox vista = new VBox(16, titulo, tituloTiendas, tablaTiendas, botonesTiendas);
 
@@ -4794,7 +4816,13 @@ private void mostrarModuloTiendasUbicaciones(StackPane contenido, boolean esAdmi
             if (sel != null) mostrarFormularioUbicacion(contenido, sel);
         });
 
-        HBox botonesUbic = new HBox(10, btnNuevaUbic, btnEditarUbic);
+        Button btnEliminarUbic = new Button("✕ Eliminar Ubicación");
+        btnEliminarUbic.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnEliminarUbic.setOnAction(e -> {
+            // TODO: acá va el código para eliminar la ubicación de la base de datos
+        });
+
+        HBox botonesUbic = new HBox(10, btnNuevaUbic, btnEditarUbic, btnEliminarUbic);
         vista.getChildren().addAll(tituloUbicaciones, notaUbicaciones, tablaUbicaciones, botonesUbic);
     }
 
@@ -4819,20 +4847,18 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
-    TextField campoId      = crearTextField("ID  (ej: T1)");
     TextField campoTipo    = crearTextField("Tipo  (ej: Matriz, Sucursal)");
-    TextField campoNombre  = crearTextField("Nombre de la tienda");
-    TextField campoIdPadre = crearTextField("ID Padre  (opcional)");
+TextField campoNombre  = crearTextField("Nombre de la tienda");
+TextField campoIdPadre = crearTextField("ID Padre  (opcional)");
 
-    campoId.setMaxWidth(360); campoTipo.setMaxWidth(360);
-    campoNombre.setMaxWidth(360); campoIdPadre.setMaxWidth(360);
+campoTipo.setMaxWidth(360);
+campoNombre.setMaxWidth(360); campoIdPadre.setMaxWidth(360);
 
-    if (esEdicion) {
-        campoId.setText(String.valueOf(tiendaEditar.getId())); campoId.setDisable(true);
-        campoTipo.setText(tiendaEditar.getTipo());
-        campoNombre.setText(tiendaEditar.getNombre());
-        campoIdPadre.setText(tiendaEditar.getIdPadre() != 0 ? String.valueOf(tiendaEditar.getIdPadre()) : "");
-    }
+if (esEdicion) {
+    campoTipo.setText(tiendaEditar.getTipo());
+    campoNombre.setText(tiendaEditar.getNombre());
+    campoIdPadre.setText(tiendaEditar.getIdPadre() != 0 ? String.valueOf(tiendaEditar.getIdPadre()) : "");
+}
 
     Label mensajeEstado = new Label("");
     mensajeEstado.setFont(Font.font("System", 12));
@@ -4847,8 +4873,6 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
     btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, esAdmin));
 
     btnGuardar.setOnAction(e -> {
-        String idText = campoId.getText().trim();
-        int id      = idText.isEmpty() ? 0 : Integer.parseInt(idText);
         String tipo    = campoTipo.getText().trim();
         String nombre  = campoNombre.getText().trim();
         int idPadre = campoIdPadre.getText().trim().isEmpty() ? 0 : Integer.parseInt(campoIdPadre.getText().trim());
@@ -4859,8 +4883,7 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
             return;
         }
         if (!esEdicion) {
-            boolean yaExiste = listaTiendas.stream().anyMatch(t -> t.getId() == id);
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una tienda con ese ID"); return; }
+            int id = listaTiendas.stream().mapToInt(Tienda::getId).max().orElse(0) + 1;
             tiendaDAO.insert(new Tienda(id, tipo, nombre, idPadre));
             recargarDatos();
         } else {
@@ -4873,8 +4896,7 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
         mostrarModuloTiendasUbicaciones(contenido, esAdmin);
     });
 
-    VBox form = new VBox(12, titulo, campoId, campoTipo, campoNombre, campoIdPadre,
-            mensajeEstado, btnGuardar, btnCancelar);
+VBox form = new VBox(12, titulo, campoTipo, campoNombre, campoIdPadre,            mensajeEstado, btnGuardar, btnCancelar);
     form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
     form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
