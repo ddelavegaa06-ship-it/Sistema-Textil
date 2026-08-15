@@ -1930,6 +1930,7 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         TableColumn<Insumo, String> colTalla2       = new TableColumn<>("Talla");
         TableColumn<Insumo, String> colMaterial     = new TableColumn<>("Material");
         TableColumn<Insumo, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
+        TableColumn<Insumo, String> colUbicacion = new TableColumn<>("Ubicacion");
 
         colId.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
         colPartida.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
@@ -1948,10 +1949,11 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         colTalla2.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getTalla())));
         colMaterial.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "??"));
         colTipoInsum.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
+        colUbicacion.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getIdUbicacion() != null ? String.valueOf(d.getValue().getIdUbicacion()) : "??"));
 
         tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMinimo,
                 colTipoExist, colDescripcion, colColor, colMedida, colAncho,
-                colComposicion, colTipo, colNo, colTamanio, colTalla2, colMaterial, colTipoInsum);
+                colComposicion, colTipo, colNo, colTamanio, colTalla2, colMaterial, colTipoInsum, colUbicacion);
         tabla.setItems(listaMateriaPrima);
 
         // Ancho total = suma de los anchos preferidos de cada columna, así la tabla
@@ -4847,18 +4849,28 @@ private void mostrarFormularioTienda(StackPane contenido, Tienda tiendaEditar, b
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
+    //TextField campoId      = crearTextField("ID  (ej: 1)");
     TextField campoTipo    = crearTextField("Tipo  (ej: Matriz, Sucursal)");
-TextField campoNombre  = crearTextField("Nombre de la tienda");
-TextField campoIdPadre = crearTextField("ID Padre  (opcional)");
+    TextField campoNombre  = crearTextField("Nombre de la tienda");
+    Label TiendaPertenece = new Label("Tienda a la que pertenece (opcional):");
+    TiendaPertenece.setFont(Font.font("System", 12));
+    TiendaPertenece.setTextFill(Color.web(TEXTO_SUAVE));
+    ComboBox<String> selectorTienda = new ComboBox<>();
+    selectorTienda.setMaxWidth(360);
+    selectorTienda.setStyle(estiloInput());
+    selectorTienda.getItems().add("— Ninguna —");
+    listaTiendas.forEach(t -> selectorTienda.getItems().add(t.getId() + " — " + t.getNombre()));
+    selectorTienda.setValue("— Ninguna —");
 
-campoTipo.setMaxWidth(360);
-campoNombre.setMaxWidth(360); campoIdPadre.setMaxWidth(360);
+   // campoId.setMaxWidth(360); campoTipo.setMaxWidth(360);
+    campoNombre.setMaxWidth(360);
 
-if (esEdicion) {
-    campoTipo.setText(tiendaEditar.getTipo());
-    campoNombre.setText(tiendaEditar.getNombre());
-    campoIdPadre.setText(tiendaEditar.getIdPadre() != 0 ? String.valueOf(tiendaEditar.getIdPadre()) : "");
-}
+    if (esEdicion) {
+       // campoId.setText(String.valueOf(tiendaEditar.getId())); campoId.setDisable(true);
+        campoTipo.setText(tiendaEditar.getTipo());
+        campoNombre.setText(tiendaEditar.getNombre());
+        selectorTienda.setValue(tiendaEditar.getIdPadre() != 0 ? tiendaEditar.getIdPadre() + " — " + listaTiendas.stream().filter(t -> t.getId() == tiendaEditar.getIdPadre()).findFirst().map(Tienda::getNombre).orElse("") : "— Ninguna —");
+    }
 
     Label mensajeEstado = new Label("");
     mensajeEstado.setFont(Font.font("System", 12));
@@ -4875,7 +4887,8 @@ if (esEdicion) {
     btnGuardar.setOnAction(e -> {
         String tipo    = campoTipo.getText().trim();
         String nombre  = campoNombre.getText().trim();
-        int idPadre = campoIdPadre.getText().trim().isEmpty() ? 0 : Integer.parseInt(campoIdPadre.getText().trim());
+        String selTienda = selectorTienda.getValue();
+        int idPadre = (selTienda == null || selTienda.equals("— Ninguna —")) ? 0 : Integer.parseInt(selTienda.split(" — ")[0].trim());
 
         if (tipo.isEmpty() || nombre.isEmpty()) {
             mensajeEstado.setTextFill(Color.web(ERROR));
@@ -4883,8 +4896,9 @@ if (esEdicion) {
             return;
         }
         if (!esEdicion) {
-            int id = listaTiendas.stream().mapToInt(Tienda::getId).max().orElse(0) + 1;
-            tiendaDAO.insert(new Tienda(id, tipo, nombre, idPadre));
+            // boolean yaExiste = listaTiendas.stream().anyMatch(t -> t.getId() == id);
+            // if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una tienda con ese ID"); return; }
+            tiendaDAO.insert(new Tienda(0, tipo, nombre, idPadre));
             recargarDatos();
         } else {
             tiendaEditar.setTipo(tipo);
@@ -4896,7 +4910,8 @@ if (esEdicion) {
         mostrarModuloTiendasUbicaciones(contenido, esAdmin);
     });
 
-VBox form = new VBox(12, titulo, campoTipo, campoNombre, campoIdPadre,            mensajeEstado, btnGuardar, btnCancelar);
+    VBox form = new VBox(12, titulo, campoTipo, campoNombre, TiendaPertenece, selectorTienda,
+            mensajeEstado, btnGuardar, btnCancelar);
     form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
     form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
@@ -4919,34 +4934,34 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
     titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
     titulo.setTextFill(Color.web(SECUNDARIO));
 
-    TextField campoId     = crearTextField("ID  (ej: U1)");
+    // TextField campoId     = crearTextField("ID  (ej: U1)");
     TextField campoTipo   = crearTextField("Tipo  (ej: Estante, Bodega, Gaveta)");
     TextField campoNombre = crearTextField("Nombre  (ej: Estante A-3)");
 
-    Label labelIdPadre = new Label("Tienda a la que pertenece:");
+    Label labelIdPadre = new Label("Ubicacion a la que pertenece:");
     labelIdPadre.setFont(Font.font("System", 12));
     labelIdPadre.setTextFill(Color.web(TEXTO_SUAVE));
 
-    ComboBox<String> selectorTienda = new ComboBox<>();
-    selectorTienda.setMaxWidth(360);
-    selectorTienda.setStyle(estiloInput());
-    selectorTienda.getItems().add("— Ninguna —");
-    for (Tienda t : listaTiendas) selectorTienda.getItems().add(t.getId() + " — " + t.getNombre());
-    selectorTienda.setValue("— Ninguna —");
+    ComboBox<String> selectorUbicacion = new ComboBox<>();
+    selectorUbicacion.setMaxWidth(360);
+    selectorUbicacion.setStyle(estiloInput());
+    selectorUbicacion.getItems().add("— Ninguna —");
+    for (Ubicacion u : listaUbicaciones) selectorUbicacion.getItems().add(u.getId() + " — " + u.getNombre());
+    selectorUbicacion.setValue("— Ninguna —");
 
-    campoId.setMaxWidth(360); campoTipo.setMaxWidth(360); campoNombre.setMaxWidth(360);
-
+    // campoId.setMaxWidth(360); 
+    campoTipo.setMaxWidth(360); campoNombre.setMaxWidth(360);
     if (esEdicion) {
-        campoId.setText(String.valueOf(ubicacionEditar.getId())); campoId.setDisable(true);
+       // campoId.setText(String.valueOf(ubicacionEditar.getId())); campoId.setDisable(true);
         campoTipo.setText(ubicacionEditar.getTipo());
         campoNombre.setText(ubicacionEditar.getNombre());
         if (ubicacionEditar.getIdPadre() != 0) {
-            String selVal = listaTiendas.stream()
-                .filter(t -> t.getId() == ubicacionEditar.getIdPadre())
+            String selVal = listaUbicaciones.stream()
+                .filter(u -> u.getId() == ubicacionEditar.getIdPadre())
                 .findFirst()
-                .map(t -> t.getId() + " — " + t.getNombre())
+                .map(u -> u.getId() + " — " + u.getNombre())
                 .orElse("— Ninguna —");
-            selectorTienda.setValue(selVal);
+            selectorUbicacion.setValue(selVal);
         }
     }
 
@@ -4963,13 +4978,13 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
     btnCancelar.setOnAction(e -> mostrarModuloTiendasUbicaciones(contenido, true));
 
     btnGuardar.setOnAction(e -> {
-        String idText = campoId.getText().trim();
-        int id     = idText.isEmpty() ? 0 : Integer.parseInt(idText);
+        // String idText = campoId.getText().trim();
+        // int id     = idText.isEmpty() ? 0 : Integer.parseInt(idText);
         String tipo   = campoTipo.getText().trim();
         String nombre = campoNombre.getText().trim();
-        String selTienda = selectorTienda.getValue();
-        int idPadre = (selTienda == null || selTienda.equals("— Ninguna —"))
-            ? 0 : Integer.parseInt(selTienda.split(" — ")[0].trim());
+        String selUbicacion = selectorUbicacion.getValue();
+        int idPadre = (selUbicacion == null || selUbicacion.equals("— Ninguna —"))
+            ? 0 : Integer.parseInt(selUbicacion.split(" — ")[0].trim());
 
         if (tipo.isEmpty() || nombre.isEmpty()) {
             mensajeEstado.setTextFill(Color.web(ERROR));
@@ -4977,9 +4992,9 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
             return;
         }
         if (!esEdicion) {
-            boolean yaExiste = listaUbicaciones.stream().anyMatch(u -> u.getId() == id);
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una ubicación con ese ID"); return; }
-            ubicacionDAO.insert(new Ubicacion(id, tipo, nombre, idPadre));
+           /*  boolean yaExiste = listaUbicaciones.stream().anyMatch(u -> u.getId() == id);
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe una ubicación con ese ID"); return; }*/
+            ubicacionDAO.insert(new Ubicacion(0, nombre, tipo, idPadre));
             recargarDatos();
         } else {
             ubicacionEditar.setTipo(tipo);
@@ -4991,8 +5006,8 @@ private void mostrarFormularioUbicacion(StackPane contenido, Ubicacion ubicacion
         mostrarModuloTiendasUbicaciones(contenido, true);
     });
 
-    VBox form = new VBox(12, titulo, campoId, campoTipo, campoNombre,
-            labelIdPadre, selectorTienda, mensajeEstado, btnGuardar, btnCancelar);
+    VBox form = new VBox(12, titulo, campoTipo, campoNombre,
+            labelIdPadre, selectorUbicacion, mensajeEstado, btnGuardar, btnCancelar);
     form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(420);
     form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
