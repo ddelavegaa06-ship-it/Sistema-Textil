@@ -673,11 +673,23 @@ Label leyendaVerde    = new Label("Normal: Por encima del umbral bajo");
     TableColumn<Prenda, String> colPMinimo   = new TableColumn<>("Minimo");
     TableColumn<Prenda, String> colPTipo     = new TableColumn<>("Tipo");
 
-    colPNivel.setCellValueFactory(d -> {
+colPNivel.setCellValueFactory(d -> {
         Integer min = d.getValue().getMinimoExistencia();
         if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = d.getValue().getExistencia();
-return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Crítico" : "\ud83d\udfe1 Bajo");    });
+        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+    });
+    colPNivel.setCellFactory(col -> new TableCell<Prenda, String>() {
+        @Override protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) { setText(null); setTextFill(Color.BLACK); return; }
+            setText("● " + item);
+            if ("Critico".equals(item)) setTextFill(Color.web(ERROR));
+            else if ("Bajo".equals(item)) setTextFill(Color.web(ADVERTENCIA));
+            else if ("Normal".equals(item)) setTextFill(Color.web(EXITO));
+            else setTextFill(Color.web(TEXTO_SUAVE));
+        }
+    });
     colPNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
     colPTalla.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getTalla()));
     colPExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
@@ -719,7 +731,18 @@ return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Crítico" : "\ud83d\ud
         Double min = d.getValue().getMinimoExistencia();
         if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
         int ex = calcularExistenciaConjunto(d.getValue());
-        return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");
+        return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+    });
+    colCNivel.setCellFactory(col -> new TableCell<Conjunto, String>() {
+        @Override protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) { setText(null); setTextFill(Color.BLACK); return; }
+            setText("● " + item);
+            if ("Critico".equals(item)) setTextFill(Color.web(ERROR));
+            else if ("Bajo".equals(item)) setTextFill(Color.web(ADVERTENCIA));
+            else if ("Normal".equals(item)) setTextFill(Color.web(EXITO));
+            else setTextFill(Color.web(TEXTO_SUAVE));
+        }
     });
     colCNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
     colCExist.setCellValueFactory(d  -> new SimpleStringProperty(String.valueOf(calcularExistenciaConjunto(d.getValue()))));
@@ -763,7 +786,19 @@ return new SimpleStringProperty(ex <= min ? "\ud83d\udd34 Crítico" : "\ud83d\ud
             Double min = d.getValue().getMinimoExistencia();
             if (min == null || min <= 0) return new SimpleStringProperty("Sin minimo");
             double ex = d.getValue().getExistencia();
-            return new SimpleStringProperty(ex <= min ? "🔴 Crítico" : "🟡 Bajo");        });
+            return new SimpleStringProperty(ex <= min ? "Critico" : "Bajo");
+        });
+        colMNivel.setCellFactory(col -> new TableCell<Insumo, String>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) { setText(null); setTextFill(Color.BLACK); return; }
+                setText("● " + item);
+                if ("Critico".equals(item)) setTextFill(Color.web(ERROR));
+                else if ("Bajo".equals(item)) setTextFill(Color.web(ADVERTENCIA));
+                else if ("Normal".equals(item)) setTextFill(Color.web(EXITO));
+                else setTextFill(Color.web(TEXTO_SUAVE));
+            }
+        });
         colMNombre.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getNombre()));
         colMPartida.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNumeroPartida()));
         colMExist.setCellValueFactory(d   -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
