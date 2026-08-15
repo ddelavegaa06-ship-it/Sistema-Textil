@@ -2154,32 +2154,16 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoPartida      = crearTextField("Numero de partida  (ej: BOT-003)");
+        TextField campoClave = crearTextField("Clave");
+        TextField campoPartida      = crearTextField("Numero de partida  (ej: BOT-003,opcionl)");
         TextField campoNombre       = crearTextField("Nombre del insumo");
-        TextField campoExistencia   = crearTextField("Existencia inicial");
-        TextField campoMinimo       = crearTextField("Minimo de existencia  (ej: 10)");
-        TextField campoTipoExist    = crearTextField("Tipo de existencia  (opcional)");
-        TextField campoDescripcion  = crearTextField("Descripcion  (opcional)");
-        TextField campoColor        = crearTextField("Color  (opcional)");
-        TextField campoMedida       = crearTextField("Medida  (opcional)");
-        TextField campoAncho        = crearTextField("Ancho en metros  (opcional)");
-        TextField campoComposicion  = crearTextField("Composicion  (opcional, ej: 100% ALG)");
-        TextField campoTipo         = crearTextField("Tipo de tejido/estructura  (opcional)");
-        TextField campoNo           = crearTextField("No.  (opcional, ej: 14)");
-        TextField campoTamanio      = crearTextField("Tamano  (opcional)");
-        TextField campoTalla        = crearTextField("Talla  (opcional)");
-        TextField campoMaterial     = crearTextField("Material  (opcional, ej: Plastico)");
+        TextField campoExistencia   = crearTextField("Existencia");
+        TextField campoDescripcion  = crearTextField("Descripcion  ");
         TextField campoUbicacion     = crearTextField("Ubicacion");
 
         Label labelTipoInsumo = new Label("Tipo de insumo:");
         labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
         labelTipoInsumo.setFont(Font.font("System", 12));
-
-        ComboBox<String> selectorTipoInsumo = new ComboBox<>();
-        selectorTipoInsumo.getItems().addAll("Boton", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
-        selectorTipoInsumo.setValue("Boton");
-        selectorTipoInsumo.setMaxWidth(320);
-        selectorTipoInsumo.setStyle(estiloInput());
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -2196,55 +2180,33 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
             String partida      = campoPartida.getText().trim();
             String nombre       = campoNombre.getText().trim();
             String existStr     = campoExistencia.getText().trim();
-            String tipoExist    = campoTipoExist.getText().trim();
             String descripcion  = campoDescripcion.getText().trim();
-            String color        = campoColor.getText().trim();
-            String medida       = campoMedida.getText().trim();
-            String anchoStr     = campoAncho.getText().trim();
-            String composicion  = campoComposicion.getText().trim();
-            String tipo         = campoTipo.getText().trim();
-            String noStr        = campoNo.getText().trim();
-            String tamanio      = campoTamanio.getText().trim();
-            String talla     = campoTalla.getText().trim();
-            String material     = campoMaterial.getText().trim();
-            String tipoInsumo   = selectorTipoInsumo.getValue();
             String ubicacion    = campoUbicacion.getText().trim();
+            String clave = campoClave.getText().trim();
 
-            String minimoStr    = campoMinimo.getText().trim();
-            if (partida.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Partida, nombre y existencia son obligatorios"); return;
+            if (clave.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Clave, nombre y existencia son obligatorios"); return;
             }
-            boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getNumeroPartida() != null && mp.getNumeroPartida().equalsIgnoreCase(partida));
-            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con ese numero de partida"); return; }
+            boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getId() != null && mp.getId().equalsIgnoreCase(clave));
+            if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con esa clave"); return; }
 
             try {
                 double existencia = Double.parseDouble(existStr);
-                Double minimo = minimoStr.isEmpty() ? null : Double.parseDouble(minimoStr);
-                double ancho = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
-                int no = noStr.isEmpty() ? 0 : Integer.parseInt(noStr);
-                double medidaD = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
-                double tallaD = talla.isEmpty() ? 0.0 : Double.parseDouble(talla);
+
 
                 Insumo nuevoInsumo = new Insumo(
-                    "I-" + String.valueOf(System.currentTimeMillis()),
-                    partida,
+                    clave,
                     existencia,
-                    tipoExist.isEmpty() ? "" : tipoExist,
-                    descripcion.isEmpty() ? "" : descripcion,
-                    nombre,
-                    color.isEmpty() ? "" : color,
-                    medidaD,
-                    ancho,
-                    composicion.isEmpty() ? "" : composicion,
-                    tipo.isEmpty() ? "" : tipo,
-                    no,
-                    tamanio.isEmpty() ? "" : tamanio,
-                    tallaD,
-                    material.isEmpty() ? "" : material,
-                    tipoInsumo,
-                    1
+                    descripcion,
+                    nombre
                 );
-                nuevoInsumo.setMinimoExistencia(minimo);
+                if(!ubicacion.isEmpty()) {
+                    int idUbicacion = Integer.parseInt(ubicacion);
+                    nuevoInsumo.setIdUbicacion(idUbicacion);
+                }
+                if (!partida.isEmpty()) {
+                    nuevoInsumo.setNumeroPartida(partida);
+                }
                 insumoDAO.insert(nuevoInsumo);
                 recargarDatos();
                 mostrarModuloMateriaPrima(contenido, true);
@@ -2257,11 +2219,9 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
             }
         });
 
-        VBox form = new VBox(10, titulo, subtitulo, campoPartida, campoNombre,
-                campoExistencia, campoTipoExist, campoMinimo , labelTipoInsumo, selectorTipoInsumo,
-                campoColor, campoMedida, campoAncho, campoComposicion,
-                campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
-                campoDescripcion, mensajeEstado, btnGuardar, btnCancelar);
+        VBox form = new VBox(10, titulo, subtitulo, campoClave, campoPartida, campoNombre,
+                campoExistencia,
+                campoDescripcion, campoUbicacion,mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
@@ -2284,11 +2244,11 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o numero de partida y añade unidades");
+        Label subtitulo = new Label("Busca por nombre o Clave y añade unidades");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("Nombre o numero de partida");
+        TextField campoBusqueda = crearTextField("Nombre o Clave");
         Label mensajeBusqueda   = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
 
@@ -2313,9 +2273,9 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         btnBuscar.setStyle(estiloBtnPrincipal());
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o Clave"); return; }
             Insumo encontrada = listaMateriaPrima.stream()
-                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getId().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ningun insumo");
@@ -2379,37 +2339,24 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
-        TextField campoBusqueda = crearTextField("Nombre o numero de partida");
+        TextField campoBusqueda = crearTextField("Nombre o Clave");
         Label mensajeBusqueda   = new Label("");
         mensajeBusqueda.setFont(Font.font("System", 12));
 
         VBox panelEdicion = new VBox(10);
         panelEdicion.setVisible(false);
         panelEdicion.setManaged(false);
-
+        
+        TextField campoPartida = crearTextField("Numero de partida  (ej: BOT-003,opcionl)");
         TextField campoNombre      = crearTextField("Nombre del insumo");
         TextField campoExistencia  = crearTextField("Existencia");
         TextField campoMinimo      = crearTextField("Minimo de existencia");
-        TextField campoTipoExist   = crearTextField("Tipo de existencia");
-        TextField campoDescripcion = crearTextField("Descripcion");
-        TextField campoColor       = crearTextField("Color");
-        TextField campoMedida      = crearTextField("Medida");
-        TextField campoAncho       = crearTextField("Ancho en metros");
-        TextField campoComposicion = crearTextField("Composicion");
-        TextField campoTipo        = crearTextField("Tipo de tejido/estructura");
-        TextField campoNo          = crearTextField("No.");
-        TextField campoTamanio     = crearTextField("Tamano");
-        TextField campoTalla       = crearTextField("Talla");
-        TextField campoMaterial    = crearTextField("Material");
+        TextField ubi = crearTextField("Ubicacion");
+        TextField descripsion = crearTextField("Descripcion");
 
-        Label labelTipoInsumo = new Label("Tipo de insumo:");
-        labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
-        labelTipoInsumo.setFont(Font.font("System", 12));
 
-        ComboBox<String> selectorTipoInsumo = new ComboBox<>();
-        selectorTipoInsumo.getItems().addAll("Boton", "Cierre", "Tela plana", "Tela punto", "Hilo", "Otro");
-        selectorTipoInsumo.setMaxWidth(320);
-        selectorTipoInsumo.setStyle(estiloInput());
+     
+
 
         Label mensajeEstado = new Label("");
         mensajeEstado.setFont(Font.font("System", 12));
@@ -2418,11 +2365,8 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         btnGuardar.setMaxWidth(320);
         btnGuardar.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;");
 
-        panelEdicion.getChildren().addAll(campoNombre, campoExistencia,campoMinimo,  campoTipoExist,
-                labelTipoInsumo, selectorTipoInsumo,
-                campoColor, campoMedida, campoAncho, campoComposicion,
-                campoTipo, campoNo, campoTamanio, campoTalla, campoMaterial,
-                campoDescripcion, mensajeEstado, btnGuardar);
+        panelEdicion.getChildren().addAll(campoPartida, campoNombre, campoExistencia,campoMinimo,descripsion, ubi,
+                mensajeEstado, btnGuardar);
 
         final Insumo[] mpEncontrada = {null};
 
@@ -2430,9 +2374,9 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         btnBuscar.setStyle(estiloBtnPrincipal());
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa una Clave o nombre"); return; }
             Insumo encontrada = listaMateriaPrima.stream()
-                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .filter(mp -> mp.getNombre().equalsIgnoreCase(busqueda) || mp.getId().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (encontrada == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro ningun insumo");
@@ -2443,18 +2387,8 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
                 campoNombre.setText(encontrada.getNombre());
                 campoExistencia.setText(String.valueOf(encontrada.getExistencia()));
                 campoMinimo.setText(encontrada.getMinimoExistencia() != null ? String.valueOf(encontrada.getMinimoExistencia()) : "");
-                campoTipoExist.setText(encontrada.getTipoExistencia() != null ? encontrada.getTipoExistencia() : "");
-                campoDescripcion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
-                campoColor.setText(encontrada.getColor() != null ? encontrada.getColor() : "");
-                campoMedida.setText(String.valueOf(encontrada.getMedida()));
-                campoAncho.setText(String.valueOf(encontrada.getAncho()));
-                campoComposicion.setText(encontrada.getComposicion() != null ? encontrada.getComposicion() : "");
-                campoTipo.setText(encontrada.getTipo() != null ? encontrada.getTipo() : "");
-                campoNo.setText(String.valueOf(encontrada.getNo()));
-                campoTamanio.setText(encontrada.getTamanio() != null ? encontrada.getTamanio() : "");
-                campoTalla.setText(String.valueOf(encontrada.getTalla()));
-                campoMaterial.setText(encontrada.getMaterial() != null ? encontrada.getMaterial() : "");
-                selectorTipoInsumo.setValue(encontrada.getTipoInsumo());
+                descripsion.setText(encontrada.getDescripcion() != null ? encontrada.getDescripcion() : "");
+                ubi.setText(encontrada.getIdUbicacion() != null ? String.valueOf(encontrada.getIdUbicacion()) : "");
                 mensajeEstado.setText(""); panelEdicion.setVisible(true); panelEdicion.setManaged(true);
             }
         });
@@ -2464,20 +2398,9 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
             String nombre      = campoNombre.getText().trim();
             String existStr    = campoExistencia.getText().trim();
             String minimoStr   = campoMinimo.getText().trim();
-            String tipoExist   = campoTipoExist.getText().trim();
-            String descripcion = campoDescripcion.getText().trim();
-            String color       = campoColor.getText().trim();
-            String medida      = campoMedida.getText().trim();
-            String anchoStr    = campoAncho.getText().trim();
-            String composicion = campoComposicion.getText().trim();
-            String tipo        = campoTipo.getText().trim();
-            String noStr       = campoNo.getText().trim();
-            String tamanio     = campoTamanio.getText().trim();
-            String talla       = campoTalla.getText().trim();
-            String material    = campoMaterial.getText().trim();
-            String tipoInsumo  = selectorTipoInsumo.getValue();
-            double medidaDouble = medida.isEmpty() ? 0.0 : Double.parseDouble(medida);
-            double TallaDouble = talla.isEmpty() ? 0.0 : Double.parseDouble(talla);
+            String decrip = descripsion.getText().trim();
+            String ubicacion = ubi.getText().trim();
+            String partida = campoPartida.getText().trim();
 
             if (nombre.isEmpty() || existStr.isEmpty()) {
                 mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Nombre y existencia son obligatorios"); return;
@@ -2486,25 +2409,14 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
                 double existencia  = existStr.isEmpty() ? 0.0 : Double.parseDouble(existStr);
                 Double minimo = minimoStr.isEmpty() ? null : Double.parseDouble(minimoStr);
                 if (existencia < 0) { mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("La existencia no puede ser negativa"); return; }
-                double ancho    = anchoStr.isEmpty() ? 0.0 : Double.parseDouble(anchoStr);
-                int no      = noStr.isEmpty()    ? 0 : Integer.parseInt(noStr);
 
                 Insumo mp = mpEncontrada[0];
                 mp.setNombre(nombre);
                 mp.setExistencia(existencia);
-                mp.setTipoExistencia(tipoExist.isEmpty()   ? "" : tipoExist);
-                mp.setDescripcion(descripcion.isEmpty()    ? "" : descripcion);
-                mp.setColor(color.isEmpty()                ? null : color);
-                mp.setMedida(medidaDouble);
-                mp.setAncho(ancho);
-                mp.setComposicion(composicion.isEmpty()    ? null : composicion);
-                mp.setTipo(tipo.isEmpty()                  ? null : tipo);
-                mp.setNo(no);
-                mp.setTamanio(tamanio.isEmpty()            ? null : tamanio);
-                mp.setTalla(TallaDouble);
-                mp.setMaterial(material.isEmpty()          ? null : material);
-                mp.setTipoInsumo(tipoInsumo);
+                mp.setDescripcion(decrip.isEmpty() ? null : decrip);
+                mp.setIdUbicacion(ubicacion.isEmpty() ? null : Integer.parseInt(ubicacion));
                 mp.setMinimoExistencia(minimo);
+                mp.setNumeroPartida(partida.isEmpty() ? null : partida);
                 insumoDAO.update(mp);
                 recargarDatos();
                 mensajeEstado.setTextFill(Color.web(EXITO)); mensajeEstado.setText("Insumo actualizado correctamente");
@@ -4806,7 +4718,12 @@ if (esAdmin) {
     Button btnEliminarTienda = new Button("✕ Eliminar Tienda");
     btnEliminarTienda.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
     btnEliminarTienda.setOnAction(e -> {
-        // TODO: acá va el código para eliminar la tienda de la base de datos
+        try{
+            tiendaDAO.delete(tablaTiendas.getSelectionModel().getSelectedItem().getId());
+            listaTiendas.remove(tablaTiendas.getSelectionModel().getSelectedItem());
+        }catch(SQLException ex){
+            mostrarError("Error al eliminar tienda: " + ex.getMessage());
+        }
     });
     botonesTiendas.getChildren().add(btnEliminarTienda);
 }
@@ -4856,7 +4773,13 @@ if (esAdmin) {
         Button btnEliminarUbic = new Button("✕ Eliminar Ubicación");
         btnEliminarUbic.setStyle("-fx-background-color: " + ERROR + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 9 18; -fx-background-radius: 6; -fx-cursor: hand;");
         btnEliminarUbic.setOnAction(e -> {
-            // TODO: acá va el código para eliminar la ubicación de la base de datos
+            try{
+                ubicacionDAO.delete(tablaUbicaciones.getSelectionModel().getSelectedItem().getId());
+                listaUbicaciones.remove(tablaUbicaciones.getSelectionModel().getSelectedItem());
+            }catch(SQLException ex){
+                mostrarError("Error al eliminar ubicación: " + ex.getMessage());
+
+            }
         });
 
         HBox botonesUbic = new HBox(10, btnNuevaUbic, btnEditarUbic, btnEliminarUbic);

@@ -21,6 +21,14 @@ public class Insumo {
     private Double minimoExistencia;
 
     public Insumo() {}
+
+    public Insumo(String id, double existencia,
+                  String descripcion, String nombre) {
+        this.id = id;
+        this.existencia = existencia;
+        this.descripcion = descripcion;
+        this.nombre = nombre;
+    }
     
     public Insumo(String id, String numeroPartida, double existencia, String tipoExistencia,
                   String descripcion, String nombre, String color, double medidaStr,

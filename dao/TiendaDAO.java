@@ -47,16 +47,13 @@ public class TiendaDAO {
         return false;
     }
 
-    public boolean delete(int id){
+    public boolean delete(int id) throws SQLException {
         String sql = "DELETE FROM tienda WHERE id = ?";
 
         try(PreparedStatement ps = getConnection().prepareStatement(sql)){
             ps.setInt(1, id);
             return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        return false;
+        } 
     }
 
     public Optional<Tienda> buscarPorId(int id){

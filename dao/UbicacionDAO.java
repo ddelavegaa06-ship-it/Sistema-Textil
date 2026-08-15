@@ -47,16 +47,15 @@ public class UbicacionDAO {
         return false;
     }
 
-    public boolean delete(int id){
+    public boolean delete(int id) throws SQLException {
         String sql = "DELETE FROM ubicacion WHERE id = ?";
 
         try(PreparedStatement ps = getConnection().prepareStatement(sql)){
             ps.setInt(1, id);
             return ps.executeUpdate() > 0; 
-        }catch(SQLException e){
-            e.printStackTrace();
         }
-        return false;
+        // No catch block, let the SQLException propagate
+        // return false; // This line is unreachable now
     }
 
     public Optional<Ubicacion> buscarPorId(int id){
