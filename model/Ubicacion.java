@@ -12,6 +12,10 @@ public class Ubicacion {
         this.tipo = tipo;
         this.idPadre = idPadre;
     }
+    public Ubicacion(int id,String nombre){
+        this.id = id;
+        this.nombre = nombre;
+    }
     public int getId(){
         return id;
     }

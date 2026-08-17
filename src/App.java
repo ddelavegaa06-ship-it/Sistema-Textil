@@ -1953,18 +1953,7 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         TableColumn<Insumo, String> colNombre       = new TableColumn<>("Nombre");
         TableColumn<Insumo, String> colExist        = new TableColumn<>("Existencia");
         TableColumn<Insumo, String> colMinimo       = new TableColumn<>("Minimo");
-        TableColumn<Insumo, String> colTipoExist    = new TableColumn<>("Tipo Existencia");
         TableColumn<Insumo, String> colDescripcion  = new TableColumn<>("Descripcion");
-        TableColumn<Insumo, String> colColor        = new TableColumn<>("Color");
-        TableColumn<Insumo, String> colMedida       = new TableColumn<>("Medida");
-        TableColumn<Insumo, String> colAncho        = new TableColumn<>("Ancho");
-        TableColumn<Insumo, String> colComposicion  = new TableColumn<>("Composicion");
-        TableColumn<Insumo, String> colTipo         = new TableColumn<>("Tipo");
-        TableColumn<Insumo, String> colNo           = new TableColumn<>("No.");
-        TableColumn<Insumo, String> colTamanio      = new TableColumn<>("Tamano");
-        TableColumn<Insumo, String> colTalla2       = new TableColumn<>("Talla");
-        TableColumn<Insumo, String> colMaterial     = new TableColumn<>("Material");
-        TableColumn<Insumo, String> colTipoInsum    = new TableColumn<>("Tipo Insumo");
         TableColumn<Insumo, String> colUbicacion = new TableColumn<>("Ubicacion");
 
         colId.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getId())));
@@ -1972,23 +1961,10 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         colNombre.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getNombre()));
         colExist.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getExistencia())));
         colMinimo.setCellValueFactory(d       -> new SimpleStringProperty(d.getValue().getMinimoExistencia() != null ? String.valueOf(d.getValue().getMinimoExistencia()) : "—"));
-        colTipoExist.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoExistencia() != null && !d.getValue().getTipoExistencia().isEmpty() ? d.getValue().getTipoExistencia() : "??"));
         colDescripcion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getDescripcion() != null ? d.getValue().getDescripcion() : "??"));
-        colColor.setCellValueFactory(d        -> new SimpleStringProperty(d.getValue().getColor() != null ? d.getValue().getColor() : "??"));
-        colMedida.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getMedida())));
-        colAncho.setCellValueFactory(d        -> new SimpleStringProperty(String.valueOf(d.getValue().getAncho())));
-        colComposicion.setCellValueFactory(d  -> new SimpleStringProperty(d.getValue().getComposicion() != null ? d.getValue().getComposicion() : "??"));
-        colTipo.setCellValueFactory(d         -> new SimpleStringProperty(d.getValue().getTipo() != null ? d.getValue().getTipo() : "??"));
-        colNo.setCellValueFactory(d           -> new SimpleStringProperty(String.valueOf(d.getValue().getNo())));
-        colTamanio.setCellValueFactory(d      -> new SimpleStringProperty(d.getValue().getTamanio() != null ? d.getValue().getTamanio() : "??"));
-        colTalla2.setCellValueFactory(d       -> new SimpleStringProperty(String.valueOf(d.getValue().getTalla())));
-        colMaterial.setCellValueFactory(d     -> new SimpleStringProperty(d.getValue().getMaterial() != null ? d.getValue().getMaterial() : "??"));
-        colTipoInsum.setCellValueFactory(d    -> new SimpleStringProperty(d.getValue().getTipoInsumo()));
         colUbicacion.setCellValueFactory(d   -> new SimpleStringProperty(d.getValue().getIdUbicacion() != null ? String.valueOf(d.getValue().getIdUbicacion()) : "??"));
 
-        tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMinimo,
-                colTipoExist, colDescripcion, colColor, colMedida, colAncho,
-                colComposicion, colTipo, colNo, colTamanio, colTalla2, colMaterial, colTipoInsum, colUbicacion);
+        tabla.getColumns().addAll(colId, colPartida, colNombre, colExist, colMinimo, colDescripcion, colUbicacion);
         tabla.setItems(listaMateriaPrima);
 
         // Ancho total = suma de los anchos preferidos de cada columna, así la tabla
@@ -2070,7 +2046,7 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         titulo.setFont(Font.font("System", FontWeight.BOLD, 20));
         titulo.setTextFill(Color.web(SECUNDARIO));
 
-        Label subtitulo = new Label("Busca por nombre o numero de partida para ver toda la informacion");
+        Label subtitulo = new Label("Busca por nombre o numero de pa para ver toda la informacion");
         subtitulo.setFont(Font.font("System", 12));
         subtitulo.setTextFill(Color.web(TEXTO_SUAVE));
 
@@ -2089,9 +2065,9 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
 
         btnBuscar.setOnAction(e -> {
             String busqueda = campoBusqueda.getText().trim();
-            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o numero de partida"); return; }
+            if (busqueda.isEmpty()) { mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("Ingresa un nombre o clave"); return; }
             Insumo mp = listaMateriaPrima.stream()
-                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getNumeroPartida().equalsIgnoreCase(busqueda))
+                .filter(x -> x.getNombre().equalsIgnoreCase(busqueda) || x.getId().equalsIgnoreCase(busqueda))
                 .findFirst().orElse(null);
             if (mp == null) {
                 mensajeBusqueda.setTextFill(Color.web(ERROR)); mensajeBusqueda.setText("No se encontro el insumo");
@@ -2099,7 +2075,7 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
             } else {
                 mensajeBusqueda.setTextFill(Color.web(EXITO)); mensajeBusqueda.setText("Insumo encontrado");
                 tarjeta.getChildren().clear();
-                Label lNombre = new Label(mp.getNombre() + " " + mp.getTipoInsumo());
+                Label lNombre = new Label(mp.getNombre());
                 lNombre.setFont(Font.font("System", FontWeight.BOLD, 17));
                 lNombre.setTextFill(Color.web(SECUNDARIO));
                 Region sep = new Region(); sep.setPrefHeight(1); sep.setStyle("-fx-background-color: #E5E7EB;");
@@ -2107,18 +2083,10 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
                     filaDetalle("ID:",              String.valueOf(mp.getId())),
                     filaDetalle("No. Partida:",     mp.getNumeroPartida()),
                     filaDetalle("Existencia:",      String.valueOf(mp.getExistencia())),
-                    filaDetalle("Tipo Existencia:", mp.getTipoExistencia() != null && !mp.getTipoExistencia().isEmpty() ? mp.getTipoExistencia() : "??"),
-                    filaDetalle("Color:",           mp.getColor()        != null ? mp.getColor()        : "??"),
-                    filaDetalle("Medida:",          String.valueOf(mp.getMedida())),
-                    filaDetalle("Ancho:",           String.valueOf(mp.getAncho()) + " m"),
-                    filaDetalle("Composicion:",     mp.getComposicion()  != null ? mp.getComposicion()   : "??"),
-                    filaDetalle("Tipo:",            mp.getTipo()         != null ? mp.getTipo()          : "??"),
-                    filaDetalle("No.:",             String.valueOf(mp.getNo())),
-                    filaDetalle("Tamano:",          mp.getTamanio()      != null ? mp.getTamanio()       : "??"),
-                    filaDetalle("Talla:",           String.valueOf(mp.getTalla())),
-                    filaDetalle("Material:",        mp.getMaterial()     != null ? mp.getMaterial()      : "??"),
-                    filaDetalle("Tipo Insumo:",     mp.getTipoInsumo()),
-                    filaDetalle("Descripcion:",     mp.getDescripcion()));
+                    filaDetalle("Descripcion:",     mp.getDescripcion()),
+                    filaDetalle("Minimo Existencia:", String.valueOf(mp.getMinimoExistencia())),
+                    filaDetalle("Id Ubicacion:",      mp.getIdUbicacion() != null ? String.valueOf(mp.getIdUbicacion()) : "—")
+                );
                 tarjeta.setVisible(true); tarjeta.setManaged(true);
             }
         });
@@ -2159,7 +2127,31 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         TextField campoNombre       = crearTextField("Nombre del insumo");
         TextField campoExistencia   = crearTextField("Existencia");
         TextField campoDescripcion  = crearTextField("Descripcion  ");
-        TextField campoUbicacion     = crearTextField("Ubicacion");
+        TextField campoMinimo = crearTextField("Minimo existencia");
+        Ubicacion OPCION_NINGUNA = new Ubicacion(0,"NINGUNA");
+
+        ComboBox<Ubicacion> selectorUbicacion = new ComboBox<>();
+        selectorUbicacion.setMaxWidth(360);
+        selectorUbicacion.setStyle(estiloInput());
+       
+        selectorUbicacion.setConverter(new javafx.util.StringConverter<Ubicacion>(){
+            public String toString(Ubicacion u){
+                if (u == null){
+                    return "- Ninguna -";
+                }
+                if(u.getId() == 0){
+                    return "- Ninguna -";
+                }
+                return u.getId()+" - " +u.getNombre();
+            }
+            public Ubicacion fromString(String string){
+            // Como no es editable, retorna null
+            return null;
+        }
+        });
+        selectorUbicacion.getItems().add(OPCION_NINGUNA);
+        selectorUbicacion.getItems().addAll(listaUbicaciones);
+        selectorUbicacion.setValue(OPCION_NINGUNA);
 
         Label labelTipoInsumo = new Label("Tipo de insumo:");
         labelTipoInsumo.setTextFill(Color.web(TEXTO_SUAVE));
@@ -2181,28 +2173,30 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
             String nombre       = campoNombre.getText().trim();
             String existStr     = campoExistencia.getText().trim();
             String descripcion  = campoDescripcion.getText().trim();
-            String ubicacion    = campoUbicacion.getText().trim();
+            Ubicacion ubi = selectorUbicacion.getValue();
+            int ubicacionStr = ubi.getId();
             String clave = campoClave.getText().trim();
+            String minimostr = campoMinimo.getText().trim();
 
-            if (clave.isEmpty() || nombre.isEmpty() || existStr.isEmpty()) {
-                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Clave, nombre y existencia son obligatorios"); return;
+            if (clave.isEmpty() || nombre.isEmpty() || existStr.isEmpty() || minimostr.isEmpty()) {
+                mensajeEstado.setTextFill(Color.web(ERROR)); mensajeEstado.setText("Clave, nombre, existencia  y minimo existencia son obligatorios"); return;
             }
             boolean yaExiste = listaMateriaPrima.stream().anyMatch(mp -> mp.getId() != null && mp.getId().equalsIgnoreCase(clave));
             if (yaExiste) { mensajeEstado.setTextFill(Color.web(ADVERTENCIA)); mensajeEstado.setText("Ya existe un insumo con esa clave"); return; }
 
             try {
                 double existencia = Double.parseDouble(existStr);
-
+                double minimo = Double.parseDouble(minimostr);
 
                 Insumo nuevoInsumo = new Insumo(
                     clave,
                     existencia,
                     descripcion,
-                    nombre
+                    nombre,
+                    minimo
                 );
-                if(!ubicacion.isEmpty()) {
-                    int idUbicacion = Integer.parseInt(ubicacion);
-                    nuevoInsumo.setIdUbicacion(idUbicacion);
+                if(ubicacionStr != 0) {
+                    nuevoInsumo.setIdUbicacion(ubicacionStr);
                 }
                 if (!partida.isEmpty()) {
                     nuevoInsumo.setNumeroPartida(partida);
@@ -2220,8 +2214,7 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
         });
 
         VBox form = new VBox(10, titulo, subtitulo, campoClave, campoPartida, campoNombre,
-                campoExistencia,
-                campoDescripcion, campoUbicacion,mensajeEstado, btnGuardar, btnCancelar);
+                campoExistencia,campoDescripcion,campoMinimo,selectorUbicacion,mensajeEstado, btnGuardar, btnCancelar);
         form.setAlignment(Pos.TOP_LEFT); form.setMaxWidth(400);
         form.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 35; -fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 15, 0, 0, 3);");
 
