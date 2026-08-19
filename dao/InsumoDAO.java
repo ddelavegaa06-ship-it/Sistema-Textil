@@ -44,6 +44,7 @@ public class InsumoDAO {
         String sql = "INSERT INTO insumo (id, numeroPartida, existencia, tipoExistencia, descripcion, nombre, color, medida, ancho, composicion, tipo, `no.`, tamanio, talla, material, tipoInsumo, idUbicacion, minimo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            Integer idUbicacion = insumo.getIdUbicacion();
             pstmt.setString(1, insumo.getId());
             pstmt.setString(2, insumo.getNumeroPartida());
             pstmt.setDouble(3, insumo.getExistencia());
@@ -60,7 +61,11 @@ public class InsumoDAO {
             pstmt.setDouble(14, insumo.getTalla());
             pstmt.setString(15, insumo.getMaterial());
             pstmt.setString(16, insumo.getTipoInsumo());
-            pstmt.setInt(17, insumo.getIdUbicacion());
+            if(idUbicacion == null || idUbicacion == 0) {
+                pstmt.setNull(17, java.sql.Types.INTEGER);
+            } else {
+                pstmt.setInt(17, idUbicacion);
+            }
             if (insumo.getMinimoExistencia() != null) pstmt.setDouble(18, insumo.getMinimoExistencia());
             else pstmt.setNull(18, java.sql.Types.DOUBLE);
             return pstmt.executeUpdate() > 0;

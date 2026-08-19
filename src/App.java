@@ -2195,7 +2195,10 @@ VBox vista = new VBox(16, titulo, nota, scrollTabla, botonesMaterial);
                     nombre,
                     minimo
                 );
-                if(ubicacionStr != 0) {
+                if(ubicacionStr == 0) {
+                    nuevoInsumo.setIdUbicacion(null);
+                }
+                else{
                     nuevoInsumo.setIdUbicacion(ubicacionStr);
                 }
                 if (!partida.isEmpty()) {
@@ -4703,7 +4706,14 @@ btnEditarTienda.setStyle("-fx-background-color: " + AZUL_EDITAR + "; -fx-text-fi
 btnNuevaTienda.setOnAction(e  -> mostrarFormularioTienda(contenido, null, esAdmin));
 btnEditarTienda.setOnAction(e -> {
     Tienda sel = tablaTiendas.getSelectionModel().getSelectedItem();
-    if (sel != null) mostrarFormularioTienda(contenido, sel, esAdmin);
+    if (sel != null)
+        { 
+        mostrarFormularioTienda(contenido, sel, esAdmin);
+        }
+    else{
+        
+        mostrarError("Selecciona una tienda de la tabla primero");
+    }
 });
 botonesTiendas.getChildren().addAll(btnNuevaTienda, btnEditarTienda);
 
