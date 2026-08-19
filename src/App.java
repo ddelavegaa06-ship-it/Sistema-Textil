@@ -51,6 +51,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.sql.SQLException;
 import java.sql.Connection;
+import javafx.print.PageLayout;
+import javafx.print.PageOrientation;
+import javafx.print.Paper;
+import javafx.print.Printer;
+import javafx.print.PrinterJob;
+import javafx.scene.image.WritableImage;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.ImageView;
+import javafx.scene.transform.Scale;
 
 public class App extends Application {
 
@@ -78,6 +87,7 @@ public class App extends Application {
 
 
     private static final int DIAS_DEVOLUCION = 30;
+        private static final double TICKET_ANCHO_MM = 80.0;
     private java.util.Deque<Runnable> historialNavegacion = new java.util.ArrayDeque<>();
     private javafx.beans.property.SimpleBooleanProperty hayHistorial = 
     new javafx.beans.property.SimpleBooleanProperty(false);    private PrendaDAO prendaDAO = new PrendaDAO();
@@ -3952,12 +3962,87 @@ listaSugerencias.setOnMouseClicked(e -> {
         labelGracias.setFont(Font.font("System", 12));
         labelGracias.setTextFill(Color.web(TEXTO_SUAVE));
 
-        Button btnNuevaVenta = new Button("+ Nueva Venta");
+                Button btnNuevaVenta = new Button("+ Nueva Venta");
         btnNuevaVenta.setStyle("-fx-background-color: " + NARANJA + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 24; -fx-background-radius: 6; -fx-cursor: hand;");
         btnNuevaVenta.setOnAction(e -> mostrarPuntoDeVenta(contenido));
 
+        Button btnImprimirRecibo = new Button("🖨 Imprimir Ticket");
+        btnImprimirRecibo.setStyle("-fx-background-color: " + PRINCIPAL + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 24; -fx-background-radius: 6; -fx-cursor: hand;");
+
+        HBox filaBotonesRecibo = new HBox(10, btnImprimirRecibo, btnNuevaVenta);
+
         VBox recibo = new VBox(12, tituloRecibo, subtituloRecibo, labelFecha, labelDevolucion,
-                sep1, encabezado, filas, sep2, labelTotalFinal, labelGracias, btnNuevaVenta);
+                sep1, encabezado, filas, sep2, labelTotalFinal, labelGracias, filaBotonesRecibo);
+
+                            btnImprimirRecibo.setOnAction(e -> {
+            // Labels nuevos con los mismos datos
+            Label p1 = new Label("Punto Olayma");
+            p1.setFont(Font.font("System", FontWeight.BOLD, 20));
+            p1.setTextFill(Color.web(CAFE));
+
+            Label p2 = new Label("RECIBO DE VENTA");
+            p2.setFont(Font.font("System", FontWeight.BOLD, 13));
+            p2.setTextFill(Color.web(TEXTO_SUAVE));
+
+            Label p3 = new Label(labelFecha.getText());
+            p3.setFont(Font.font("System", 12));
+            p3.setTextFill(Color.web(TEXTO_SUAVE));
+
+            Label p4 = new Label(labelDevolucion.getText());
+            p4.setFont(Font.font("System", FontWeight.BOLD, 12));
+            p4.setTextFill(Color.web(NARANJA));
+
+            Region r1 = new Region(); r1.setPrefHeight(1); r1.setStyle("-fx-background-color: #E5E7EB;");
+            Region r2 = new Region(); r2.setPrefHeight(1); r2.setStyle("-fx-background-color: #E5E7EB;");
+
+                        ColumnConstraints cc0 = new ColumnConstraints(); cc0.setPrefWidth(220); cc0.setMinWidth(220);
+            ColumnConstraints cc1 = new ColumnConstraints(); cc1.setPrefWidth(90);  cc1.setMinWidth(90);
+            ColumnConstraints cc2 = new ColumnConstraints(); cc2.setPrefWidth(50);  cc2.setMinWidth(50);
+            ColumnConstraints cc3 = new ColumnConstraints(); cc3.setPrefWidth(90);  cc3.setMinWidth(90);
+            ColumnConstraints cc4 = new ColumnConstraints(); cc4.setPrefWidth(100); cc4.setMinWidth(100);
+
+            Label eh1 = new Label("Producto"); Label eh2 = new Label("Tipo");
+            Label eh3 = new Label("Cant."); Label eh4 = new Label("P.Unit"); Label eh5 = new Label("Subtotal");
+            for (Label h : new Label[]{eh1, eh2, eh3, eh4, eh5}) {
+                h.setFont(Font.font("System", FontWeight.BOLD, 11));
+                h.setTextFill(Color.web(TEXTO_SUAVE));
+            }
+            GridPane enc2 = new GridPane(); enc2.setHgap(12);
+            enc2.getColumnConstraints().addAll(cc0, cc1, cc2, cc3, cc4);
+            enc2.add(eh1, 0, 0); enc2.add(eh2, 1, 0);
+            enc2.add(eh3, 2, 0); enc2.add(eh4, 3, 0); enc2.add(eh5, 4, 0);
+
+            VBox filas2 = new VBox(6);
+            for (ItemVenta item : carrito) {
+                Label ln = new Label(item.getNombreProducto());
+                Label lt = new Label(item.getTipoVenta());
+                Label lc = new Label(String.valueOf(item.getCantidad()));
+                Label lp = new Label("$" + String.format("%.2f", item.getPrecioUnitario()));
+                Label ls = new Label("$" + String.format("%.2f", item.getSubtotal()));
+                for (Label l : new Label[]{ln, lt, lc, lp, ls}) { l.setFont(Font.font("System", 12)); l.setTextFill(Color.web(TEXTO)); }
+                ls.setTextFill(Color.web(NARANJA)); ls.setFont(Font.font("System", FontWeight.BOLD, 12));
+                GridPane fp = new GridPane(); fp.setHgap(12);
+                fp.getColumnConstraints().addAll(cc0, cc1, cc2, cc3, cc4);
+                fp.add(ln, 0, 0); fp.add(lt, 1, 0); fp.add(lc, 2, 0); fp.add(lp, 3, 0); fp.add(ls, 4, 0);
+                filas2.getChildren().add(fp);
+            }
+
+            Label p5 = new Label("TOTAL:   $" + String.format("%.2f", total));
+            p5.setFont(Font.font("System", FontWeight.BOLD, 18));
+            p5.setTextFill(Color.web(CAFE));
+
+            Label p6 = new Label("¡Gracias por su compra!");
+            p6.setFont(Font.font("System", 12));
+            p6.setTextFill(Color.web(TEXTO_SUAVE));
+
+            VBox reciboImpresion = new VBox(12, p1, p2, p3, p4, r1, enc2, filas2, r2, p5, p6);
+            reciboImpresion.setAlignment(Pos.TOP_LEFT);
+            reciboImpresion.setStyle("-fx-background-color: white; -fx-padding: 32;");
+            reciboImpresion.setPrefWidth(620);
+            reciboImpresion.setMinWidth(620);
+
+            mostrarVistaPreviaImpresion(reciboImpresion);
+        });
         recibo.setAlignment(Pos.TOP_LEFT);
         recibo.setStyle("-fx-background-color: " + PANEL + "; -fx-padding: 32; -fx-background-radius: 8; -fx-border-color: " + NARANJA + "; -fx-border-width: 2; -fx-border-radius: 8;");
         recibo.setMaxWidth(560);
@@ -4456,6 +4541,88 @@ private void cambiarEscena(javafx.scene.Parent root) {
         scenePrincipal.setRoot(root);
     }
 }
+
+
+    // ---------------- IMPRESIÓN DE TICKETS (80mm) ----------------
+
+    private double mmAPuntos(double mm) {
+        // 1 pulgada = 25.4mm = 72 puntos (unidad que usa javafx.print)
+        return mm * 72.0 / 25.4;
+    }
+
+       private void mostrarVistaPreviaImpresion(javafx.scene.Node nodoRecibo) {
+        ScrollPane scrollPreview = new ScrollPane(nodoRecibo);
+        scrollPreview.setFitToWidth(true);
+        scrollPreview.setStyle("-fx-background-color: " + FONDO + "; -fx-background: " + FONDO + ";");
+
+        Label tituloPreview = new Label("Vista previa del ticket (80mm)");
+        tituloPreview.setFont(Font.font("System", FontWeight.BOLD, 15));
+        tituloPreview.setTextFill(Color.web(SECUNDARIO));
+
+        Button btnImprimir = new Button("🖨 Imprimir");
+        btnImprimir.setStyle(estiloBtnPrincipal());
+
+        Button btnCerrar = new Button("Cerrar");
+        btnCerrar.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXTO_SUAVE + "; -fx-font-size: 12px; -fx-cursor: hand;");
+
+        Stage ventanaPreview = new Stage();
+        ventanaPreview.setTitle("Vista previa - Ticket");
+        ventanaPreview.initOwner(stage);
+        ventanaPreview.initModality(javafx.stage.Modality.WINDOW_MODAL);
+
+        btnImprimir.setOnAction(e -> imprimirNodo(nodoRecibo));
+        btnCerrar.setOnAction(e -> ventanaPreview.close());
+
+        HBox botones = new HBox(10, btnImprimir, btnCerrar);
+        botones.setAlignment(Pos.CENTER);
+        botones.setStyle("-fx-padding: 12 0 0 0;");
+
+        VBox contenidoPreview = new VBox(12, tituloPreview, scrollPreview, botones);
+        contenidoPreview.setStyle("-fx-padding: 20; -fx-background-color: " + FONDO + ";");
+        contenidoPreview.setAlignment(Pos.TOP_CENTER);
+        VBox.setVgrow(scrollPreview, Priority.ALWAYS);
+
+        Scene scenePreview = new Scene(contenidoPreview, 400, 600);
+        ventanaPreview.setScene(scenePreview);
+        ventanaPreview.show();
+    }
+
+        private void imprimirNodo(javafx.scene.Node nodo) {
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job == null) {
+            mostrarError("No se detectó ninguna impresora configurada en este equipo.");
+            return;
+        }
+
+        Printer impresora = job.getPrinter();
+
+        // Usamos el papel que la impresora ya trae configurado por defecto
+        // (en una impresora térmica de 80mm, el driver ya reporta ese ancho).
+                Paper papelImpresora = impresora.getPrinterAttributes().getDefaultPaper();
+
+        PageLayout layout = impresora.createPageLayout(
+            papelImpresora,
+            PageOrientation.PORTRAIT,
+            Printer.MarginType.HARDWARE_MINIMUM
+        );
+        job.getJobSettings().setPageLayout(layout);
+
+        double anchoDisponible = layout.getPrintableWidth();
+        double anchoNodo = nodo.getBoundsInParent().getWidth();
+        double escala = anchoDisponible / anchoNodo;
+
+        Scale escalaTransform = new Scale(escala, escala, 0, 0);
+        nodo.getTransforms().add(escalaTransform);
+
+                boolean exito = job.printPage(layout, nodo);
+        if (exito) {
+            job.endJob();
+        } else {
+            mostrarError("No se pudo completar la impresión del ticket.");
+        }
+
+        nodo.getTransforms().remove(escalaTransform);
+    }
 
     private Label crearSeccionMenu(String texto) {
         Label label = new Label(texto);
